@@ -1,0 +1,8 @@
+.build/
+*.bin
+*.elf
+*.map
+*.log
+__pycache__/
+.DS_Store
+open-firenet/build/
