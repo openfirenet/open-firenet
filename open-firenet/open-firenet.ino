@@ -420,7 +420,13 @@ void handleApiControls() {
       server.send(400, "application/json", "{\"error\":\"bad cmd\"}");
     }
   } else {
-    server.send(200, "text/plain", desiredControls);
+    int dc_onOff, dc_opMode, dc_power, dc_target;
+    parseDesiredControls(dc_onOff, dc_opMode, dc_power, dc_target);
+    String json = "{\"onOff\":" + String(dc_onOff) +
+                  ",\"operatingMode\":" + String(dc_opMode) +
+                  ",\"heatingPower\":" + String(dc_power) +
+                  ",\"tempRoomTarget\":" + String(dc_target) + "}";
+    server.send(200, "application/json", json);
   }
 }
 
@@ -476,7 +482,7 @@ void handleResetWifi() {
   addLog("=== RESET WiFi → provisioning mode ===");
   prefs.remove("ssid"); prefs.remove("pass");
   prefs.remove("id");   prefs.remove("token");
-  server.send(200, "text/plain", "WiFi credentials erased — rebooting...");
+  server.send(200, "application/json", "{\"ok\":true,\"message\":\"WiFi credentials erased — rebooting\"}");
   delay(500);
   ESP.restart();
 }
@@ -648,23 +654,23 @@ function applyLang(){
   document.getElementById('lang-en').className='lbtn'+(LANG==='en'?' active':'');
   updateModeButtons();updateStateDisplay();
 }
-function parseCtrl(s){var r={};s.split(';').forEach(function(p){p=p.trim();var e=p.indexOf('=');if(e>0){var k=p.substring(0,e).trim(),v=parseInt(p.substring(e+1));if(!isNaN(v))r[k]=v;}});return r;}
+
 function fb(msg,ok){var el=document.getElementById('fb');el.style.color=ok===false?'#e74c3c':'#27ae60';el.textContent=msg;setTimeout(function(){el.textContent='';},3000);}
 function setPower(v){
   var nc='onOff='+v+'; operatingMode='+(ctrlState.operatingMode||0)+'; heatingPower='+(ctrlState.heatingPower||50)+'; tempRoomTarget='+(ctrlState.tempRoomTarget||220)+';';
   fetch('/api/controls',{method:'POST',body:nc}).then(function(){ctrlState.onOff=v;ignoreCtrlUntil=Date.now()+2000;fb(t(v?'stOn':'stOff'));updateDisplay();});
 }
 function adjTemp(d){
-  fetch('/api/controls').then(function(r){return r.text();}).then(function(s){
-    ctrlState=parseCtrl(s);
+  fetch('/api/controls').then(function(r){return r.json();}).then(function(s){
+    ctrlState=s;
     var tv=Math.max(140,Math.min(280,(ctrlState.tempRoomTarget||220)+d*10));
     var nc='onOff='+ctrlState.onOff+'; operatingMode='+(ctrlState.operatingMode||0)+'; heatingPower='+(ctrlState.heatingPower||50)+'; tempRoomTarget='+tv+';';
     fetch('/api/controls',{method:'POST',body:nc}).then(function(){ctrlState.tempRoomTarget=tv;ignoreCtrlUntil=Date.now()+2000;fb(t('tempset')+(tv/10).toFixed(1)+'°C');document.getElementById('temp').textContent=(tv/10).toFixed(1);});
   });
 }
 function adjPow(d){
-  fetch('/api/controls').then(function(r){return r.text();}).then(function(s){
-    ctrlState=parseCtrl(s);
+  fetch('/api/controls').then(function(r){return r.json();}).then(function(s){
+    ctrlState=s;
     var p=Math.max(50,Math.min(100,(ctrlState.heatingPower||50)+d));
     var nc='onOff='+ctrlState.onOff+'; operatingMode='+(ctrlState.operatingMode||0)+'; heatingPower='+p+'; tempRoomTarget='+(ctrlState.tempRoomTarget||220)+';';
     fetch('/api/controls',{method:'POST',body:nc}).then(function(){ctrlState.heatingPower=p;ignoreCtrlUntil=Date.now()+2000;fb(t('powset')+p+'%');document.getElementById('pow').textContent=p;});
@@ -697,10 +703,10 @@ function updateModeButtons(){
   });
 }
 function setMode(m){
-  fetch('/api/controls').then(function(r){return r.text();}).then(function(s){
-    ctrlState=parseCtrl(s);
+  fetch('/api/controls').then(function(r){return r.json();}).then(function(s){
+    ctrlState=s;
     var nc='onOff='+ctrlState.onOff+'; operatingMode='+m+'; heatingPower='+(ctrlState.heatingPower||50)+'; tempRoomTarget='+(ctrlState.tempRoomTarget||220)+';';
-    fetch('/api/controls',{method:'POST',body:nc}).then(function(r){return r.text();}).then(function(){
+    fetch('/api/controls',{method:'POST',body:nc}).then(function(){
       ctrlState.operatingMode=m;ignoreCtrlUntil=Date.now()+2000;
       fb(t('modeset')+t(['manual','auto','comfort'][m]||''));
       updateModeButtons();updateAdjVisibility();
@@ -724,7 +730,10 @@ function sendCmd(e){
   e.preventDefault();
   var c=document.getElementById('cmdinput').value.trim();
   if(!c)return;
-  fetch('/api/controls',{method:'POST',body:c}).then(function(r){return r.text();}).then(function(){fb(t('sent'));document.getElementById('ctrl').textContent=c;ctrlState=parseCtrl(c);updateDisplay();});
+  fetch('/api/controls',{method:'POST',body:c}).then(function(){
+    fb(t('sent'));ignoreCtrlUntil=Date.now()+2000;
+    fetch('/api/controls').then(function(r){return r.json();}).then(function(s){ctrlState=s;updateDisplay();});
+  });
 }
 function fetchAll(){
   fetch('/api/sensors').then(function(r){return r.json();}).then(function(d){
@@ -734,8 +743,13 @@ function fetchAll(){
     rows+='</table>';
     document.getElementById('sensors').innerHTML=Object.keys(d).length?rows:'<em style="color:#ccc;font-size:13px">'+t('waiting')+'</em>';
   }).catch(function(){});
-  fetch('/api/controls').then(function(r){return r.text();}).then(function(s){
-    if(Date.now()>ignoreCtrlUntil){document.getElementById('ctrl').textContent=s;ctrlState=parseCtrl(s);updateDisplay();}
+  fetch('/api/controls').then(function(r){return r.json();}).then(function(s){
+    if(Date.now()>ignoreCtrlUntil){
+      ctrlState=s;
+      var disp='onOff='+s.onOff+'; operatingMode='+s.operatingMode+'; heatingPower='+s.heatingPower+'; tempRoomTarget='+s.tempRoomTarget+';';
+      document.getElementById('ctrl').textContent=disp;
+      updateDisplay();
+    }
   });
   if(logOpen)fetchLog();
 }

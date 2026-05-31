@@ -22,14 +22,14 @@ RIKA stoves use a USB CDC dongle (the "Firenet 2.0" stick) to connect to RIKA's 
 
 ## Hardware
 
-> **Tested hardware only** — This firmware has only been tested on the board described below. Other ESP32-S3 boards may work but are untested. Non-S3 variants (ESP32, ESP32-S2, ESP32-C3, etc.) will **not** work — the native USB stack required for USB device mode is specific to the ESP32-S3.
+> **Tested hardware only** — This firmware has only been tested on an ESP32-S3. Other ESP32-S3 boards will likely work. The ESP32-S2 also has native USB OTG and may work but is untested. ESP32, ESP32-C3, and other variants without native USB OTG will not work.
 
 ### Required
 
 | Part | Notes |
 |---|---|
-| ESP32-S3 dev board with native USB-A port | Must expose the S3's USB OTG pins on a USB-A socket. The board tested has a USB-A connector directly on the USB port (not a Micro/Type-C adapter). |
-| USB-A to USB-A cable | Standard Male-A to Male-A. The ESP32 plugs into the stove's USB-A socket exactly like the original Firenet dongle. |
+| ESP32-S3 dev board with native USB | The board must expose the S3's USB OTG pins (GPIO19/20 = D+/D−) on its USB connector. Any connector type works (USB-A, USB-C, Micro-B) as long as it is wired to the S3's native USB, not to a UART bridge chip. |
+| Cable to stove | The stove has a USB-A socket. Use whatever cable or adapter connects your board's USB port to USB-A Male (e.g. USB-C to USB-A, or USB-A to USB-A). |
 
 ### How it connects
 
@@ -38,8 +38,8 @@ The stove acts as USB host; the ESP32-S3 acts as USB device (CDC class). The fir
 ### What to look for when buying
 
 - The board **must** have the ESP32-S3 chip (not ESP32, S2, or C3)
-- The board **must** expose native USB (not just UART-over-USB via a CH340/CP2102 chip)
-- The USB-A socket must be wired to the S3's USB D+/D− pins (GPIO19/20), not to a USB-UART bridge
+- The board **must** expose native USB OTG — **not** a UART bridge (CH340, CP2102, etc.)
+- Check the schematic or product page: the native USB port is labeled "USB OTG", "USB", or connects to GPIO19/20; the UART port is labeled "UART", "COM", or connects to a bridge chip
 
 ---
 
@@ -177,7 +177,7 @@ Once connected, open `http://open-firenet.local` in a browser (or use the IP sho
 |---|---|---|
 | `/api/status` | GET | JSON: wifi, ip, ssid, provisioning, mainLoop, controls |
 | `/api/sensors` | GET | JSON: sensor fields from POST_SENSORS (f0 = room temp ×10) |
-| `/api/controls` | GET | Current setpoints string |
+| `/api/controls` | GET | JSON: current setpoints (`onOff`, `operatingMode`, `heatingPower`, `tempRoomTarget`) |
 | `/api/controls` | POST | Set controls — body: `onOff=1; operatingMode=1; heatingPower=50; tempRoomTarget=210;` |
 | `/log` | GET | Plain-text log |
 | `/update` | GET/POST | OTA firmware update page |
@@ -185,9 +185,9 @@ Once connected, open `http://open-firenet.local` in a browser (or use the IP sho
 
 ### Controls format
 ```
-onOff=<0|1>; operatingMode=<0|1|2>; heatingPower=<30-100>; tempRoomTarget=<140-280>;
+onOff=<0|1>; operatingMode=<0|1|2>; heatingPower=<50-100>; tempRoomTarget=<140-280>;
 ```
-`tempRoomTarget` is ×10 (210 = 21.0 °C). `heatingPower` is % (30–100).
+`tempRoomTarget` is ×10 (210 = 21.0 °C). `heatingPower` is % (50–100, values below 50 are clamped to 50).
 
 ### Operating modes
 | Value | Mode |
