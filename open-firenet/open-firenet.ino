@@ -478,6 +478,13 @@ void handleOtaUpload() {
   }
 }
 
+void handleRestart() {
+  corsHeaders();
+  server.send(200, "application/json", "{\"ok\":true,\"message\":\"Rebooting\"}");
+  delay(200);
+  ESP.restart();
+}
+
 void handleResetWifi() {
   addLog("=== RESET WiFi → provisioning mode ===");
   prefs.remove("ssid"); prefs.remove("pass");
@@ -615,6 +622,7 @@ pre{background:#14141f;color:#8ab4f8;padding:12px;height:260px;overflow-y:scroll
     <div style='display:flex;gap:12px'>
       <a class='rlnk' href='/update' data-i18n='ota'></a>
       <a class='rlnk' id='resetlnk' href='/reset-wifi' data-i18n='resetwifi'></a>
+      <a class='rlnk' id='restartlnk' href='#' data-i18n='restart'></a>
     </div>
   </div>
   <form onsubmit='sendCmd(event)'>
@@ -639,8 +647,8 @@ var logOpen=false,ignoreCtrlUntil=0;
 var isProv=)" + (provisioningMode ? "true" : "false") + R"(;
 var LANG=localStorage.getItem('rika_lang')||'fr';
 var I18N={
-  fr:{subtitle:'Contrôle local du poêle',network:'Réseau WiFi',sensors:'Capteurs',control:'Contrôle',start:'Allumer',stop:'Éteindre',temp:'Température',power:'Puissance',mode:'Mode',manual:'Manuel',auto:'Auto',comfort:'Confort',cmd:'Commande directe',send:'Envoyer',resetwifi:'Réinit. WiFi',resetconfirm:'Effacer les credentials WiFi et redémarrer ?',log:'Log',copy:'Copier',setpoints:'Consignes',waiting:'En attente...',stOn:'Allumé',stOff:'Éteint',modeset:'Mode → ',tempset:'Temp → ',powset:'Puissance → ',sent:'✓ Envoyé',sensor_room:'Temp. ambiante',ota:'OTA',provwarn:'Allez dans <strong>Réglages → WiFi</strong> sur l&#39;écran du poêle pour configurer le WiFi.'},
-  en:{subtitle:'Local stove control',network:'WiFi Network',sensors:'Sensors',control:'Control',start:'Start',stop:'Stop',temp:'Temperature',power:'Power',mode:'Mode',manual:'Manual',auto:'Auto',comfort:'Comfort',cmd:'Direct command',send:'Send',resetwifi:'Reset WiFi',resetconfirm:'Clear WiFi credentials and reboot?',log:'Log',copy:'Copy',setpoints:'Setpoints',waiting:'Waiting...',stOn:'On',stOff:'Off',modeset:'Mode → ',tempset:'Temp → ',powset:'Power → ',sent:'✓ Sent',sensor_room:'Room temp.',ota:'OTA',provwarn:'Go to <strong>Settings → WiFi</strong> on the stove screen to configure WiFi.'}
+  fr:{subtitle:'Contrôle local du poêle',network:'Réseau WiFi',sensors:'Capteurs',control:'Contrôle',start:'Allumer',stop:'Éteindre',temp:'Température',power:'Puissance',mode:'Mode',manual:'Manuel',auto:'Auto',comfort:'Confort',cmd:'Commande directe',send:'Envoyer',resetwifi:'Réinit. WiFi',resetconfirm:'Effacer les credentials WiFi et redémarrer ?',restart:'Redémarrer',restartconfirm:'Redémarrer l\'ESP32 ?',log:'Log',copy:'Copier',setpoints:'Consignes',waiting:'En attente...',stOn:'Allumé',stOff:'Éteint',modeset:'Mode → ',tempset:'Temp → ',powset:'Puissance → ',sent:'✓ Envoyé',sensor_room:'Temp. ambiante',ota:'OTA',provwarn:'Allez dans <strong>Réglages → WiFi</strong> sur l&#39;écran du poêle pour configurer le WiFi.'},
+  en:{subtitle:'Local stove control',network:'WiFi Network',sensors:'Sensors',control:'Control',start:'Start',stop:'Stop',temp:'Temperature',power:'Power',mode:'Mode',manual:'Manual',auto:'Auto',comfort:'Comfort',cmd:'Direct command',send:'Send',resetwifi:'Reset WiFi',resetconfirm:'Clear WiFi credentials and reboot?',restart:'Restart',restartconfirm:'Restart the ESP32?',log:'Log',copy:'Copy',setpoints:'Setpoints',waiting:'Waiting...',stOn:'On',stOff:'Off',modeset:'Mode → ',tempset:'Temp → ',powset:'Power → ',sent:'✓ Sent',sensor_room:'Room temp.',ota:'OTA',provwarn:'Go to <strong>Settings → WiFi</strong> on the stove screen to configure WiFi.'}
 };
 function t(k){return(I18N[LANG]||I18N.fr)[k]||k;}
 function setLang(l){LANG=l;localStorage.setItem('rika_lang',l);applyLang();}
@@ -650,6 +658,8 @@ function applyLang(){
   if(pw)pw.innerHTML=isProv?'<p style="font-size:13px;color:#856404;margin-top:8px">'+t('provwarn')+'</p>':'';
   var rl=document.getElementById('resetlnk');
   if(rl)rl.onclick=function(){return confirm(t('resetconfirm'));};
+  var rsl=document.getElementById('restartlnk');
+  if(rsl)rsl.onclick=function(){if(confirm(t('restartconfirm')))fetch('/restart');return false;};
   document.getElementById('lang-fr').className='lbtn'+(LANG==='fr'?' active':'');
   document.getElementById('lang-en').className='lbtn'+(LANG==='en'?' active':'');
   updateModeButtons();updateStateDisplay();
@@ -1206,6 +1216,7 @@ void setup() {
   server.on("/api/sensors",   handleApiSensors);
   server.on("/api/controls",  handleApiControls);
   server.on("/reset-wifi",    handleResetWifi);
+  server.on("/restart",       handleRestart);
   server.on("/update", HTTP_GET, handleOtaPage);
   server.on("/update", HTTP_POST,
     []() {
