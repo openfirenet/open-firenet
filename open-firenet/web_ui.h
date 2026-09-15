@@ -1352,7 +1352,7 @@ async function tick() {
     document.getElementById('cdcOut').textContent = s.frames_out;
     document.getElementById('cdcState').textContent = t.cdcSpeed;
     document.getElementById('cdcAck').textContent = s.version_ack ? t.yes : t.no;
-    document.getElementById('cdcGen').textContent = s.generation ? s.generation : '--';
+    document.getElementById('cdcGen').textContent = (s.generation ? s.generation : '--') + (s.version_frame && s.version_frame !== '?' ? ' (' + s.version_frame + ')' : '');
     const upSec = (s.uptime_seconds !== undefined) ? s.uptime_seconds : ((s.device && s.device.uptime_seconds !== undefined) ? s.device.uptime_seconds : rawS.uptime);
     const upStr = formatUptime(upSec);
     const elUptime = document.getElementById('dongleUptime');

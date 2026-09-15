@@ -28,6 +28,7 @@ struct StoveModel {
   int  main_state = 0, sub_state = 0;
   bool version_ack = false;                    // GET_CDCDEVICE_VERSION_FINISHED reçu
   int  generation = 0;                         // 1 = CDCDEVICE, 2 = FIRENET (§6.4)
+  int  version_profile = -1;                   // acknowledged version frame: -1 none, 0 = V3, 1 = V1
   uint32_t frames_in = 0, frames_out = 0, last_rx_ms = 0;
 };
 
@@ -68,11 +69,31 @@ public:
   size_t txPending() const { return txq_.size(); }
 
   // --- émissions (rôle dongle) ----------------------------------------------
+  // Two version replies exist; recent and older stoves accept different ones:
+  //   V3 (recent stoves): "GET_CDCDEVICE3_VERSION=0; ... DT=3; "
+  //   V1 (older stoves):  "GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ... DT=1; "
+  // The stove decides which it accepts, so we send one then the other in turn
+  // until it acknowledges with any *_FINISHED, then lock onto that frame (and its DT).
+  struct VersionProfile { const char* prefix; int dt; };
+  static const VersionProfile& profileV1() { static const VersionProfile p =
+      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 1}; return p; }
+  static const VersionProfile& profileV3() { static const VersionProfile p =
+      {"GET_CDCDEVICE3_VERSION=0; ", 3}; return p; }
+  const VersionProfile& profile() const { return profile_ ? profileV1() : profileV3(); }
+  int dt() const { return profile().dt; }      // effective DT of the active profile
+
   void sendVersion() {
+    // fallback: after PROFILE_SWITCH_AFTER unacked attempts, try the other frame.
+    if (!model_.version_ack && profile_tries_ >= PROFILE_SWITCH_AFTER) {
+      profile_ = 1 - profile_;
+      profile_tries_ = 0;
+      if (dbg_) dbg_("tx", std::string("[version fallback -> ") + profile().prefix + "]");
+    }
     char b[96];
-    snprintf(b, sizeof b, "GET_CDCDEVICE_VERSION=0; BL=%d; APP=%d; REV=%d; DT=%d; ",
-             BL_VERSION, APP_VERSION, APP_REVISION, DT);
+    snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; DT=%d; ",
+             profile().prefix, BL_VERSION, APP_VERSION, APP_REVISION, profile().dt);
     send(b);
+    profile_tries_++;
   }
   void requestStatus() { send(model_.generation == 2 ? "POST_FIRENET_STATUS"
                                                       : "POST_CDCDEVICE_STATUS"); }
@@ -82,7 +103,7 @@ public:
                   const std::string& ip = "", const std::string& mac = "",
                   int rssi = -55, const std::string& id = "0000000",
                   const std::string& token = "00000000") {
-    std::string ssid = (DT == 3) ? hexEncode(ssidClear) : ssidClear;
+    std::string ssid = (dt() == 3) ? hexEncode(ssidClear) : ssidClear;
     std::string f = (model_.generation == 2) ? "GET_FIRENET_STATUS=0;\n"
                                               : "GET_CDCDEVICE_STATUS=0;\n";
     char rssis[8], apps[8];
@@ -209,7 +230,7 @@ public:
   void sendNetworks(const std::vector<std::pair<std::string,int>>& nets) {
     std::string f = "GET_NETWORKS=1;\n";
     for (auto& n : nets) {
-      std::string s = (DT == 3) ? hexEncode(n.first) : n.first;
+      std::string s = (dt() == 3) ? hexEncode(n.first) : n.first;
       char line[128];
       snprintf(line, sizeof line, "%s=%d\n", s.c_str(), n.second);
       f += line;
@@ -253,9 +274,11 @@ private:
     // les continuations "=val" (isContinuation) le prolongent (traité plus bas).
     if (!isContinuation(buf)) pending_pos_ = nullptr;
     if (buf.find("GET_WIFI_VERSION_FINISHED") != std::string::npos) {
-      model_.generation = 2; model_.version_ack = true; return; }
+      model_.generation = 2; model_.version_ack = true;
+      model_.version_profile = profile_; return; }
     if (buf.find("GET_CDCDEVICE_VERSION_FINISHED") != std::string::npos) {
-      model_.generation = 1; model_.version_ack = true; return; }
+      model_.generation = 1; model_.version_ack = true;
+      model_.version_profile = profile_; return; }
     if (buf.find("GET_CDCDEVICE_VERSION_UNFINISHED") != std::string::npos) return;
     if (!model_.version_ack && (buf == "3" || buf == "0" || buf.find('\x16') != std::string::npos)) {
       txq_.clear();
@@ -352,6 +375,12 @@ private:
   bool silence_pending_ = false;
   uint32_t last_version_ms_ = 0;
   bool version_sent_ = false;
+  // automatic version-frame fallback. profile_: 0 = V3, 1 = V1.
+  // Start on V1 (older stoves); if the stove does not acknowledge, sendVersion()
+  // switches to V3, and back again, until an ACK arrives.
+  int profile_ = 1;
+  int profile_tries_ = 0;
+  static const int PROFILE_SWITCH_AFTER = 3;   // unacked attempts before switching
   int rssi_ = -55;
   uint32_t dropped_ = 0;
   std::deque<std::string> txq_;

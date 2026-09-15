@@ -34,30 +34,41 @@ Two low-level details matter and are easy to get wrong:
 
 ### 1. USB reset probe (stove-initiated)
 
-The stove repeatedly sends a 2-byte probe — `0x16` (SYN) followed by the ASCII
-character `3` — roughly every 100 ms until the dongle answers acceptably. The trailing
-`3` selects the “version 3” variant of the handshake.
+The stove repeatedly sends a short probe — `0x16` (SYN) followed by an ASCII digit —
+roughly every 100 ms until the dongle answers acceptably.
 
-**Dongle → Stove:**
+There are **two** version replies; recent and older stoves accept different ones. A
+recent stove accepts the `V3` frame, an older one the `V1` frame:
+
+**V3 (recent stoves):**
 ```
 GET_CDCDEVICE3_VERSION=0; BL=999; APP=201; REV=12201; DT=3;
 ```
 
-**Expected stove response:**
+**V1 (older stoves):**
 ```
+GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1;
+```
+
+**Expected stove response (either frame):**
+```
+GET_WIFI_VERSION_FINISHED
 GET_CDCDEVICE_VERSION_FINISHED
 ```
 
-`BL` / `APP` / `REV` are the dongle's own firmware version numbers; `DT=3` is the
-device type. These values do **not** decide whether the handshake is accepted — a
-DOMO 2.29 finishes the handshake with `BL=112` and `BL=999` alike. Their real use is
-the firmware-update check (a high `BL` such as `999` tells the stove/cloud the dongle
-is up to date, so it never tries to push an OTA firmware onto it).
+Note the two differences in the V1 frame: it is prefixed with `GET_WIFI_VERSION_`, and
+it uses `GET_CDCDEVICE_VERSION` (no `3`) with `DT=1`.
 
-If the stove keeps re-sending the `0x16 3` probe and never sends
-`GET_CDCDEVICE_VERSION_FINISHED`, the reply is either not reaching it (framing / DTR)
-or its firmware family expects a different reply — this has been seen on non-DOMO
-models (e.g. Induo) and is not yet solved.
+`BL` / `APP` / `REV` are the dongle's own firmware version numbers. These values do
+**not** decide whether the handshake is accepted — a DOMO 2.29 finishes with `BL=112`
+and `BL=999` alike. Their real use is the firmware-update check (a high `BL` such as
+`999` tells the stove/cloud the dongle is up to date, so it never pushes an OTA onto it).
+
+**Which frame does a given stove accept?** The stove decides. Recent models (e.g. DOMO
+2.29) finish on the `V3` frame; older models (e.g. Induo) have been observed to reject
+it and keep re-sending the probe. The firmware therefore **alternates** the two frames
+until the stove acknowledges with any `*_FINISHED`, then locks onto the winning frame
+(and its `DT`) for the session.
 
 ### 2. Announcement (blank status)
 

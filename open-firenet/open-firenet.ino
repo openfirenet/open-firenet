@@ -359,6 +359,7 @@ static String jsonState() {
   j += "\"uptime_seconds\":" + String(millis() / 1000UL) + ",";
   j += "\"write_enabled\":true,";
   j += "\"version_ack\":" + String(m.version_ack ? "true" : "false") + ",";
+  j += "\"version_frame\":\"" + String(m.version_profile < 0 ? "?" : (m.version_profile == 1 ? "V1" : "V3")) + "\",";
   j += "\"generation\":" + String(m.generation) + ",";
   j += "\"frames_in\":" + String(m.frames_in) + ",";
   j += "\"frames_out\":" + String(m.frames_out) + ",";
