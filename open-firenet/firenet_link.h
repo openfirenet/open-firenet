@@ -70,15 +70,14 @@ public:
   // --- émissions (rôle dongle) ----------------------------------------------
   void sendVersion() {
     char b[96];
-    snprintf(b, sizeof b, "GET_CDCDEVICE3_VERSION=0; BL=%d; APP=%d; REV=%d; DT=%d; ",
+    snprintf(b, sizeof b, "GET_CDCDEVICE_VERSION=0; BL=%d; APP=%d; REV=%d; DT=%d; ",
              BL_VERSION, APP_VERSION, APP_REVISION, DT);
     send(b);
   }
   void requestStatus() { send(model_.generation == 2 ? "POST_FIRENET_STATUS"
                                                       : "POST_CDCDEVICE_STATUS"); }
-  // Statut "CONNECTÉ" identique à open-firenet (implémentation prouvée) : EXACTEMENT
-  // 20 champs, se terminant par cdc_device=1 (PAS de champs OTA). bl=999, spwf=229,
-  // symbol=4, initialised=1. Les infos de connexion réelles sont passées par le .ino.
+  // Firenet V1 status: EXACTLY 19 fields (0 to 18, ending with mac, no OTA fields).
+  // bl=101, app=112, rev=360, spwf=0, symbol=4, initialised=1.
   void pushStatus(const std::string& ssidClear, const std::string& wpa2,
                   const std::string& ip = "", const std::string& mac = "",
                   int rssi = -55, const std::string& id = "0000000",
@@ -87,13 +86,13 @@ public:
     std::string f = (model_.generation == 2) ? "GET_FIRENET_STATUS=0;\n"
                                               : "GET_CDCDEVICE_STATUS=0;\n";
     char rssis[8]; snprintf(rssis, sizeof rssis, "%d", rssi);
-    const char* vals[20] = {
+    const char* vals[19] = {
       "0","1","0","0","1","4","0",          // monitoring,on_off,scan,init,initialised,symbol,error
-      "999","201","12201","229", rssis,     // bl,app,rev,spwf,rssi
+      "101","112","360","0", rssis,         // bl,app,rev,spwf,rssi
       id.c_str(), token.c_str(), "3",       // id,token,protocol
-      ssid.c_str(), wpa2.c_str(),           // ssid(hex),wpa2
-      ip.c_str(), mac.c_str(), "1"};        // ip,mac,cdc_device
-    for (int i = 0; i < 20; i++) { f += vals[i]; f += '\n'; }
+      ssid.c_str(), wpa2.c_str(),           // ssid(plain),wpa2
+      ip.c_str(), mac.c_str()};             // ip,mac
+    for (int i = 0; i < 19; i++) { f += vals[i]; f += '\n'; }
     send(f);
   }
   // Lit les capteurs : définit les noms (flag 0) puis réclame l'émission.

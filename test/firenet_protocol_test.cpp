@@ -24,24 +24,23 @@ int main(){
   auto v = parseStatusFrame("X=0;\na\n\nb\n");
   CHECK("7.2","3 jetons dont un vide", v.size()==3 && v[0]=="a" && v[1]=="" && v[2]=="b");
 
-  // trame status complète 23 champs
-  std::string f = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n112\n201\n12201\n0\n-52\n"
-                  "17800020\nfHTeLam2\n0\n4D6F6E53534944\nMonMotDePasse\n192.168.1.42\n"
-                  "AA:BB:CC:DD:EE:FF\n1\n0\n0\n0\n";
+  // complete 19-field status frame (V1)
+  std::string f = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n101\n112\n360\n0\n-52\n"
+                  "17800020\nfHTeLam2\n0\nMonSSID\nMonMotDePasse\n192.168.1.42\n"
+                  "AA:BB:CC:DD:EE:FF\n";
   auto w = parseStatusFrame(f);
-  CHECK("7.2","23 champs", w.size()==23);
-  CHECK("7.2","ssid hexa", w.size()>15 && w[15]=="4D6F6E53534944");
-  CHECK("5.3","ssid décodé", w.size()>15 && hexDecode(w[15])=="MonSSID");
+  CHECK("7.2","19 fields", w.size()==19);
+  CHECK("7.2","plain text ssid", w.size()>15 && w[15]=="MonSSID");
 
   // trame avec champs chaîne vides (id/token/ip/mac vides)
-  std::string e = "POST_CDCDEVICE_STATUS=0;\n0\n1\n0\n0\n0\n0\n0\n112\n201\n12201\n0\n0\n\n\n0\nAB\nCD\n\n\n1\n";
+  std::string e = "POST_CDCDEVICE_STATUS=0;\n0\n1\n0\n0\n0\n0\n0\n101\n112\n360\n0\n0\n\n\n0\nAB\nCD\n\n\n";
   auto x = parseStatusFrame(e);
   CHECK("7.2","champs vides -> pas de décalage", x.size()>=17 && x[12]=="" && x[13]=="" && x[15]=="AB");
 
   // §12 constantes de version
-  CHECK("12","APP=201", APP_VERSION==201);
-  CHECK("12","DT=3", DT==3);
-  CHECK("5","23 champs déclarés", NUM_FIELDS==23);
+  CHECK("12","APP=112", APP_VERSION==112);
+  CHECK("12","DT=1", DT==1);
+  CHECK("5","19 champs déclarés", NUM_FIELDS==19);
   CHECK("13","room target ×10", CTRL_ROOM_TARGET_SCALE==10);
 
   // libellés positionnels (§13/§14)
@@ -56,10 +55,10 @@ int main(){
   std::string sanF = sanitizeForLog(f);
   CHECK("5.4","wpa2 redacted", sanF.find("MonMotDePasse") == std::string::npos && sanF.find("********") != std::string::npos);
   auto sanFields = parseStatusFrame(sanF);
-  CHECK("5.4","all other fields intact", sanFields.size()==23 && sanFields[16]=="********" && sanFields[15]=="4D6F6E53534944" && sanFields[0]=="2" && sanFields[7]=="112");
+  CHECK("5.4","all other fields intact", sanFields.size()==19 && sanFields[16]=="********" && sanFields[15]=="MonSSID" && sanFields[0]=="2" && sanFields[7]=="101");
   std::string noStatus = "POST_CONTROLS=1; onOff=1; roomTarget=200; MonMotDePasse=0; ";
   CHECK("5.4","non-status frame untouched", sanitizeForLog(noStatus) == noStatus);
-  std::string emptyPass = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n112\n201\n12201\n0\n-52\n17800020\nfHTeLam2\n0\n4D6F6E53534944\n\n192.168.1.42\nAA:BB:CC:DD:EE:FF\n1\n0\n0\n0\n";
+  std::string emptyPass = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n101\n112\n360\n0\n-52\n17800020\nfHTeLam2\n0\nMonSSID\n\n192.168.1.42\nAA:BB:CC:DD:EE:FF\n";
   CHECK("5.4","empty password stays empty", sanitizeForLog(emptyPass) == emptyPass);
 
   std::cout << ok << " checks passed, " << ko << " failures\n";

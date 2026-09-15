@@ -19,10 +19,10 @@ inline bool byteAccepted(uint8_t b) {
 
 // ------------------------------------------------------------- §4.2 / §12 / §5
 static const size_t DONGLE_RX_SIZE = 0x1000;   // 4096, notre rôle = dongle
-static const int    BL_VERSION     = 112;      // ParametersInit (DROM 0x3C0B...)
-static const int    APP_VERSION    = 201;      // exigé par le poêle si DT=3 (§12)
-static const int    APP_REVISION   = 12201;
-static const int    DT             = 3;        // active l'encodage hexa du SSID (§5.3)
+static const int    BL_VERSION     = 101;      // Firenet V1: 101
+static const int    APP_VERSION    = 112;      // Required by stove when DT=1 (0x70 == 112)
+static const int    APP_REVISION   = 360;      // Firenet V1: 360
+static const int    DT             = 1;        // Firenet V1: DT=1 (plain text SSID, no OTA fields)
 
 // ------------------------------------------------------------- §5 champs status
 // ordre exact sur le fil ; 't'=texte 'b'=u8 'w'=u16
@@ -35,7 +35,7 @@ static const Field CDC_FIELDS[] = {
   {"ip",'t'},{"mac",'t'},{"update_dialogue",'b'},{"ota_update_revision",'w'},
   {"ota_update_progress",'b'},{"ota_update_error",'b'},
 };
-static const int NUM_FIELDS = 23;              // §5, la 24e entrée borne la table
+static const int NUM_FIELDS = 19;              // Firenet V1: 19 fields (0 to 18, mac)
 
 // ------------------------------------------------------------- §5.3 codec hexa
 inline char hexNibble(int n) {                 // FUN_42009574 : '#' hors plage

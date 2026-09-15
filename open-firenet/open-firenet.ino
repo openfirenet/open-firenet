@@ -171,6 +171,8 @@ static bool findJsonString(const String& str, const String& key, String& out) {
 
 static const char* getStoveModelName(long modelId) {
   switch (modelId) {
+    case 1: return "INDUO";
+    case 2: return "INDUO II";
     case 10: return "INTERNO";
     case 13: return "DOMO";
     case 23: return "DOMO BACK";
@@ -816,7 +818,7 @@ void setup() {
   USB.VID(OPENFIRENET_USB_VID);
   USB.PID(OPENFIRENET_USB_PID);
   USB.manufacturerName("Open-Firenet");
-  USB.productName("Open-Firenet 2");
+  USB.productName("Open-Firenet (V1)");
   USB.serialNumber("23176212");
   POELE.begin();                   // CDC TinyUSB vers le poêle
   USB.begin();

@@ -12,19 +12,19 @@ int main(){
   auto drain=[&](){ for(int i=0;i<64 && !link.txIdle();i++){ clk+=DongleLink::TX_GAP_MS; link.poll(); } };
   // négociation
   link.poll(); drain();              // empile + émet la version
-  CH("version émise", wire.find("GET_CDCDEVICE3_VERSION=0; BL=112; APP=201; REV=12201; DT=3;")!=std::string::npos);
+  CH("version émise", wire.find("GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1;")!=std::string::npos);
   // le poêle répond FINISHED
   std::string fin="GET_CDCDEVICE_VERSION_FINISHED";
   for(char c:fin) link.onByte(c);
   clk+=60; link.poll();              // silence écoulé (>SILENCE_MS après le dernier octet)
   CH("version acquittée", link.model().version_ack && link.model().generation==1);
-  // le poêle pousse un POST_CDCDEVICE_STATUS avec SSID hexa
+  // stove emits POST_CDCDEVICE_STATUS with plain text SSID (DT=1, 19 fields)
   wire.clear();
-  std::string st="POST_CDCDEVICE_STATUS=0;\n0\n1\n0\n0\n5\n0\n0\n112\n201\n12201\n0\n-52\n17800020\nfHTeLam2\n3\n4D6F6E53534944\nsecret\n192.168.1.5\nAA:BB\n1\n";
+  std::string st="POST_CDCDEVICE_STATUS=0;\n0\n1\n0\n0\n5\n0\n0\n101\n112\n360\n0\n-52\n17800020\nfHTeLam2\n3\nMonSSID\nsecret\n192.168.1.5\nAA:BB\n";
   for(char c:st) link.onByte(c);
-  clk+=60; link.poll();              // silence écoulé
-  CH("ssid décodé", link.model().status.at("ssid")=="MonSSID");
-  CH("app_version lu", link.model().status.at("app_version")=="201");
+  clk+=60; link.poll();              // silence elapsed
+  CH("plain ssid parsed", link.model().status.at("ssid")=="MonSSID");
+  CH("app_version parsed", link.model().status.at("app_version")=="112");
   // POST_SENSORS différentiel
   std::string ps="POST_SENSORS=0; temp=213; status=1; ";
   for(char c:ps) link.onByte(c);

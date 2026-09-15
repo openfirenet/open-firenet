@@ -1219,7 +1219,7 @@ function renderSensors(sObj, filterText) {
     else if (k === 'stageCur' || k === 'stageCur1') v = v + ' %';
     else if (k === 'mainState') v = (t.stateMap && t.stateMap[v] ? t.stateMap[v].title : v);
     else if (k === 'model') {
-      const mNames = { 10: 'INTERNO (10)', 13: 'DOMO (13)', 23: 'DOMO BACK (23)' };
+      const mNames = { 1: 'INDUO (1)', 2: 'INDUO II (2)', 10: 'INTERNO (10)', 13: 'DOMO (13)', 23: 'DOMO BACK (23)' };
       const mFallback = (curLang === 'fr' ? 'Modèle ' : 'Model ') + v;
       v = mNames[v] || mFallback;
     }
@@ -1323,7 +1323,7 @@ async function tick() {
     document.getElementById('serviceBar').style.width = sPct + '%';
 
     // Model & Net
-    const modelNames = { 10: 'INTERNO', 13: 'DOMO', 23: 'DOMO BACK' };
+    const modelNames = { 1: 'INDUO', 2: 'INDUO II', 10: 'INTERNO', 13: 'DOMO', 23: 'DOMO BACK' };
     const mId = stObj.model !== undefined ? stObj.model : (rawS.model !== undefined ? rawS.model : 13);
     const mFallback = (curLang === 'fr' ? 'Modèle ' : 'Model ') + mId;
     const mName = stObj.model_name || modelNames[mId] || mFallback;
