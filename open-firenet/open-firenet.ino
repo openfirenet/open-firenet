@@ -511,11 +511,20 @@ static void handleScan() {
 }
 
 // ------------------------------------------------ API compatibilité open-firenet & Home Assistant
+static const size_t LOG_MAX_BYTES = 49152;   // 48 KB (large buffer to capture full boot sequence and traffic)
+static const size_t LOG_TRIM_BYTES = 12288;  // 12 KB trimmed on overflow
+static String g_bootLogs = "";               // Permanently preserves first 35 seconds of boot
 static String g_recentLogs = "";
+
 static void logEntry(const char* dir, const std::string& msg) {
   char b[256];
   snprintf(b, sizeof b, "[%lu][%s] %s\n", (unsigned long)millis(), dir, msg.c_str());
-  if (g_recentLogs.length() > 8000) g_recentLogs = g_recentLogs.substring(2000);
+  if (millis() < 35000 && g_bootLogs.length() < 12288) {
+    g_bootLogs += b;
+  }
+  if (g_recentLogs.length() > LOG_MAX_BYTES) {
+    g_recentLogs = g_recentLogs.substring(LOG_TRIM_BYTES);
+  }
   g_recentLogs += b;
 }
 
@@ -826,7 +835,16 @@ static void handleApiControls() {
 // GET /log (compatibilité open-firenet)
 static void handleLog() {
   sendCors();
-  web.send(200, "text/plain", g_recentLogs.length() ? g_recentLogs : "Pas de logs recents.\n");
+  if (g_recentLogs.isEmpty()) {
+    web.send(200, "text/plain", "Pas de logs recents.\n");
+    return;
+  }
+  if (g_recentLogs.indexOf("[0][") == -1 && g_recentLogs.indexOf("[1000][") == -1 && g_bootLogs.length()) {
+    String all = "=== BOOT SEQUENCE (t=0s..35s) ===\n" + g_bootLogs + "\n=== RECENT LOGS ===\n" + g_recentLogs;
+    web.send(200, "text/plain", all);
+  } else {
+    web.send(200, "text/plain", g_recentLogs);
+  }
 }
 
 // --------------------------------------------------------------------- setup
