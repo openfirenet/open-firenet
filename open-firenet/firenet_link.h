@@ -257,6 +257,12 @@ private:
     if (buf.find("GET_CDCDEVICE_VERSION_FINISHED") != std::string::npos) {
       model_.generation = 1; model_.version_ack = true; return; }
     if (buf.find("GET_CDCDEVICE_VERSION_UNFINISHED") != std::string::npos) return;
+    if (!model_.version_ack && (buf == "3" || buf == "0" || buf.find('\x16') != std::string::npos)) {
+      txq_.clear();
+      sendVersion();
+      last_tx_ms_ = 0;
+      return;
+    }
     if (buf.find("GET_NETWORKS_FINISHED") != std::string::npos) return;
     const char* wantStatus = (model_.generation == 2) ? "POST_FIRENET_STATUS"
                                                        : "POST_CDCDEVICE_STATUS";

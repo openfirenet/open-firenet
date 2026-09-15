@@ -25,7 +25,7 @@ int main(){
   CHECK("7.2","3 jetons dont un vide", v.size()==3 && v[0]=="a" && v[1]=="" && v[2]=="b");
 
   // complete 19-field status frame (V1)
-  std::string f = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n101\n111\n360\n0\n-52\n"
+  std::string f = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n101\n112\n360\n0\n-52\n"
                   "17800020\nfHTeLam2\n0\nMonSSID\nMonMotDePasse\n192.168.1.42\n"
                   "AA:BB:CC:DD:EE:FF\n";
   auto w = parseStatusFrame(f);
@@ -33,12 +33,12 @@ int main(){
   CHECK("7.2","plain text ssid", w.size()>15 && w[15]=="MonSSID");
 
   // trame avec champs chaîne vides (id/token/ip/mac vides)
-  std::string e = "POST_CDCDEVICE_STATUS=0;\n0\n1\n0\n0\n0\n0\n0\n101\n111\n360\n0\n0\n\n\n0\nAB\nCD\n\n\n";
+  std::string e = "POST_CDCDEVICE_STATUS=0;\n0\n1\n0\n0\n0\n0\n0\n101\n112\n360\n0\n0\n\n\n0\nAB\nCD\n\n\n";
   auto x = parseStatusFrame(e);
   CHECK("7.2","champs vides -> pas de décalage", x.size()>=17 && x[12]=="" && x[13]=="" && x[15]=="AB");
 
   // §12 constantes de version
-  CHECK("12","APP=111", APP_VERSION==111);
+  CHECK("12","APP=112", APP_VERSION==112);
   CHECK("12","DT=1", DT==1);
   CHECK("5","19 champs déclarés", NUM_FIELDS==19);
   CHECK("13","room target ×10", CTRL_ROOM_TARGET_SCALE==10);
@@ -58,7 +58,7 @@ int main(){
   CHECK("5.4","all other fields intact", sanFields.size()==19 && sanFields[16]=="********" && sanFields[15]=="MonSSID" && sanFields[0]=="2" && sanFields[7]=="101");
   std::string noStatus = "POST_CONTROLS=1; onOff=1; roomTarget=200; MonMotDePasse=0; ";
   CHECK("5.4","non-status frame untouched", sanitizeForLog(noStatus) == noStatus);
-  std::string emptyPass = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n101\n111\n360\n0\n-52\n17800020\nfHTeLam2\n0\nMonSSID\n\n192.168.1.42\nAA:BB:CC:DD:EE:FF\n";
+  std::string emptyPass = "GET_CDCDEVICE_STATUS=0;\n2\n1\n0\n0\n1\n0\n0\n101\n112\n360\n0\n-52\n17800020\nfHTeLam2\n0\nMonSSID\n\n192.168.1.42\nAA:BB:CC:DD:EE:FF\n";
   CHECK("5.4","empty password stays empty", sanitizeForLog(emptyPass) == emptyPass);
 
   std::cout << ok << " checks passed, " << ko << " failures\n";

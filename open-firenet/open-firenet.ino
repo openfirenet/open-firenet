@@ -846,7 +846,10 @@ void setup() {
 
   g_link = new firenet::DongleLink(txToStove, nowMs);
   g_link->onDebug([](const char* dir, const std::string& f){
-    if (strcmp(dir, "drop") == 0) return;    // trace rx AND tx (frame diagnostics)
+    if (strcmp(dir, "drop") == 0) {
+      logEntry("drop", f);
+      return;
+    }
     std::string safe = firenet::sanitizeForLog(f);
     DBG.printf("[%s %u] ", dir, (unsigned)safe.size());
     for (char c : safe) { if (c=='\n') DBG.print("\\n"); else if (c=='\r') DBG.print("\\r");
