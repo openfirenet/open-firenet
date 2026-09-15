@@ -264,11 +264,12 @@ The stove reports its hardware model identifier in sensor index 36. This ID matc
 
 | Model ID | Hex | Firmware Code | Commercial Model | Type |
 |:---:|:---:|:---:|:---|:---|
+| **`1`** | `0x01` | `001` / `INDUO` | **RIKA INDUO** | Combined pellet & firewood stove (*Kombiofen*) |
 | **`10`** | `0x0A` | `010` / `ITRO` | **RIKA INTERNO** | Pellet fireplace insert (*Kamineinsatz*) |
 | **`13`** | `0x0D` | `013` / `DOMO` | **RIKA DOMO** | Pellet stove (natural convection + MultiAir) |
 | **`23`** | `0x17` | `023` / `DOBA` | **RIKA DOMO BACK** | Pellet stove with integrated baking oven (*Backofen*) |
 
-*Note: Other Rika models (e.g. INDUO hybrid pellet/wood, COMO, PARO, LIVO) use distinct IDs and may use different firmware architectures or communication variants.*
+*Note: Other Rika models (e.g. COMO, PARO, LIVO) use distinct IDs and may use different firmware architectures or communication variants.*
 
 ---
 
