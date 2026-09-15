@@ -171,11 +171,32 @@ static bool findJsonString(const String& str, const String& key, String& out) {
 
 static const char* getStoveModelName(long modelId) {
   switch (modelId) {
-    case 1: return "INDUO";
-    case 2: return "INDUO II";
+    case 1:  return "INDUO";
+    case 2:  return "TOPO";
+    case 3:  return "ROCO";
+    case 4:  return "ROCO MULTIAIR";
+    case 5:  return "ROCO RAO";
+    case 6:  return "KAPO";
+    case 7:  return "MIRO";
+    case 8:  return "COMO";
+    case 9:  return "REVO";
     case 10: return "INTERNO";
+    case 11: return "FILO";
+    case 12: return "SUMO";
     case 13: return "DOMO";
+    case 14: return "CORSO";
+    case 15: return "INDUO II";
+    case 16: return "REVIVO";
+    case 17: return "PARO";
+    case 18: return "LIVO";
+    case 19: return "COMO II";
+    case 20: return "REVO II";
+    case 21: return "COSMO";
+    case 22: return "SONO";
     case 23: return "DOMO BACK";
+    case 24: return "PK E";
+    case 25: return "SUMO MULTIAIR";
+    case 26: return "CONNECT";
     default: return "RIKA";
   }
 }

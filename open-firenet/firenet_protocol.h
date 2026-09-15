@@ -20,7 +20,7 @@ inline bool byteAccepted(uint8_t b) {
 // ------------------------------------------------------------- §4.2 / §12 / §5
 static const size_t DONGLE_RX_SIZE = 0x1000;   // 4096, notre rôle = dongle
 static const int    BL_VERSION     = 101;      // Firenet V1: 101
-static const int    APP_VERSION    = 112;      // Required by stove when DT=1 (0x70 == 112)
+static const int    APP_VERSION    = 111;      // Firenet V1 (Stove V2.26-V2.27): 111 (0x6F) from official FIRENET_FIRMWARE_V2.26.dat
 static const int    APP_REVISION   = 360;      // Firenet V1: 360
 static const int    DT             = 1;        // Firenet V1: DT=1 (plain text SSID, no OTA fields)
 

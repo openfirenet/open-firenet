@@ -1219,7 +1219,13 @@ function renderSensors(sObj, filterText) {
     else if (k === 'stageCur' || k === 'stageCur1') v = v + ' %';
     else if (k === 'mainState') v = (t.stateMap && t.stateMap[v] ? t.stateMap[v].title : v);
     else if (k === 'model') {
-      const mNames = { 1: 'INDUO (1)', 2: 'INDUO II (2)', 10: 'INTERNO (10)', 13: 'DOMO (13)', 23: 'DOMO BACK (23)' };
+      const mNames = {
+        1: 'INDUO (1)', 2: 'TOPO (2)', 3: 'ROCO (3)', 4: 'ROCO MULTIAIR (4)', 5: 'ROCO RAO (5)',
+        6: 'KAPO (6)', 7: 'MIRO (7)', 8: 'COMO (8)', 9: 'REVO (9)', 10: 'INTERNO (10)', 11: 'FILO (11)',
+        12: 'SUMO (12)', 13: 'DOMO (13)', 14: 'CORSO (14)', 15: 'INDUO II (15)', 16: 'REVIVO (16)', 17: 'PARO (17)',
+        18: 'LIVO (18)', 19: 'COMO II (19)', 20: 'REVO II (20)', 21: 'COSMO (21)', 22: 'SONO (22)',
+        23: 'DOMO BACK (23)', 24: 'PK E (24)', 25: 'SUMO MULTIAIR (25)', 26: 'CONNECT (26)'
+      };
       const mFallback = (curLang === 'fr' ? 'Modèle ' : 'Model ') + v;
       v = mNames[v] || mFallback;
     }
@@ -1323,7 +1329,13 @@ async function tick() {
     document.getElementById('serviceBar').style.width = sPct + '%';
 
     // Model & Net
-    const modelNames = { 1: 'INDUO', 2: 'INDUO II', 10: 'INTERNO', 13: 'DOMO', 23: 'DOMO BACK' };
+    const modelNames = {
+      1: 'INDUO', 2: 'TOPO', 3: 'ROCO', 4: 'ROCO MULTIAIR', 5: 'ROCO RAO',
+      6: 'KAPO', 7: 'MIRO', 8: 'COMO', 9: 'REVO', 10: 'INTERNO', 11: 'FILO',
+      12: 'SUMO', 13: 'DOMO', 14: 'CORSO', 15: 'INDUO II', 16: 'REVIVO', 17: 'PARO',
+      18: 'LIVO', 19: 'COMO II', 20: 'REVO II', 21: 'COSMO', 22: 'SONO',
+      23: 'DOMO BACK', 24: 'PK E', 25: 'SUMO MULTIAIR', 26: 'CONNECT'
+    };
     const mId = stObj.model !== undefined ? stObj.model : (rawS.model !== undefined ? rawS.model : 13);
     const mFallback = (curLang === 'fr' ? 'Modèle ' : 'Model ') + mId;
     const mName = stObj.model_name || modelNames[mId] || mFallback;

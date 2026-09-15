@@ -85,10 +85,12 @@ public:
     std::string ssid = (DT == 3) ? hexEncode(ssidClear) : ssidClear;
     std::string f = (model_.generation == 2) ? "GET_FIRENET_STATUS=0;\n"
                                               : "GET_CDCDEVICE_STATUS=0;\n";
-    char rssis[8]; snprintf(rssis, sizeof rssis, "%d", rssi);
+    char rssis[8], apps[8];
+    snprintf(rssis, sizeof rssis, "%d", rssi);
+    snprintf(apps, sizeof apps, "%d", APP_VERSION);
     const char* vals[19] = {
       "0","1","0","0","1","4","0",          // monitoring,on_off,scan,init,initialised,symbol,error
-      "101","112","360","0", rssis,         // bl,app,rev,spwf,rssi
+      "101", apps, "360", "0", rssis,       // bl,app,rev,spwf,rssi
       id.c_str(), token.c_str(), "3",       // id,token,protocol
       ssid.c_str(), wpa2.c_str(),           // ssid(plain),wpa2
       ip.c_str(), mac.c_str()};             // ip,mac
