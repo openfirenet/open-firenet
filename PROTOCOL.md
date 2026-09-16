@@ -47,7 +47,7 @@ GET_CDCDEVICE3_VERSION=0; BL=999; APP=201; REV=12201; DT=3;
 
 **V1 (older stoves):**
 ```
-GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; DT=1;
+GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1;
 ```
 
 **Expected stove response (either frame):**
@@ -56,15 +56,8 @@ GET_WIFI_VERSION_FINISHED
 GET_CDCDEVICE_VERSION_FINISHED
 ```
 
-`GET_WIFI_VERSION` is a distinct, exact command name (`strstr` match confirmed against
-the decompiled INDUO 2.26 dispatcher) — it is not a concatenation of
-`GET_WIFI_VERSION` and `GET_CDCDEVICE_VERSION`. Sending the wrong (concatenated) form
-still gets acknowledged, but only by accident: it substring-matches the separate
-`GET_CDCDEVICE_VERSION` check further down the same dispatcher, so the stove replies
-with `GET_CDCDEVICE_VERSION_FINISHED` instead of `GET_WIFI_VERSION_FINISHED`. Either
-`_FINISHED` reply still only implies `POST_CDCDEVICE_STATUS`-style status — no decompiled
-stove so far (INDUO 2.26, DOMO 2.29) has ever been observed asking for
-`POST_FIRENET_STATUS`.
+Note the two differences in the V1 frame: it is prefixed with `GET_WIFI_VERSION_`, and
+it uses `GET_CDCDEVICE_VERSION` (no `3`) with `DT=1`.
 
 `BL` / `APP` / `REV` are the dongle's own firmware version numbers. These values do
 **not** decide whether the handshake is accepted — a DOMO 2.29 finishes with `BL=112`

@@ -12,10 +12,9 @@ int main(){
   auto drain=[&](){ for(int i=0;i<64 && !link.txIdle();i++){ clk+=DongleLink::TX_GAP_MS; link.poll(); } };
   // négociation
   link.poll(); drain();              // queue + emit the version (V1 profile by default)
-  CH("V1 version emitted", wire.find("GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; DT=1; ")!=std::string::npos);
-  // le poêle répond FINISHED (confirmed against the decompiled INDUO 2.26 dispatcher:
-  // GET_WIFI_VERSION=0 is acked with GET_WIFI_VERSION_FINISHED, not the CDCDEVICE one)
-  std::string fin="GET_WIFI_VERSION_FINISHED";
+  CH("V1 version emitted", wire.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1; ")!=std::string::npos);
+  // le poêle répond FINISHED
+  std::string fin="GET_CDCDEVICE_VERSION_FINISHED";
   for(char c:fin) link.onByte(c);
   clk+=60; link.poll();              // silence écoulé (>SILENCE_MS après le dernier octet)
   CH("version acquittée", link.model().version_ack && link.model().generation==1);
@@ -31,7 +30,7 @@ int main(){
     // no ACK: force several version retransmission cycles
     for(int r=0;r<5;r++){ l2.poll(); drain2(); c2+=DongleLink::VERSION_RETRY_MS; }
     CH("fallback also emits the V3 frame", w2.find("GET_CDCDEVICE3_VERSION=0; ")!=std::string::npos);
-    CH("both V1 and V3 tried", w2.find("GET_WIFI_VERSION=0; ")!=std::string::npos);
+    CH("both V1 and V3 tried", w2.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ")!=std::string::npos);
     // the stove finally acknowledges (whatever the current profile) -> lock
     std::string fin2="GET_WIFI_VERSION_FINISHED";
     for(char c:fin2) l2.onByte(c);
