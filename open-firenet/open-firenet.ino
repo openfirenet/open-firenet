@@ -529,6 +529,27 @@ static void logEntry(const char* dir, const std::string& msg) {
   g_recentLogs += b;
 }
 
+// ── USB control-channel diagnostics (DTR/RTS, line coding) ────────────────
+// Testing hypothesis (HA community forum + issue #4): the 0x16→0x33 probe
+// loop some stoves get stuck in (firmware ~2.25-2.28) repeats identically
+// even with zero reply from the dongle, which points away from CDC *data*
+// content and toward the USB *control* transfers (SET_CONTROL_LINE_STATE /
+// SET_LINE_CODING) that nothing in this codebase has ever logged before.
+static void onUsbCdcLineState(void* arg, esp_event_base_t base, int32_t id, void* data) {
+  auto* p = (arduino_usb_cdc_event_data_t*)data;
+  char b[48];
+  snprintf(b, sizeof b, "line_state dtr=%d rts=%d", p->line_state.dtr, p->line_state.rts);
+  logEntry("usb", b);
+}
+static void onUsbCdcLineCoding(void* arg, esp_event_base_t base, int32_t id, void* data) {
+  auto* p = (arduino_usb_cdc_event_data_t*)data;
+  char b[80];
+  snprintf(b, sizeof b, "line_coding baud=%lu stop=%u parity=%u bits=%u",
+           (unsigned long)p->line_coding.bit_rate, p->line_coding.stop_bits,
+           p->line_coding.parity, p->line_coding.data_bits);
+  logEntry("usb", b);
+}
+
 static void sendCors() {
   web.sendHeader("Access-Control-Allow-Origin", "*");
   web.sendHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -861,6 +882,15 @@ void setup() {
   USB.productName("Open-Firenet (V1)");
   USB.serialNumber("23176212");
   POELE.begin();                   // CDC TinyUSB vers le poêle
+  // This device stays permanently wired into the stove: the Arduino
+  // "1200-baud / DTR touch reset" watcher (on by default, reboot_enable=true
+  // in USBCDC) serves no purpose here, and an unexpected DTR/RTS sequence
+  // from the stove's USB driver could trigger it by accident -- silently
+  // dropping the ESP32 into the bootloader mid-handshake, which would look
+  // exactly like an infinite probe loop from the stove's side.
+  POELE.enableReboot(false);
+  POELE.onEvent(ARDUINO_USB_CDC_LINE_STATE_EVENT, onUsbCdcLineState);
+  POELE.onEvent(ARDUINO_USB_CDC_LINE_CODING_EVENT, onUsbCdcLineCoding);
   USB.begin();
 
   g_link = new firenet::DongleLink(txToStove, nowMs);
