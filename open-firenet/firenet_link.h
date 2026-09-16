@@ -27,7 +27,13 @@ struct StoveModel {
   long revision = 0;
   int  main_state = 0, sub_state = 0;
   bool version_ack = false;                    // GET_CDCDEVICE_VERSION_FINISHED reçu
-  int  generation = 0;                         // 1 = CDCDEVICE, 2 = FIRENET (§6.4)
+  // 1 = CDCDEVICE (POST_CDCDEVICE_STATUS), 2 = FIRENET (POST_FIRENET_STATUS).
+  // Every stove decompiled so far (INDUO 2.26, DOMO 2.29) only implements
+  // CDCDEVICE_STATUS, regardless of which version frame it acknowledges
+  // (GET_WIFI_VERSION_FINISHED included) — GET_FIRENET_STATUS/POST_FIRENET_STATUS
+  // is undocumented and unreachable with the current handshake; generation=2
+  // is aspirational until a real Firenet-2.0-generation stove is confirmed.
+  int  generation = 0;
   int  version_profile = -1;                   // acknowledged version frame: -1 none, 0 = V3, 1 = V1
   uint32_t frames_in = 0, frames_out = 0, last_rx_ms = 0;
 };
@@ -71,12 +77,19 @@ public:
   // --- émissions (rôle dongle) ----------------------------------------------
   // Two version replies exist; recent and older stoves accept different ones:
   //   V3 (recent stoves): "GET_CDCDEVICE3_VERSION=0; ... DT=3; "
-  //   V1 (older stoves):  "GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ... DT=1; "
+  //   V1 (older stoves):  "GET_WIFI_VERSION=0; ... DT=1; "
   // The stove decides which it accepts, so we send one then the other in turn
   // until it acknowledges with any *_FINISHED, then lock onto that frame (and its DT).
+  //
+  // Confirmed against the decompiled INDUO 2.26 CDC dispatcher (FUN_8001c134):
+  // the stove does an exact strstr("GET_WIFI_VERSION=0") check, distinct from
+  // GET_CDCDEVICE_VERSION/GET_CDCDEVICE3_VERSION. The previous concatenated
+  // "GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0" only ever matched the
+  // GET_CDCDEVICE_VERSION branch (by accidental substring), never the real
+  // GET_WIFI_VERSION one.
   struct VersionProfile { const char* prefix; int dt; };
   static const VersionProfile& profileV1() { static const VersionProfile p =
-      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 1}; return p; }
+      {"GET_WIFI_VERSION=0; ", 1}; return p; }
   static const VersionProfile& profileV3() { static const VersionProfile p =
       {"GET_CDCDEVICE3_VERSION=0; ", 3}; return p; }
   const VersionProfile& profile() const { return profile_ ? profileV1() : profileV3(); }
@@ -274,7 +287,10 @@ private:
     // les continuations "=val" (isContinuation) le prolongent (traité plus bas).
     if (!isContinuation(buf)) pending_pos_ = nullptr;
     if (buf.find("GET_WIFI_VERSION_FINISHED") != std::string::npos) {
-      model_.generation = 2; model_.version_ack = true;
+      // Confirmed against the decompiled INDUO 2.26 dispatcher: this is the
+      // legacy/V1 ack path, and it still expects POST_CDCDEVICE_STATUS —
+      // there is no evidence this implies FIRENET_STATUS naming.
+      model_.generation = 1; model_.version_ack = true;
       model_.version_profile = profile_; return; }
     if (buf.find("GET_CDCDEVICE_VERSION_FINISHED") != std::string::npos) {
       model_.generation = 1; model_.version_ack = true;
