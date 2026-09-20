@@ -273,19 +273,36 @@ private:
     // toute trame de commande connue clôt un dump positionnel en cours ; seules
     // les continuations "=val" (isContinuation) le prolongent (traité plus bas).
     if (!isContinuation(buf)) pending_pos_ = nullptr;
+    bool looksLikeProbe = (buf == "3" || buf == "0" || buf.find('\x16') != std::string::npos);
     if (buf.find("GET_WIFI_VERSION_FINISHED") != std::string::npos) {
       model_.generation = 2; model_.version_ack = true;
-      model_.version_profile = profile_; return; }
+      model_.version_profile = profile_; post_ack_probe_streak_ = 0; return; }
     if (buf.find("GET_CDCDEVICE_VERSION_FINISHED") != std::string::npos) {
       model_.generation = 1; model_.version_ack = true;
-      model_.version_profile = profile_; return; }
+      model_.version_profile = profile_; post_ack_probe_streak_ = 0; return; }
     if (buf.find("GET_CDCDEVICE_VERSION_UNFINISHED") != std::string::npos) return;
-    if (!model_.version_ack && (buf == "3" || buf == "0" || buf.find('\x16') != std::string::npos)) {
+    if (!model_.version_ack && looksLikeProbe) {
       txq_.clear();
       sendVersion();
       last_tx_ms_ = 0;
       return;
     }
+    // Post-handshake probe recovery (issue #4): the stove kept "acknowledging"
+    // then falling straight back into \x16 <digit> probing, and nothing ever
+    // reset version_ack, so the link stayed stuck polling forever with all
+    // sensors reading 0. Re-arm the handshake after a short streak instead.
+    if (model_.version_ack && looksLikeProbe) {
+      if (++post_ack_probe_streak_ >= POST_ACK_PROBE_RESET_THRESHOLD) {
+        model_.version_ack = false;
+        model_.version_profile = -1;
+        post_ack_probe_streak_ = 0;
+        txq_.clear();
+        sendVersion();
+        last_tx_ms_ = 0;
+      }
+      return;
+    }
+    post_ack_probe_streak_ = 0;   // any real frame below => link is healthy again
     if (buf.find("GET_NETWORKS_FINISHED") != std::string::npos) return;
     const char* wantStatus = (model_.generation == 2) ? "POST_FIRENET_STATUS"
                                                        : "POST_CDCDEVICE_STATUS";
@@ -387,6 +404,14 @@ private:
   uint32_t last_tx_ms_ = 0;
   DbgFn dbg_ = nullptr;
   std::vector<long>* pending_pos_ = nullptr;   // cible d'accumulation positionnelle en cours
+  // Some stoves (confirmed on an INDUO 2.26, issue #4) never actually stop
+  // sending the \x16 <digit> reset probe after acknowledging the version —
+  // the link never truly stabilizes, so every poll (GET_SENSORS/GET_REVISION/
+  // TRANSFER_COMPLETED) just gets more probe noise back instead of real
+  // POST_* frames. Track a streak of post-ack probe bytes and re-arm the
+  // handshake instead of polling a dead link forever.
+  int post_ack_probe_streak_ = 0;
+  static const int POST_ACK_PROBE_RESET_THRESHOLD = 6;
 };
 
 } // namespace firenet

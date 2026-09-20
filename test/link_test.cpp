@@ -144,6 +144,26 @@ int main(){
     CH("controls_pos[1] onOff preserved", l3.model().controls_pos[1]==1);
     CH("controls_pos[2] mode preserved", l3.model().controls_pos[2]==1);
   }
+  // Post-handshake probe recovery (issue #4): a stove that keeps sending the
+  // \x16 <digit> reset probe even after acknowledging the version should get
+  // its handshake re-armed instead of being polled forever with dead sensors.
+  {
+    std::string w4; uint32_t c4=0;
+    DongleLink l4([&](const uint8_t*d,size_t n){ w4.append((const char*)d,n); },
+                  [&](){ return c4; });
+    auto drain4=[&](){ for(int i=0;i<64 && !l4.txIdle();i++){ c4+=DongleLink::TX_GAP_MS; l4.poll(); } };
+    l4.poll(); drain4();
+    std::string fin4="GET_CDCDEVICE_VERSION_FINISHED";
+    for(char c:fin4) l4.onByte(c);
+    c4+=60; l4.poll();
+    CH("probe-recovery test: ack'd first", l4.model().version_ack);
+    // stove reverts to sending the bare probe digit instead of real POST_* frames
+    for (int i=0;i<6;i++){ l4.onByte('0'); c4+=60; l4.poll(); }
+    CH("version_ack cleared after sustained post-ack probing", !l4.model().version_ack);
+    w4.clear();
+    c4+=DongleLink::TX_GAP_MS; l4.poll();
+    CH("handshake re-sent after recovery", w4.find("GET_CDCDEVICE_VERSION")!=std::string::npos);
+  }
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;
 }
