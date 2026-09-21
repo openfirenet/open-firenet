@@ -240,7 +240,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   overflow: hidden;
   margin-top: 4px;
 }
-.progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--amber)); transition: width 0.5s; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--amber), var(--green)); transition: width 0.5s; }
 
 /* Control Deck */
 .control-deck {
@@ -667,6 +667,7 @@ let curLang = localStorage.getItem('lang') || 'fr';
 
 const I18N = {
   fr: {
+    bcpLanguageTag: 'fr-FR',
     pageTitle: "Open-Firenet — Tableau de Bord",
     langNext: "EN",
     online: "En ligne",
@@ -797,6 +798,7 @@ const I18N = {
     }
   },
   en: {
+    bcpLanguageTag: 'en-US',
     pageTitle: "Open-Firenet — Dashboard",
     langNext: "FR",
     online: "Online",
@@ -927,6 +929,7 @@ const I18N = {
     }
   },
   de: {
+    bcpLanguageTag: 'de-DE',
     pageTitle: "Open-Firenet — Dashboard",
     langNext: "EN",
     online: "Online",
@@ -1377,6 +1380,7 @@ function filterSensors(t) {
 
 async function tick() {
   const t = I18N[curLang] || I18N.fr;
+  const bcpLanguageTag = t.bcpLanguageTag || 'en-US';
   try {
     const res = await fetch('/api/state');
     const s = await res.json();
@@ -1421,9 +1425,9 @@ async function tick() {
 
     // Room Temp
     if (sens.room_temperature !== undefined) {
-      document.getElementById('roomTemp').textContent = sens.room_temperature.toFixed(1);
+      document.getElementById('roomTemp').textContent = sens.room_temperature.toLocaleString(bcpLanguageTag, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     } else if (rawS.roomTemp !== undefined) {
-      document.getElementById('roomTemp').textContent = (rawS.roomTemp / 10).toFixed(1);
+      document.getElementById('roomTemp').textContent = (rawS.roomTemp / 10).toLocaleString(bcpLanguageTag, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     }
     const rTgtVal = ctrl.target_temperature !== undefined ? Math.round(ctrl.target_temperature) : (ctrl.roomTarget !== undefined ? Math.round(ctrl.roomTarget / 10) : (s.controls_pos && s.controls_pos.length > 4 ? Math.round(s.controls_pos[4] / 10) : 20));
     document.getElementById('roomTarget').textContent = rTgtVal;
@@ -1435,7 +1439,7 @@ async function tick() {
 
     // Flame / Combustion Chamber
     const flVal = sens.combustion_temperature !== undefined ? Math.round(sens.combustion_temperature) : (rawS.flame !== undefined ? rawS.flame : 0);
-    document.getElementById('flameTemp').textContent = flVal;
+    document.getElementById('flameTemp').textContent = flVal.toLocaleString(bcpLanguageTag);
     const fBadge = document.getElementById('flameBadge');
     if (flVal > 80) { fBadge.textContent = t.flameLive; fBadge.style.color = "var(--primary)"; }
     else if (flVal > 40) { fBadge.textContent = t.flameCombustion; fBadge.style.color = "var(--amber)"; }
@@ -1461,11 +1465,11 @@ async function tick() {
 
     // Pellets & Service
     const pTot = sens.pellets_total_kg !== undefined ? sens.pellets_total_kg : (rawS.pelletsTotal !== undefined ? rawS.pelletsTotal : (s.sensors_pos ? s.sensors_pos[49] : 0));
-    document.getElementById('pelletsTotal').textContent = pTot.toLocaleString(curLang === 'fr' ? 'fr-FR' : 'en-US');
+    document.getElementById('pelletsTotal').textContent = pTot.toLocaleString(bcpLanguageTag);
     const pHours = sens.pellet_hours !== undefined ? sens.pellet_hours : (rawS.pelletHours !== undefined ? rawS.pelletHours : (s.sensors_pos ? s.sensors_pos[47] : 0));
-    document.getElementById('pelletHours').textContent = pHours;
+    document.getElementById('pelletHours').textContent = pHours.toLocaleString(bcpLanguageTag);
     const sCount = sens.service_countdown_kg !== undefined ? sens.service_countdown_kg : (rawS.serviceCountdown !== undefined ? rawS.serviceCountdown : (s.sensors_pos ? s.sensors_pos[50] : 700));
-    document.getElementById('serviceCount').textContent = sCount;
+    document.getElementById('serviceCount').textContent = sCount.toLocaleString(bcpLanguageTag);
     const sPct = Math.min(100, Math.max(0, Math.round((sCount / 700) * 100)));
     document.getElementById('serviceBar').style.width = sPct + '%';
 
