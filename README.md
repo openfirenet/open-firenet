@@ -185,6 +185,10 @@ The SSID ends at the first `:`; everything after it is the password (so a passwo
 
 Once connected, open **`http://open-firenet.local`** in any web browser (or use the device IP assigned by your router).
 
+<p align="center">
+  <img src="assets/ui-desktop-controls.png" alt="Open Firenet Web UI - Commandes directes & MultiAir" width="760">
+</p>
+
 - **Modern glassmorphism UI**: mobile-first, responsive dark theme.
 - **Language selector with flags**: 🇫🇷 Français / 🇬🇧 English instant toggle.
 - **Live stove status header**: operational state badges (Standby, Ignition, Start, Regulation, Cleaning, Burnoff, Splitlog), room temperature, flame temperature, Wi-Fi RSSI.
@@ -198,11 +202,17 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
       - Fan On / Off toggle
       - Speed regulation: **Auto** mode vs **Manual** levels 1 to 5
       - Convection trim / correction slider: **-30% to +30%**
+
+<p align="center">
+  <img src="assets/ui-desktop-schedule.png" alt="Open Firenet Web UI - Programmation hebdomadaire" width="760">
+</p>
+
   - **📅 Programmation (Chauffage hebdomadaire)**:
     - Independent schedule activation toggle (**Activer la programmation**) — works across all heating modes
     - **Température de maintien (Éco)**: setback temperature applied outside scheduled heating slots (10.0°C – 25.0°C)
     - **14 Weekly time slots** (2 slots per day, Monday to Sunday):
       - Native HTML5 time pickers (`HH:MM` start and end)
+      - Quick copy actions (e.g. Monday $\rightarrow$ Weekdays or Full Week)
       - Per-day clear button (quick reset)
       - Single-click bulk apply with immediate CDC synchronization
 - **Supervision & Diagnostics Deck**:
@@ -210,6 +220,12 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
   - **Réseau & Wi-Fi**: IP, MAC address, signal strength, AP scan, Wi-Fi reconfiguration & reset
   - **Liaison CDC**: USB CDC state, packet counters, protocol revision
   - **Logs CDC**: collapsible real-time console streaming raw bidirectional USB packets with sanitized WiFi credentials
+
+### Mobile Interface
+
+<p align="center">
+  <img src="assets/ui-mobile.png" alt="Open Firenet - Mobile Interface" width="360">
+</p>
 
 ---
 
