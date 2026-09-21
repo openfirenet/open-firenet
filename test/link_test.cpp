@@ -97,6 +97,8 @@ int main(){
     std::string sent; uint32_t c3=0;
     DongleLink l3([&](const uint8_t*d,size_t n){ sent.append((const char*)d,n); },
                   [&](){ return c3; });
+    std::string ack = "GET_CDCDEVICE_VERSION_FINISHED";
+    for (char c : ack) l3.onByte(c);
     l3.applyControls({{"onOff",1},{"mode",1},{"targetStage",80},{"roomTarget",220}});
     CH("applyControls queues 6 frames (drain + apply + refresh)", l3.txPending()==6);
     // Frames 1-2: preventive drain (§13.2)
@@ -124,6 +126,31 @@ int main(){
     CH("controls_pos[4] updated", l3.model().controls_pos[4]==210);
     CH("controls_pos[1] onOff preserved", l3.model().controls_pos[1]==1);
     CH("controls_pos[2] mode preserved", l3.model().controls_pos[2]==1);
+
+    // MultiAir control test
+    sent.clear();
+    l3.applyControls({{"convectionFan1Active", 1}, {"convectionFan1Level", 4}, {"convectionFan1Area", 10}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("MultiAir extended frame emitted", sent.find("convectionFan1Active=1;")!=std::string::npos);
+    CH("MultiAir level emitted", sent.find("convectionFan1Level=4;")!=std::string::npos);
+    CH("MultiAir area emitted", sent.find("convectionFan1Area=10;")!=std::string::npos);
+    CH("controls_pos has 29 elements", l3.model().controls_pos.size()>=29);
+    CH("controls_pos[23] is fan1Active", l3.model().controls_pos[23]==1);
+    CH("controls_pos[24] is fan1Level", l3.model().controls_pos[24]==4);
+    CH("controls_pos[25] is fan1Area", l3.model().controls_pos[25]==10);
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_REVISION
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 3
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 4
+
+    // Partial update after MultiAir maintains extended controls_pos
+    std::string partial2 = "POST_CONTROLS=0; revision=0; roomTarget=220; ";
+    for (char c : partial2) l3.onByte(c);
+    c3 += 60; l3.poll();
+    CH("controls_pos still has 29 elements", l3.model().controls_pos.size()>=29);
+    CH("MultiAir fan1Active preserved across partial POST", l3.model().controls_pos[23]==1);
+    CH("MultiAir fan1Level preserved across partial POST", l3.model().controls_pos[24]==4);
   }
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;

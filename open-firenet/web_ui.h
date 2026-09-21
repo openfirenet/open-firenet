@@ -336,6 +336,72 @@ input[type=range]::-webkit-slider-thumb {
 }
 .btn-apply:hover { background: #323d52; border-color: #495775; }
 
+/* MultiAir Fans */
+.multiair-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.fan-card {
+  background: #1a202c;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fan-toggle {
+  background: #202738;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fan-toggle:hover { border-color: #3b455c; color: var(--text); }
+.fan-toggle.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+.fan-levels {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+.btn-lvl {
+  background: #202738;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 0;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.btn-lvl:hover {
+  background: #2c364c;
+  color: var(--text);
+  border-color: #4b5878;
+}
+.btn-lvl.active {
+  background: rgba(249, 115, 22, 0.2);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
 /* Tabs */
 .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 .tab-btn {
@@ -559,6 +625,88 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <button class="btn-apply" id="btnApplyStage" onclick="applyStageTarget()">Appliquer la puissance</button>
       </div>
     </div>
+
+    <!-- MultiAir Fans -->
+    <div id="multiairDeck" style="display:none;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <label id="lblMultiAirTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">VENTILATION MULTIAIR</label>
+      </div>
+      <div class="multiair-grid">
+        <!-- Fan 1 -->
+        <div class="fan-card" id="fanCard1">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+              <span>🌀</span> <span id="lblFan1Title">MultiAir 1</span>
+            </div>
+            <button class="fan-toggle" id="fan1ToggleBtn" onclick="toggleFan(1)">
+              <span class="dot" style="display:inline-block"></span>
+              <span id="fan1ToggleText">Arrêt</span>
+            </button>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span id="lblFan1Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
+              <span id="fan1SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
+            </div>
+            <div class="fan-levels">
+              <button class="btn-lvl active" id="f1Lvl0" onclick="setFanLevel(1, 0)">Auto</button>
+              <button class="btn-lvl" id="f1Lvl1" onclick="setFanLevel(1, 1)">1</button>
+              <button class="btn-lvl" id="f1Lvl2" onclick="setFanLevel(1, 2)">2</button>
+              <button class="btn-lvl" id="f1Lvl3" onclick="setFanLevel(1, 3)">3</button>
+              <button class="btn-lvl" id="f1Lvl4" onclick="setFanLevel(1, 4)">4</button>
+              <button class="btn-lvl" id="f1Lvl5" onclick="setFanLevel(1, 5)">5</button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span id="lblFan1Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
+              <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan1AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
+            </div>
+            <input type="range" id="fan1AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(1, this.value)">
+            <button class="btn-apply" id="btnApplyFan1Area" onclick="applyFanArea(1)">Appliquer correction</button>
+          </div>
+        </div>
+
+        <!-- Fan 2 -->
+        <div class="fan-card" id="fanCard2">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+              <span>🌀</span> <span id="lblFan2Title">MultiAir 2</span>
+            </div>
+            <button class="fan-toggle" id="fan2ToggleBtn" onclick="toggleFan(2)">
+              <span class="dot" style="display:inline-block"></span>
+              <span id="fan2ToggleText">Arrêt</span>
+            </button>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span id="lblFan2Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
+              <span id="fan2SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
+            </div>
+            <div class="fan-levels">
+              <button class="btn-lvl active" id="f2Lvl0" onclick="setFanLevel(2, 0)">Auto</button>
+              <button class="btn-lvl" id="f2Lvl1" onclick="setFanLevel(2, 1)">1</button>
+              <button class="btn-lvl" id="f2Lvl2" onclick="setFanLevel(2, 2)">2</button>
+              <button class="btn-lvl" id="f2Lvl3" onclick="setFanLevel(2, 3)">3</button>
+              <button class="btn-lvl" id="f2Lvl4" onclick="setFanLevel(2, 4)">4</button>
+              <button class="btn-lvl" id="f2Lvl5" onclick="setFanLevel(2, 5)">5</button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span id="lblFan2Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
+              <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan2AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
+            </div>
+            <input type="range" id="fan2AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(2, this.value)">
+            <button class="btn-apply" id="btnApplyFan2Area" onclick="applyFanArea(2)">Appliquer correction</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Tabs Navigation -->
@@ -704,6 +852,15 @@ const I18N = {
     btnApplyTemp: "Appliquer la température",
     sliderStage: "Puissance (Auto & Manuel)",
     btnApplyStage: "Appliquer la puissance",
+    multiAirTitle: "VENTILATION MULTIAIR",
+    fan1Title: "MultiAir 1",
+    fan2Title: "MultiAir 2",
+    fanSpeed: "Vitesse",
+    fanArea: "Correction convection",
+    btnApplyFanArea: "Appliquer correction",
+    fanOn: "Actif",
+    fanOff: "Arrêt",
+    fanAuto: "Auto",
     tabTelemetry: "📊 Télémétrie complète",
     tabNetwork: "📶 Réseau & WiFi",
     tabLink: "⚙️ Liaison CDC",
@@ -794,7 +951,13 @@ const I18N = {
       serviceMinutes: "Minutes totales écoulées révision",
       ignitionCount: "Nombre d'allumages",
       onOffCycles: "Cycles marche/arrêt",
-      hopperLidClosed: "Trappe réservoir pellets fermée"
+      hopperLidClosed: "Trappe réservoir pellets fermée",
+      convectionFan1Active: "MultiAir 1 actif",
+      convectionFan1Level: "MultiAir 1 vitesse (0=Auto, 1-5)",
+      convectionFan1Area: "MultiAir 1 correction (%)",
+      convectionFan2Active: "MultiAir 2 actif",
+      convectionFan2Level: "MultiAir 2 vitesse (0=Auto, 1-5)",
+      convectionFan2Area: "MultiAir 2 correction (%)"
     }
   },
   en: {
@@ -835,6 +998,15 @@ const I18N = {
     btnApplyTemp: "Apply Temperature",
     sliderStage: "Power (Auto & Manual)",
     btnApplyStage: "Apply Power",
+    multiAirTitle: "MULTIAIR VENTILATION",
+    fan1Title: "MultiAir 1",
+    fan2Title: "MultiAir 2",
+    fanSpeed: "Speed",
+    fanArea: "Convection correction",
+    btnApplyFanArea: "Apply correction",
+    fanOn: "Active",
+    fanOff: "Off",
+    fanAuto: "Auto",
     tabTelemetry: "📊 Full Telemetry",
     tabNetwork: "📶 Network & WiFi",
     tabLink: "⚙️ USB CDC Link",
@@ -925,7 +1097,13 @@ const I18N = {
       serviceMinutes: "Total elapsed service minutes",
       ignitionCount: "Total ignition count",
       onOffCycles: "Total on/off cycles",
-      hopperLidClosed: "Pellet hopper lid closed"
+      hopperLidClosed: "Pellet hopper lid closed",
+      convectionFan1Active: "MultiAir 1 active",
+      convectionFan1Level: "MultiAir 1 speed (0=Auto, 1-5)",
+      convectionFan1Area: "MultiAir 1 correction (%)",
+      convectionFan2Active: "MultiAir 2 active",
+      convectionFan2Level: "MultiAir 2 speed (0=Auto, 1-5)",
+      convectionFan2Area: "MultiAir 2 correction (%)"
     }
   },
   de: {
@@ -966,6 +1144,15 @@ const I18N = {
     btnApplyTemp: "Temperatur übernehmen",
     sliderStage: "Leistung (Auto & Manuell)",
     btnApplyStage: "Leistung übernehmen",
+    multiAirTitle: "MULTIAIR GEBLÄSE",
+    fan1Title: "MultiAir 1",
+    fan2Title: "MultiAir 2",
+    fanSpeed: "Stufe",
+    fanArea: "Konvektions-Korrektur",
+    btnApplyFanArea: "Korrektur übernehmen",
+    fanOn: "Aktiv",
+    fanOff: "Aus",
+    fanAuto: "Auto",
     tabTelemetry: "📊 Vollständige Telemetrie",
     tabNetwork: "📶 Netzwerk & WLAN",
     tabLink: "⚙️ USB CDC Verbindung",
@@ -1056,7 +1243,13 @@ const I18N = {
       serviceMinutes: "Gesamte vergangene Wartungsminuten",
       ignitionCount: "Anzahl Zündungen gesamt",
       onOffCycles: "Anzahl Ein/Aus-Zyklen gesamt",
-      hopperLidClosed: "Pelletbehälter-Deckel geschlossen"
+      hopperLidClosed: "Pelletbehälter-Deckel geschlossen",
+      convectionFan1Active: "MultiAir 1 aktiv",
+      convectionFan1Level: "MultiAir 1 Stufe (0=Auto, 1-5)",
+      convectionFan1Area: "MultiAir 1 Korrektur (%)",
+      convectionFan2Active: "MultiAir 2 aktiv",
+      convectionFan2Level: "MultiAir 2 Stufe (0=Auto, 1-5)",
+      convectionFan2Area: "MultiAir 2 Korrektur (%)"
     }
   }
 };
@@ -1088,6 +1281,17 @@ function applyLang() {
   document.getElementById('btnApplyTemp').textContent = t.btnApplyTemp;
   document.getElementById('lblSliderStage').textContent = t.sliderStage;
   document.getElementById('btnApplyStage').textContent = t.btnApplyStage;
+  if (document.getElementById('lblMultiAirTitle')) document.getElementById('lblMultiAirTitle').textContent = t.multiAirTitle;
+  if (document.getElementById('lblFan1Title')) document.getElementById('lblFan1Title').textContent = t.fan1Title;
+  if (document.getElementById('lblFan2Title')) document.getElementById('lblFan2Title').textContent = t.fan2Title;
+  if (document.getElementById('lblFan1Speed')) document.getElementById('lblFan1Speed').textContent = t.fanSpeed;
+  if (document.getElementById('lblFan2Speed')) document.getElementById('lblFan2Speed').textContent = t.fanSpeed;
+  if (document.getElementById('lblFan1Area')) document.getElementById('lblFan1Area').textContent = t.fanArea;
+  if (document.getElementById('lblFan2Area')) document.getElementById('lblFan2Area').textContent = t.fanArea;
+  if (document.getElementById('btnApplyFan1Area')) document.getElementById('btnApplyFan1Area').textContent = t.btnApplyFanArea;
+  if (document.getElementById('btnApplyFan2Area')) document.getElementById('btnApplyFan2Area').textContent = t.btnApplyFanArea;
+  if (document.getElementById('f1Lvl0')) document.getElementById('f1Lvl0').textContent = t.fanAuto;
+  if (document.getElementById('f2Lvl0')) document.getElementById('f2Lvl0').textContent = t.fanAuto;
   document.getElementById('tabBtnTelemetry').textContent = t.tabTelemetry;
   document.getElementById('tabBtnNetwork').textContent = t.tabNetwork;
   document.getElementById('tabBtnLink').textContent = t.tabLink;
@@ -1273,6 +1477,45 @@ function applyRoomTarget() {
 function applyStageTarget() {
   const v = parseInt(document.getElementById('stageRange').value, 10);
   sendControl("targetStage", v);
+}
+
+function toggleFan(n) {
+  if (!lastState) return;
+  const ctrl = lastState.controls || {};
+  const cPos = lastState.controls_pos || [];
+  let curOn = 0;
+  if (n === 1) {
+    curOn = (ctrl.convection_fan1_active !== undefined) ? (ctrl.convection_fan1_active ? 1 : 0) : (cPos.length > 23 ? cPos[23] : 0);
+    sendControl("convectionFan1Active", curOn ? 0 : 1);
+  } else {
+    curOn = (ctrl.convection_fan2_active !== undefined) ? (ctrl.convection_fan2_active ? 1 : 0) : (cPos.length > 26 ? cPos[26] : 0);
+    sendControl("convectionFan2Active", curOn ? 0 : 1);
+  }
+}
+
+function setFanLevel(n, lvl) {
+  if (n === 1) {
+    sendControl("convectionFan1Level", lvl);
+  } else {
+    sendControl("convectionFan2Level", lvl);
+  }
+}
+
+function onFanAreaInput(n, val) {
+  const el = document.getElementById('fan' + n + 'AreaVal');
+  if (el) el.textContent = (val > 0 ? '+' : '') + val;
+  setInteracting();
+}
+
+function applyFanArea(n) {
+  const r = document.getElementById('fan' + n + 'AreaRange');
+  if (!r) return;
+  const val = parseInt(r.value, 10);
+  if (n === 1) {
+    sendControl("convectionFan1Area", val);
+  } else {
+    sendControl("convectionFan2Area", val);
+  }
 }
 
 // WiFi credentials are submitted by the native <form> POST to /api/wifi (see the
@@ -1486,6 +1729,88 @@ async function tick() {
     const mName = stObj.model_name || modelNames[mId] || mFallback;
     const vStr = stObj.mainboard_version ? (' V' + stObj.mainboard_version) : '';
     document.getElementById('modelBadge').textContent = mName + vStr;
+
+    // MultiAir
+    const deck = document.getElementById('multiairDeck');
+    const hasMultiAir = (s.controls_pos && s.controls_pos.length > 23) ||
+                        (ctrl.convection_fan1_active !== undefined) ||
+                        [4, 13, 17, 23, 25].includes(mId);
+    if (deck) {
+      deck.style.display = hasMultiAir ? 'flex' : 'none';
+      if (hasMultiAir) {
+        // Fan 1
+        const f1Active = (ctrl.convection_fan1_active !== undefined) ? (ctrl.convection_fan1_active ? 1 : 0) :
+                         (s.controls_pos && s.controls_pos.length > 23 ? s.controls_pos[23] : 0);
+        const f1Lvl = (ctrl.convection_fan1_level !== undefined) ? ctrl.convection_fan1_level :
+                      (s.controls_pos && s.controls_pos.length > 24 ? s.controls_pos[24] : 0);
+        const f1Area = (ctrl.convection_fan1_area !== undefined) ? ctrl.convection_fan1_area :
+                       (s.controls_pos && s.controls_pos.length > 25 ? s.controls_pos[25] : 0);
+
+        const btnF1 = document.getElementById('fan1ToggleBtn');
+        const txtF1 = document.getElementById('fan1ToggleText');
+        if (btnF1 && txtF1) {
+          if (f1Active == 1) {
+            btnF1.className = 'fan-toggle active';
+            txtF1.textContent = t.fanOn;
+          } else {
+            btnF1.className = 'fan-toggle';
+            txtF1.textContent = t.fanOff;
+          }
+        }
+        for (let l = 0; l <= 5; l++) {
+          const bl = document.getElementById('f1Lvl' + l);
+          if (bl) {
+            if (l === f1Lvl) bl.classList.add('active');
+            else bl.classList.remove('active');
+          }
+        }
+        const sp1Text = document.getElementById('fan1SpeedText');
+        if (sp1Text) sp1Text.textContent = (f1Lvl === 0) ? t.fanAuto : (t.fanSpeed + ' ' + f1Lvl);
+
+        if (!userInteracting) {
+          const r1 = document.getElementById('fan1AreaRange');
+          const v1 = document.getElementById('fan1AreaVal');
+          if (r1) r1.value = f1Area;
+          if (v1) v1.textContent = (f1Area > 0 ? '+' : '') + f1Area;
+        }
+
+        // Fan 2
+        const f2Active = (ctrl.convection_fan2_active !== undefined) ? (ctrl.convection_fan2_active ? 1 : 0) :
+                         (s.controls_pos && s.controls_pos.length > 26 ? s.controls_pos[26] : 0);
+        const f2Lvl = (ctrl.convection_fan2_level !== undefined) ? ctrl.convection_fan2_level :
+                      (s.controls_pos && s.controls_pos.length > 27 ? s.controls_pos[27] : 0);
+        const f2Area = (ctrl.convection_fan2_area !== undefined) ? ctrl.convection_fan2_area :
+                       (s.controls_pos && s.controls_pos.length > 28 ? s.controls_pos[28] : 0);
+
+        const btnF2 = document.getElementById('fan2ToggleBtn');
+        const txtF2 = document.getElementById('fan2ToggleText');
+        if (btnF2 && txtF2) {
+          if (f2Active == 1) {
+            btnF2.className = 'fan-toggle active';
+            txtF2.textContent = t.fanOn;
+          } else {
+            btnF2.className = 'fan-toggle';
+            txtF2.textContent = t.fanOff;
+          }
+        }
+        for (let l = 0; l <= 5; l++) {
+          const bl = document.getElementById('f2Lvl' + l);
+          if (bl) {
+            if (l === f2Lvl) bl.classList.add('active');
+            else bl.classList.remove('active');
+          }
+        }
+        const sp2Text = document.getElementById('fan2SpeedText');
+        if (sp2Text) sp2Text.textContent = (f2Lvl === 0) ? t.fanAuto : (t.fanSpeed + ' ' + f2Lvl);
+
+        if (!userInteracting) {
+          const r2 = document.getElementById('fan2AreaRange');
+          const v2 = document.getElementById('fan2AreaVal');
+          if (r2) r2.value = f2Area;
+          if (v2) v2.textContent = (f2Area > 0 ? '+' : '') + f2Area;
+        }
+      }
+    }
     document.getElementById('netMode').textContent = s.wifi_mode;
     document.getElementById('netIp').textContent = s.ip;
     const rssiVal = (s.device && s.device.wifi_rssi !== undefined) ? s.device.wifi_rssi : (rawS.rssi || '--');
