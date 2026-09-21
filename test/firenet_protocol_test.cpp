@@ -47,10 +47,16 @@ int main(){
   // libellés positionnels (§13/§14)
   CHECK("13","ctrl 1 = onOff", ctrlName(1)=="onOff");
   CHECK("13","ctrl 3 = targetStage", ctrlName(3)=="targetStage");
+  CHECK("13","ctrl 23 = convectionFan1Active", ctrlName(23)=="convectionFan1Active");
+  CHECK("13","ctrl 24 = convectionFan1Level", ctrlName(24)=="convectionFan1Level");
+  CHECK("13","ctrl 25 = convectionFan1Area", ctrlName(25)=="convectionFan1Area");
+  CHECK("13","ctrl 26 = convectionFan2Active", ctrlName(26)=="convectionFan2Active");
+  CHECK("13","ctrl 27 = convectionFan2Level", ctrlName(27)=="convectionFan2Level");
+  CHECK("13","ctrl 28 = convectionFan2Area", ctrlName(28)=="convectionFan2Area");
   CHECK("14","sens 0 = roomTemp", sensName(0)=="roomTemp");
   CHECK("14","sens 31 = mainState", sensName(31)=="mainState");
   CHECK("14","sens 33 = rssi", sensName(33)=="rssi");
-  CHECK("13","control non identifié -> cNN", ctrlName(9)=="c09");
+  CHECK("13","control non identifié -> cNN", ctrlName(35)=="c35");
 
   // §5.4 log password redaction
   std::string sanF = sanitizeForLog(f);

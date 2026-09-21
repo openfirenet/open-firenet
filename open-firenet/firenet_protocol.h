@@ -126,13 +126,19 @@ enum Ctrl {
   CTRL_MODE     = 2,   // stove[0x03]  Regulation Mode [0-3]
   CTRL_TARGET_STAGE = 3, // stove[0x06] Target stage [30-100]
   CTRL_ROOM_TARGET  = 4, // stove[0x64] Room target Temperature ×10
+  CTRL_BAKE_TARGET  = 5, // stove[0xfa] Bake target temperature
   CTRL_HEAT_ACTIVE  = 21,// stove[0x29] heating times active
   CTRL_SETBACK_TEMP = 22,// stove[0x67] set-back temperature ×10
-  CTRL_MULTIAIR1_ON = 23,// stove[0x68]
-  CTRL_MULTIAIR1_LV = 24,// stove[0x69]
-  CTRL_FROST_ON     = 29,// stove[0x6E]
-  CTRL_FROST_TEMP   = 30,// stove[0x6F] ×10
+  CTRL_MULTIAIR1_ON = 23,// stove[0x68] convectionFan1Active [0/1]
+  CTRL_MULTIAIR1_LV = 24,// stove[0x69] convectionFan1Level [0-5] (0=auto)
+  CTRL_MULTIAIR1_AR = 25,// stove[0x6a] convectionFan1Area [-30..+30]
+  CTRL_MULTIAIR2_ON = 26,// stove[0x6b] convectionFan2Active [0/1]
+  CTRL_MULTIAIR2_LV = 27,// stove[0x6c] convectionFan2Level [0-5] (0=auto)
+  CTRL_MULTIAIR2_AR = 28,// stove[0x6d] convectionFan2Area [-30..+30]
+  CTRL_FROST_ON     = 29,// stove[0x6e] frostProtectionActive [0/1]
+  CTRL_FROST_TEMP   = 30,// stove[0x6f] ×10
   CTRL_ROOM_OFFSET  = 31,// stove[0x65] ×10
+  CTRL_ROOM_POWER   = 32,// stove[0x66]
 };
 static const int CTRL_ROOM_TARGET_SCALE = 10;  // FUN_80010e8c : *10 (§13)
 
@@ -160,8 +166,29 @@ enum Sens {
 static const char* CONTROL_LABELS[] = {
   /*0*/"revision", /*1*/"onOff", /*2*/"mode", /*3*/"targetStage",
   /*4*/"roomTarget",                       // ×10 (§13, CTRL_ROOM_TARGET_SCALE)
+  /*5*/"bakeTarget",
+  /*6*/"reserved6",
+  /*7*/"heatTimeMon1", /*8*/"heatTimeMon2",
+  /*9*/"heatTimeTue1", /*10*/"heatTimeTue2",
+  /*11*/"heatTimeWed1", /*12*/"heatTimeWed2",
+  /*13*/"heatTimeThu1", /*14*/"heatTimeThu2",
+  /*15*/"heatTimeFri1", /*16*/"heatTimeFri2",
+  /*17*/"heatTimeSat1", /*18*/"heatTimeSat2",
+  /*19*/"heatTimeSun1", /*20*/"heatTimeSun2",
+  /*21*/"heatingTimesActive",
+  /*22*/"setBackTemp",
+  /*23*/"convectionFan1Active",
+  /*24*/"convectionFan1Level",
+  /*25*/"convectionFan1Area",
+  /*26*/"convectionFan2Active",
+  /*27*/"convectionFan2Level",
+  /*28*/"convectionFan2Area",
+  /*29*/"frostProtectionActive",
+  /*30*/"frostProtectionTemp",
+  /*31*/"roomTempOffset",
+  /*32*/"roomSensorPower",
 };
-static const int NUM_CONTROL_LABELS = 5;
+static const int NUM_CONTROL_LABELS = 33;
 
 // index = position du capteur ; couvre les positions prouvées jusqu'à 54 (55 au total).
 static const char* SENSOR_LABELS[] = {

@@ -175,6 +175,16 @@ may lag what was just written.
 | 2 | mode | 0–3 | 0 = Manual, 1 = Auto/thermostat, 2 = Comfort, 3 = Setback |
 | 3 | targetStage | 30–100 | heating power, % |
 | 4 | roomTarget | 140–280 | room target ×10 (210 = 21.0 °C) |
+| 5–22 | (internal / reserved) | — | preserved in read-modify-write frames |
+| 23 | convectionFan1Active | 0 / 1 | MultiAir fan 1 power state (`0` = Off, `1` = On) |
+| 24 | convectionFan1Level | 0–5 | MultiAir fan 1 speed (`0` = Auto, `1`–`5` = manual level) |
+| 25 | convectionFan1Area | -30 to +30 | MultiAir fan 1 convection trim/correction (%) |
+| 26 | convectionFan2Active | 0 / 1 | MultiAir fan 2 power state (`0` = Off, `1` = On) |
+| 27 | convectionFan2Level | 0–5 | MultiAir fan 2 speed (`0` = Auto, `1`–`5` = manual level) |
+| 28 | convectionFan2Area | -30 to +30 | MultiAir fan 2 convection trim/correction (%) |
+
+> [!NOTE]
+> **MultiAir Fan Controls vs Sensors**: In earlier analysis, index 23 of `GET_SENSORS` was found to be `hopperLidClosed`. This was because `GET_SENSORS` (read-only telemetry) and `GET_CONTROLS` (read/write control registers) operate in two separate index spaces on the stove. MultiAir fans are configured and controlled strictly through the **controls** table (`GET_CONTROLS` / `POST_CONTROLS`) at positions 23–28. The stove firmware (AVR32 / ESP32) maps these to hardware convection fan PWM drivers (`FUN_80036ea4` and `FUN_80037060`).
 
 ---
 

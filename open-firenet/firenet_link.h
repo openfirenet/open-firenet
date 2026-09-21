@@ -141,12 +141,87 @@ public:
     else if ((itRoom = model_.controls.find("room")) != model_.controls.end()) roomTarget = itRoom->second;
     else if (model_.controls_pos.size() > 4) roomTarget = model_.controls_pos[4];
 
+    long fan1On = 0, fan1Level = 0, fan1Area = 0;
+    long fan2On = 0, fan2Level = 0, fan2Area = 0;
+    auto itF1O = model_.controls.find("convectionFan1Active");
+    if (itF1O != model_.controls.end()) fan1On = itF1O->second;
+    else if (model_.controls_pos.size() > 23) fan1On = model_.controls_pos[23];
+
+    auto itF1L = model_.controls.find("convectionFan1Level");
+    if (itF1L != model_.controls.end()) fan1Level = itF1L->second;
+    else if (model_.controls_pos.size() > 24) fan1Level = model_.controls_pos[24];
+
+    auto itF1A = model_.controls.find("convectionFan1Area");
+    if (itF1A != model_.controls.end()) fan1Area = itF1A->second;
+    else if (model_.controls_pos.size() > 25) fan1Area = model_.controls_pos[25];
+
+    auto itF2O = model_.controls.find("convectionFan2Active");
+    if (itF2O != model_.controls.end()) fan2On = itF2O->second;
+    else if (model_.controls_pos.size() > 26) fan2On = model_.controls_pos[26];
+
+    auto itF2L = model_.controls.find("convectionFan2Level");
+    if (itF2L != model_.controls.end()) fan2Level = itF2L->second;
+    else if (model_.controls_pos.size() > 27) fan2Level = model_.controls_pos[27];
+
+    auto itF2A = model_.controls.find("convectionFan2Area");
+    if (itF2A != model_.controls.end()) fan2Area = itF2A->second;
+    else if (model_.controls_pos.size() > 28) fan2Area = model_.controls_pos[28];
+
+    bool hasMultiAirCmd = false;
+    bool hasScheduleCmd = false;
+
     // Mettre à jour avec les valeurs passées dans `full`
     for (const auto& kv : full) {
       if (kv.first == "onOff" || kv.first == "on") onOff = kv.second;
       else if (kv.first == "mode") mode = kv.second;
       else if (kv.first == "targetStage" || kv.first == "stage" || kv.first == "power") targetStage = kv.second;
       else if (kv.first == "roomTarget" || kv.first == "room" || kv.first == "temperature") roomTarget = kv.second;
+      else if (kv.first == "convectionFan1Active" || kv.first == "fan1On" || kv.first == "fan1Active" || kv.first == "fan1") {
+        fan1On = kv.second; hasMultiAirCmd = true;
+      }
+      else if (kv.first == "convectionFan1Level" || kv.first == "fan1Level") {
+        fan1Level = kv.second; hasMultiAirCmd = true;
+      }
+      else if (kv.first == "convectionFan1Area" || kv.first == "fan1Area") {
+        fan1Area = kv.second; hasMultiAirCmd = true;
+      }
+      else if (kv.first == "convectionFan2Active" || kv.first == "fan2On" || kv.first == "fan2Active" || kv.first == "fan2") {
+        fan2On = kv.second; hasMultiAirCmd = true;
+      }
+      else if (kv.first == "convectionFan2Level" || kv.first == "fan2Level") {
+        fan2Level = kv.second; hasMultiAirCmd = true;
+      }
+      else if (kv.first == "convectionFan2Area" || kv.first == "fan2Area") {
+        fan2Area = kv.second; hasMultiAirCmd = true;
+      }
+      else if (kv.first == "heatingTimesActive" || kv.first == "scheduleActive") {
+        if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+        long hta = kv.second ? 1 : 0;
+        model_.controls["heatingTimesActive"] = hta;
+        model_.controls_pos[21] = hta;
+        hasScheduleCmd = true;
+      }
+      else if (kv.first == "setBackTemp" || kv.first == "setback_temperature" || kv.first == "setbackTemp" || kv.first == "tempEco") {
+        if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+        long sbt = kv.second;
+        if (sbt < 50) sbt *= 10;
+        if (sbt < 100) sbt = 100;
+        if (sbt > 250) sbt = 250;
+        model_.controls["setBackTemp"] = sbt;
+        model_.controls_pos[22] = sbt;
+        hasScheduleCmd = true;
+      }
+      else {
+        for (int i = 7; i <= 20; i++) {
+          if (kv.first == ctrlName(i)) {
+            if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+            model_.controls_pos[i] = kv.second;
+            model_.controls[kv.first] = kv.second;
+            hasScheduleCmd = true;
+            break;
+          }
+        }
+      }
     }
 
     // Garde-fous poêle :
@@ -160,6 +235,20 @@ public:
     if (roomTarget < 140) roomTarget = 140;
     if (roomTarget > 280) roomTarget = 280;
 
+    if (fan1On < 0) fan1On = 0;
+    if (fan1On > 1) fan1On = 1;
+    if (fan1Level < 0) fan1Level = 0;
+    if (fan1Level > 5) fan1Level = 5;
+    if (fan1Area < -30) fan1Area = -30;
+    if (fan1Area > 30) fan1Area = 30;
+
+    if (fan2On < 0) fan2On = 0;
+    if (fan2On > 1) fan2On = 1;
+    if (fan2Level < 0) fan2Level = 0;
+    if (fan2Level > 5) fan2Level = 5;
+    if (fan2Area < -30) fan2Area = -30;
+    if (fan2Area > 30) fan2Area = 30;
+
     // Mettre à jour immédiatement le modèle local car le poêle recopie value -> prev
     // et n'émettra pas de POST_CONTROLS pour les valeurs imposées (§13.2)
     model_.controls["onOff"] = onOff;
@@ -168,20 +257,68 @@ public:
     model_.controls["stage"] = targetStage;
     model_.controls["roomTarget"] = roomTarget;
     model_.controls["room"] = roomTarget;
-    if (model_.controls_pos.size() >= 5) {
-      model_.controls_pos[1] = onOff;
-      model_.controls_pos[2] = mode;
-      model_.controls_pos[3] = targetStage;
-      model_.controls_pos[4] = roomTarget;
-    }
+    model_.controls["convectionFan1Active"] = fan1On;
+    model_.controls["convectionFan1Level"] = fan1Level;
+    model_.controls["convectionFan1Area"] = fan1Area;
+    model_.controls["convectionFan2Active"] = fan2On;
+    model_.controls["convectionFan2Level"] = fan2Level;
+    model_.controls["convectionFan2Area"] = fan2Area;
 
-    // Émission dans l'ORDRE POSITIONNEL STRICT requis par le poêle (§13 / FUN_80010b54) :
-    // 0: revision, 1: onOff, 2: mode, 3: targetStage, 4: roomTarget
-    char b[160];
-    snprintf(b, sizeof b,
-             "GET_CONTROLS=1; revision=%ld; onOff=%ld; mode=%ld; targetStage=%ld; roomTarget=%ld; ",
-             (long)model_.revision, onOff, mode, targetStage, roomTarget);
-    send(b);
+    if (model_.controls_pos.size() < 5) model_.controls_pos.resize(5, 0);
+    model_.controls_pos[0] = (long)model_.revision;
+    model_.controls_pos[1] = onOff;
+    model_.controls_pos[2] = mode;
+    model_.controls_pos[3] = targetStage;
+    model_.controls_pos[4] = roomTarget;
+
+    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd);
+    if (sendExtended) {
+      if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+      model_.controls_pos[23] = fan1On;
+      model_.controls_pos[24] = fan1Level;
+      model_.controls_pos[25] = fan1Area;
+      model_.controls_pos[26] = fan2On;
+      model_.controls_pos[27] = fan2Level;
+      model_.controls_pos[28] = fan2Area;
+
+      std::string b = "GET_CONTROLS=1; ";
+      b += "revision=" + std::to_string(model_.revision) + "; ";
+      b += "onOff=" + std::to_string(onOff) + "; ";
+      b += "mode=" + std::to_string(mode) + "; ";
+      b += "targetStage=" + std::to_string(targetStage) + "; ";
+      b += "roomTarget=" + std::to_string(roomTarget) + "; ";
+
+      long bakeTarget = (model_.controls_pos.size() > 5 && model_.controls_pos[5] > 0) ? model_.controls_pos[5] : 180;
+      long reserved6 = (model_.controls_pos.size() > 6) ? model_.controls_pos[6] : 0;
+      b += "bakeTarget=" + std::to_string(bakeTarget) + "; ";
+      b += "reserved6=" + std::to_string(reserved6) + "; ";
+
+      for (int i = 7; i <= 20; i++) {
+        long ht = (model_.controls_pos.size() > (size_t)i) ? model_.controls_pos[i] : 0;
+        b += ctrlName(i) + "=" + std::to_string(ht) + "; ";
+      }
+      long htActive = (model_.controls_pos.size() > 21) ? model_.controls_pos[21] : 0;
+      b += "heatingTimesActive=" + std::to_string(htActive) + "; ";
+      long sbTemp = (model_.controls_pos.size() > 22 && model_.controls_pos[22] > 0) ? model_.controls_pos[22] : 160;
+      b += "setBackTemp=" + std::to_string(sbTemp) + "; ";
+
+      b += "convectionFan1Active=" + std::to_string(fan1On) + "; ";
+      b += "convectionFan1Level=" + std::to_string(fan1Level) + "; ";
+      b += "convectionFan1Area=" + std::to_string(fan1Area) + "; ";
+      b += "convectionFan2Active=" + std::to_string(fan2On) + "; ";
+      b += "convectionFan2Level=" + std::to_string(fan2Level) + "; ";
+      b += "convectionFan2Area=" + std::to_string(fan2Area) + "; ";
+
+      send(b);
+    } else {
+      // Émission dans l'ORDRE POSITIONNEL STRICT requis par le poêle (§13 / FUN_80010b54) :
+      // 0: revision, 1: onOff, 2: mode, 3: targetStage, 4: roomTarget
+      char b[160];
+      snprintf(b, sizeof b,
+               "GET_CONTROLS=1; revision=%ld; onOff=%ld; mode=%ld; targetStage=%ld; roomTarget=%ld; ",
+               (long)model_.revision, onOff, mode, targetStage, roomTarget);
+      send(b);
+    }
     // Immediately chain revision request and flush to force the stove
     // to return updated telemetry within ~1.2s instead of waiting for the periodic loop
     sendRevision();
@@ -263,15 +400,30 @@ private:
     if (buf.find("POST_CONTROLS") != std::string::npos) {
       std::vector<long> tmpPos;
       parseBody(afterHeader(buf), &model_.controls, tmpPos);
-      if (tmpPos.size() >= 5) {
+      if (tmpPos.size() >= 5 && tmpPos.size() >= model_.controls_pos.size()) {
         model_.controls_pos = tmpPos;
+        for (size_t i = 0; i < model_.controls_pos.size(); i++) {
+          std::string nm = ctrlName(i);
+          if (!nm.empty()) model_.controls[nm] = model_.controls_pos[i];
+        }
       } else {
         long on = 0, md = 2, st = 70, rm = 200;
         auto itO = model_.controls.find("onOff"); if (itO != model_.controls.end()) on = itO->second;
         auto itM = model_.controls.find("mode"); if (itM != model_.controls.end()) md = itM->second;
         auto itS = model_.controls.find("targetStage"); if (itS != model_.controls.end()) st = itS->second;
         auto itR = model_.controls.find("roomTarget"); if (itR != model_.controls.end()) rm = itR->second;
-        model_.controls_pos = { (long)model_.revision, on, md, st, rm };
+        if (model_.controls_pos.size() < 5) model_.controls_pos = { (long)model_.revision, on, md, st, rm };
+        else {
+          model_.controls_pos[0] = (long)model_.revision;
+          model_.controls_pos[1] = on;
+          model_.controls_pos[2] = md;
+          model_.controls_pos[3] = st;
+          model_.controls_pos[4] = rm;
+        }
+        for (size_t i = 5; i < model_.controls_pos.size(); i++) {
+          auto it = model_.controls.find(ctrlName(i));
+          if (it != model_.controls.end()) model_.controls_pos[i] = it->second;
+        }
       }
       return;
     }

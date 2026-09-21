@@ -336,6 +336,72 @@ input[type=range]::-webkit-slider-thumb {
 }
 .btn-apply:hover { background: #323d52; border-color: #495775; }
 
+/* MultiAir Fans */
+.multiair-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.fan-card {
+  background: #1a202c;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fan-toggle {
+  background: #202738;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fan-toggle:hover { border-color: #3b455c; color: var(--text); }
+.fan-toggle.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 10px var(--green-glow);
+}
+.fan-levels {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+.btn-lvl {
+  background: #202738;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 0;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.btn-lvl:hover {
+  background: #2c364c;
+  color: var(--text);
+  border-color: #4b5878;
+}
+.btn-lvl.active {
+  background: rgba(249, 115, 22, 0.2);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 10px var(--primary-glow);
+}
+
 /* Tabs */
 .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 .tab-btn {
@@ -351,6 +417,23 @@ input[type=range]::-webkit-slider-thumb {
 }
 .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
 .tab-btn.active { color: var(--text); background: #202738; }
+
+.subtab-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.subtab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.subtab-btn.active { color: var(--text); background: #202738; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 
 .tab-content { display: none; }
 .tab-content.active { display: block; }
@@ -394,6 +477,76 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   font-size: 0.9rem;
   z-index: 1000;
 }
+
+/* Heating Schedule */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider-switch { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #202738; border: 1px solid var(--border); transition: .25s; border-radius: 24px; }
+.slider-switch:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-dim); transition: .25s; border-radius: 50%; }
+input:checked + .slider-switch { background-color: rgba(16,185,129,0.2); border-color: var(--green); }
+input:checked + .slider-switch:before { transform: translateX(20px); background-color: var(--green); }
+
+.sched-day-row {
+  background: #1a202c;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .sched-day-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.sched-day-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  min-width: 100px;
+}
+.sched-day-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+@media (min-width: 580px) {
+  .sched-day-slots {
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}
+.sched-slot-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #141822;
+  border: 1px solid rgba(255,255,255,0.05);
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: opacity 0.2s;
+}
+.sched-slot-box.disabled { opacity: 0.45; }
+.slot-chk-label { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.slot-chk-label input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+.slot-pill { font-size: 0.75rem; font-weight: 700; background: #252d3f; color: var(--text-dim); padding: 2px 6px; border-radius: 4px; }
+.slot-arrow { color: var(--text-muted); font-size: 0.85rem; }
+.input-time {
+  background: #0f131c;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+}
+.input-time:focus { border-color: var(--primary); }
+.input-time:disabled { color: var(--text-muted); background: #0a0d14; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -511,52 +664,184 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
   <!-- Control Deck -->
   <div class="control-deck">
-    <div class="deck-title">
-      <span>🎛️</span> <span id="lblDeckTitle">Commandes & Consignes</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px">
+      <div class="deck-title" style="margin:0">
+        <span>🎛️</span> <span id="lblDeckTitle">Pilotage du Poêle</span>
+      </div>
+      <div style="display:flex;gap:6px;background:#10141e;padding:4px;border-radius:10px;border:1px solid var(--border)">
+        <button type="button" class="subtab-btn active" id="subtabBtnDirect" onclick="showCtrlTab('ctrl-direct')">🔥 <span id="lblSubtabDirect">Commandes directes</span></button>
+        <button type="button" class="subtab-btn" id="subtabBtnSched" onclick="showCtrlTab('ctrl-sched')">📅 <span id="lblSubtabSched">Programmation</span></button>
+      </div>
     </div>
 
-    <!-- Mode Selector -->
-    <div>
-      <label id="lblRegulationMode" style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;display:block">MODE DE RÉGULATION</label>
-      <div class="mode-selector">
-        <div class="mode-btn" id="modeBtn2" onclick="setMode(2)">
-          <div class="m-icon">🛋️</div>
-          <div class="m-title" id="lblModeTitle2">Confort</div>
-          <div class="m-desc" id="lblModeDesc2">Sonde de température</div>
+    <!-- Sub-tab 1: Commandes directes -->
+    <div id="ctrl-direct" class="ctrl-content" style="display:flex;flex-direction:column;gap:20px">
+      <!-- Mode Selector -->
+      <div>
+        <label id="lblRegulationMode" style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;display:block">MODE DE RÉGULATION</label>
+        <div class="mode-selector">
+          <div class="mode-btn" id="modeBtn2" onclick="setMode(2)">
+            <div class="m-icon">🛋️</div>
+            <div class="m-title" id="lblModeTitle2">Confort</div>
+            <div class="m-desc" id="lblModeDesc2">Sonde de température</div>
+          </div>
+          <div class="mode-btn" id="modeBtn1" onclick="setMode(1)">
+            <div class="m-icon">⏱️</div>
+            <div class="m-title" id="lblModeTitle1">Auto</div>
+            <div class="m-desc" id="lblModeDesc1">Horaires programmés</div>
+          </div>
+          <div class="mode-btn" id="modeBtn0" onclick="setMode(0)">
+            <div class="m-icon">⚙️</div>
+            <div class="m-title" id="lblModeTitle0">Manuel</div>
+            <div class="m-desc" id="lblModeDesc0">Puissance fixe (%)</div>
+          </div>
         </div>
-        <div class="mode-btn" id="modeBtn1" onclick="setMode(1)">
-          <div class="m-icon">⏱️</div>
-          <div class="m-title" id="lblModeTitle1">Auto</div>
-          <div class="m-desc" id="lblModeDesc1">Horaires programmés</div>
+      </div>
+
+      <!-- Sliders Grid -->
+      <div class="sliders-grid">
+        <!-- Target Room Temp -->
+        <div class="slider-box">
+          <div class="slider-head">
+            <label id="lblSliderTemp">Consigne Ambiance (Confort)</label>
+            <span class="val"><span id="sliderTempVal">20</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
+          </div>
+          <input type="range" id="tempRange" min="14" max="28" step="1" value="20" oninput="onTempSlider(this.value)">
+          <button class="btn-apply" id="btnApplyTemp" onclick="applyRoomTarget()">Appliquer la température</button>
         </div>
-        <div class="mode-btn" id="modeBtn0" onclick="setMode(0)">
-          <div class="m-icon">⚙️</div>
-          <div class="m-title" id="lblModeTitle0">Manuel</div>
-          <div class="m-desc" id="lblModeDesc0">Puissance fixe (%)</div>
+
+        <!-- Target Stage Power -->
+        <div class="slider-box">
+          <div class="slider-head">
+            <label id="lblSliderStage">Puissance (Auto & Manuel)</label>
+            <span class="val"><span id="sliderStageVal">70</span> <small style="font-size:0.9rem;color:var(--text-muted)">%</small></span>
+          </div>
+          <input type="range" id="stageRange" min="30" max="100" step="5" value="70" oninput="onStageSlider(this.value)">
+          <button class="btn-apply" id="btnApplyStage" onclick="applyStageTarget()">Appliquer la puissance</button>
+        </div>
+      </div>
+
+      <!-- MultiAir Fans -->
+      <div id="multiairDeck" style="display:none;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label id="lblMultiAirTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">VENTILATION MULTIAIR</label>
+        </div>
+        <div class="multiair-grid">
+          <!-- Fan 1 -->
+          <div class="fan-card" id="fanCard1">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+                <span>🌀</span> <span id="lblFan1Title">MultiAir 1</span>
+              </div>
+              <button class="fan-toggle" id="fan1ToggleBtn" onclick="toggleFan(1)">
+                <span class="dot" style="display:inline-block"></span>
+                <span id="fan1ToggleText">Arrêt</span>
+              </button>
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span id="lblFan1Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
+                <span id="fan1SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
+              </div>
+              <div class="fan-levels">
+                <button class="btn-lvl active" id="f1Lvl0" onclick="setFanLevel(1, 0)">Auto</button>
+                <button class="btn-lvl" id="f1Lvl1" onclick="setFanLevel(1, 1)">1</button>
+                <button class="btn-lvl" id="f1Lvl2" onclick="setFanLevel(1, 2)">2</button>
+                <button class="btn-lvl" id="f1Lvl3" onclick="setFanLevel(1, 3)">3</button>
+                <button class="btn-lvl" id="f1Lvl4" onclick="setFanLevel(1, 4)">4</button>
+                <button class="btn-lvl" id="f1Lvl5" onclick="setFanLevel(1, 5)">5</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span id="lblFan1Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
+                <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan1AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
+              </div>
+              <input type="range" id="fan1AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(1, this.value)">
+              <button class="btn-apply" id="btnApplyFan1Area" onclick="applyFanArea(1)">Appliquer correction</button>
+            </div>
+          </div>
+
+          <!-- Fan 2 -->
+          <div class="fan-card" id="fanCard2">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+                <span>🌀</span> <span id="lblFan2Title">MultiAir 2</span>
+              </div>
+              <button class="fan-toggle" id="fan2ToggleBtn" onclick="toggleFan(2)">
+                <span class="dot" style="display:inline-block"></span>
+                <span id="fan2ToggleText">Arrêt</span>
+              </button>
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span id="lblFan2Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
+                <span id="fan2SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
+              </div>
+              <div class="fan-levels">
+                <button class="btn-lvl active" id="f2Lvl0" onclick="setFanLevel(2, 0)">Auto</button>
+                <button class="btn-lvl" id="f2Lvl1" onclick="setFanLevel(2, 1)">1</button>
+                <button class="btn-lvl" id="f2Lvl2" onclick="setFanLevel(2, 2)">2</button>
+                <button class="btn-lvl" id="f2Lvl3" onclick="setFanLevel(2, 3)">3</button>
+                <button class="btn-lvl" id="f2Lvl4" onclick="setFanLevel(2, 4)">4</button>
+                <button class="btn-lvl" id="f2Lvl5" onclick="setFanLevel(2, 5)">5</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span id="lblFan2Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
+                <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan2AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
+              </div>
+              <input type="range" id="fan2AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(2, this.value)">
+              <button class="btn-apply" id="btnApplyFan2Area" onclick="applyFanArea(2)">Appliquer correction</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Sliders Grid -->
-    <div class="sliders-grid">
-      <!-- Target Room Temp -->
+    <!-- Sub-tab 2: Programmation -->
+    <div id="ctrl-sched" class="ctrl-content" style="display:none;flex-direction:column;gap:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <label id="lblSchedSectionTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">PLANNING HEBDOMADAIRE</label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <span id="lblSchedActiveTitle" style="font-weight:600;font-size:0.9rem">Programmation active</span>
+          <label class="switch">
+            <input type="checkbox" id="schedActiveToggle">
+            <span class="slider-switch"></span>
+          </label>
+        </label>
+      </div>
+      <p id="lblSchedActiveDesc" style="font-size:0.82rem;color:var(--text-dim);margin-top:-8px">Active ou désactive le planning des plages horaires de chauffe.</p>
+
+      <!-- Setback Temperature Slider -->
       <div class="slider-box">
         <div class="slider-head">
-          <label id="lblSliderTemp">Consigne Ambiance (Confort)</label>
-          <span class="val"><span id="sliderTempVal">20</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
+          <label id="lblSetbackTemp">Température de maintien (Éco)</label>
+          <span class="val"><span id="setbackTempVal">16.0</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
         </div>
-        <input type="range" id="tempRange" min="14" max="28" step="1" value="20" oninput="onTempSlider(this.value)">
-        <button class="btn-apply" id="btnApplyTemp" onclick="applyRoomTarget()">Appliquer la température</button>
+        <input type="range" id="setbackTempRange" min="12" max="22" step="0.5" value="16" oninput="onSetbackInput(this.value)">
       </div>
 
-      <!-- Target Stage Power -->
-      <div class="slider-box">
-        <div class="slider-head">
-          <label id="lblSliderStage">Puissance (Auto & Manuel)</label>
-          <span class="val"><span id="sliderStageVal">70</span> <small style="font-size:0.9rem;color:var(--text-muted)">%</small></span>
-        </div>
-        <input type="range" id="stageRange" min="30" max="100" step="5" value="70" oninput="onStageSlider(this.value)">
-        <button class="btn-apply" id="btnApplyStage" onclick="applyStageTarget()">Appliquer la puissance</button>
+      <!-- Quick Actions -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:0.85rem;color:var(--text-dim)" id="lblQuickCopy">Actions rapides :</span>
+        <button type="button" class="btn-lock" id="btnCopyWeekdays" onclick="copyMonday(false)">📋 Lun ➔ Lun-Ven</button>
+        <button type="button" class="btn-lock" id="btnCopyAll" onclick="copyMonday(true)">📋 Lun ➔ Semaine</button>
+      </div>
+
+      <!-- Days Rows -->
+      <div style="display:flex;flex-direction:column;gap:10px" id="schedDaysContainer"></div>
+
+      <!-- Save Button -->
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="power-btn" id="btnSaveSchedule" onclick="saveSchedule()" style="width:100%;justify-content:center">
+          💾 Enregistrer la programmation
+        </button>
       </div>
     </div>
   </div>
@@ -692,7 +977,10 @@ const I18N = {
     pelletsHeader: "Compteurs & Entretien",
     serviceCountPrefix: "Service restant : ",
     pelletHoursSuffix: " h granulés",
-    deckTitle: "Commandes & Consignes",
+    deckTitle: "Pilotage du Poêle",
+    subtabDirect: "Commandes directes",
+    subtabSched: "Programmation",
+    schedSectionTitle: "PLANNING HEBDOMADAIRE",
     regulationMode: "MODE DE RÉGULATION",
     modeTitle2: "Confort",
     modeDesc2: "Sonde de température",
@@ -704,10 +992,30 @@ const I18N = {
     btnApplyTemp: "Appliquer la température",
     sliderStage: "Puissance (Auto & Manuel)",
     btnApplyStage: "Appliquer la puissance",
+    multiAirTitle: "VENTILATION MULTIAIR",
+    fan1Title: "MultiAir 1",
+    fan2Title: "MultiAir 2",
+    fanSpeed: "Vitesse",
+    fanArea: "Correction convection",
+    btnApplyFanArea: "Appliquer correction",
+    fanOn: "Actif",
+    fanOff: "Arrêt",
+    fanAuto: "Auto",
     tabTelemetry: "📊 Télémétrie complète",
     tabNetwork: "📶 Réseau & WiFi",
     tabLink: "⚙️ Liaison CDC",
     tabLogs: "📜 Logs CDC",
+    schedActive: "Programmation active",
+    schedActiveDesc: "Active ou désactive le planning des plages horaires de chauffe.",
+    setbackTemp: "Température de maintien (Éco)",
+    quickCopy: "Actions rapides :",
+    btnCopyWeekdays: "📋 Lun ➔ Lun-Ven",
+    btnCopyAll: "📋 Lun ➔ Semaine",
+    copiedWeekdays: "Horaires copiés du Lundi au Vendredi",
+    copiedAll: "Horaires copiés sur toute la semaine",
+    btnSaveSchedule: "💾 Enregistrer la programmation",
+    schedSaved: "Programmation enregistrée avec succès !",
+    days: { Mon: "Lundi", Tue: "Mardi", Wed: "Mercredi", Thu: "Jeudi", Fri: "Vendredi", Sat: "Samedi", Sun: "Dimanche" },
     logRx: "Poêle → Clef (RX)",
     logTx: "Clef → Poêle (TX)",
     logAuto: "Auto",
@@ -794,7 +1102,13 @@ const I18N = {
       serviceMinutes: "Minutes totales écoulées révision",
       ignitionCount: "Nombre d'allumages",
       onOffCycles: "Cycles marche/arrêt",
-      hopperLidClosed: "Trappe réservoir pellets fermée"
+      hopperLidClosed: "Trappe réservoir pellets fermée",
+      convectionFan1Active: "MultiAir 1 actif",
+      convectionFan1Level: "MultiAir 1 vitesse (0=Auto, 1-5)",
+      convectionFan1Area: "MultiAir 1 correction (%)",
+      convectionFan2Active: "MultiAir 2 actif",
+      convectionFan2Level: "MultiAir 2 vitesse (0=Auto, 1-5)",
+      convectionFan2Area: "MultiAir 2 correction (%)"
     }
   },
   en: {
@@ -823,7 +1137,10 @@ const I18N = {
     pelletsHeader: "Counters & Service",
     serviceCountPrefix: "Service countdown: ",
     pelletHoursSuffix: " h pellets",
-    deckTitle: "Controls & Setpoints",
+    deckTitle: "Stove Controls",
+    subtabDirect: "Direct Controls",
+    subtabSched: "Schedule",
+    schedSectionTitle: "WEEKLY SCHEDULE",
     regulationMode: "REGULATION MODE",
     modeTitle2: "Comfort",
     modeDesc2: "Room thermostat sensor",
@@ -835,10 +1152,30 @@ const I18N = {
     btnApplyTemp: "Apply Temperature",
     sliderStage: "Power (Auto & Manual)",
     btnApplyStage: "Apply Power",
+    multiAirTitle: "MULTIAIR VENTILATION",
+    fan1Title: "MultiAir 1",
+    fan2Title: "MultiAir 2",
+    fanSpeed: "Speed",
+    fanArea: "Convection correction",
+    btnApplyFanArea: "Apply correction",
+    fanOn: "Active",
+    fanOff: "Off",
+    fanAuto: "Auto",
     tabTelemetry: "📊 Full Telemetry",
     tabNetwork: "📶 Network & WiFi",
     tabLink: "⚙️ USB CDC Link",
     tabLogs: "📜 CDC Logs",
+    schedActive: "Heating schedule active",
+    schedActiveDesc: "Enables or disables the weekly heating schedule.",
+    setbackTemp: "Setback temperature (Eco)",
+    quickCopy: "Quick actions:",
+    btnCopyWeekdays: "📋 Mon ➔ Mon-Fri",
+    btnCopyAll: "📋 Mon ➔ All week",
+    copiedWeekdays: "Schedule copied to Monday-Friday",
+    copiedAll: "Schedule copied to entire week",
+    btnSaveSchedule: "💾 Save Heating Schedule",
+    schedSaved: "Schedule saved successfully!",
+    days: { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" },
     logRx: "Stove → Dongle (RX)",
     logTx: "Dongle → Stove (TX)",
     logAuto: "Auto",
@@ -925,7 +1262,13 @@ const I18N = {
       serviceMinutes: "Total elapsed service minutes",
       ignitionCount: "Total ignition count",
       onOffCycles: "Total on/off cycles",
-      hopperLidClosed: "Pellet hopper lid closed"
+      hopperLidClosed: "Pellet hopper lid closed",
+      convectionFan1Active: "MultiAir 1 active",
+      convectionFan1Level: "MultiAir 1 speed (0=Auto, 1-5)",
+      convectionFan1Area: "MultiAir 1 correction (%)",
+      convectionFan2Active: "MultiAir 2 active",
+      convectionFan2Level: "MultiAir 2 speed (0=Auto, 1-5)",
+      convectionFan2Area: "MultiAir 2 correction (%)"
     }
   },
   de: {
@@ -954,7 +1297,10 @@ const I18N = {
     pelletsHeader: "Zähler & Wartung",
     serviceCountPrefix: "Wartung in: ",
     pelletHoursSuffix: " h Pellets",
-    deckTitle: "Steuerung & Sollwerte",
+    deckTitle: "Ofensteuerung",
+    subtabDirect: "Direktsteuerung",
+    subtabSched: "Heizzeiten",
+    schedSectionTitle: "WÖCHENTLICHER ZEITPLAN",
     regulationMode: "REGELUNGSMODUS",
     modeTitle2: "Komfort",
     modeDesc2: "Raumtemperatursensor",
@@ -966,10 +1312,30 @@ const I18N = {
     btnApplyTemp: "Temperatur übernehmen",
     sliderStage: "Leistung (Auto & Manuell)",
     btnApplyStage: "Leistung übernehmen",
+    multiAirTitle: "MULTIAIR GEBLÄSE",
+    fan1Title: "MultiAir 1",
+    fan2Title: "MultiAir 2",
+    fanSpeed: "Stufe",
+    fanArea: "Konvektions-Korrektur",
+    btnApplyFanArea: "Korrektur übernehmen",
+    fanOn: "Aktiv",
+    fanOff: "Aus",
+    fanAuto: "Auto",
     tabTelemetry: "📊 Vollständige Telemetrie",
     tabNetwork: "📶 Netzwerk & WLAN",
     tabLink: "⚙️ USB CDC Verbindung",
     tabLogs: "📜 CDC Protokolle",
+    schedActive: "Heizzeiten aktiv",
+    schedActiveDesc: "Aktiviert oder deaktiviert den wöchentlichen Heizzeitplan.",
+    setbackTemp: "Absenktemperatur (Eco)",
+    quickCopy: "Schnellaktionen:",
+    btnCopyWeekdays: "📋 Mo ➔ Mo-Fr",
+    btnCopyAll: "📋 Mo ➔ Ganze Woche",
+    copiedWeekdays: "Heizzeiten auf Montag-Freitag kopiert",
+    copiedAll: "Heizzeiten auf ganze Woche kopiert",
+    btnSaveSchedule: "💾 Heizzeiten speichern",
+    schedSaved: "Heizzeiten erfolgreich gespeichert!",
+    days: { Mon: "Montag", Tue: "Dienstag", Wed: "Mittwoch", Thu: "Donnerstag", Fri: "Freitag", Sat: "Samstag", Sun: "Sonntag" },
     logRx: "Ofen → Dongle (RX)",
     logTx: "Dongle → Ofen (TX)",
     logAuto: "Auto",
@@ -1056,7 +1422,13 @@ const I18N = {
       serviceMinutes: "Gesamte vergangene Wartungsminuten",
       ignitionCount: "Anzahl Zündungen gesamt",
       onOffCycles: "Anzahl Ein/Aus-Zyklen gesamt",
-      hopperLidClosed: "Pelletbehälter-Deckel geschlossen"
+      hopperLidClosed: "Pelletbehälter-Deckel geschlossen",
+      convectionFan1Active: "MultiAir 1 aktiv",
+      convectionFan1Level: "MultiAir 1 Stufe (0=Auto, 1-5)",
+      convectionFan1Area: "MultiAir 1 Korrektur (%)",
+      convectionFan2Active: "MultiAir 2 aktiv",
+      convectionFan2Level: "MultiAir 2 Stufe (0=Auto, 1-5)",
+      convectionFan2Area: "MultiAir 2 Korrektur (%)"
     }
   }
 };
@@ -1076,7 +1448,10 @@ function applyLang() {
   document.getElementById('lblPelletsHeader').textContent = t.pelletsHeader;
   document.getElementById('lblServiceCountPrefix').textContent = t.serviceCountPrefix;
   document.getElementById('lblPelletHoursSuffix').textContent = t.pelletHoursSuffix;
-  document.getElementById('lblDeckTitle').textContent = t.deckTitle;
+  if (document.getElementById('lblDeckTitle')) document.getElementById('lblDeckTitle').textContent = t.deckTitle;
+  if (document.getElementById('lblSubtabDirect')) document.getElementById('lblSubtabDirect').textContent = t.subtabDirect;
+  if (document.getElementById('lblSubtabSched')) document.getElementById('lblSubtabSched').textContent = t.subtabSched;
+  if (document.getElementById('lblSchedSectionTitle')) document.getElementById('lblSchedSectionTitle').textContent = t.schedSectionTitle;
   document.getElementById('lblRegulationMode').textContent = t.regulationMode;
   document.getElementById('lblModeTitle2').textContent = t.modeTitle2;
   document.getElementById('lblModeDesc2').textContent = t.modeDesc2;
@@ -1088,10 +1463,34 @@ function applyLang() {
   document.getElementById('btnApplyTemp').textContent = t.btnApplyTemp;
   document.getElementById('lblSliderStage').textContent = t.sliderStage;
   document.getElementById('btnApplyStage').textContent = t.btnApplyStage;
+  if (document.getElementById('lblMultiAirTitle')) document.getElementById('lblMultiAirTitle').textContent = t.multiAirTitle;
+  if (document.getElementById('lblFan1Title')) document.getElementById('lblFan1Title').textContent = t.fan1Title;
+  if (document.getElementById('lblFan2Title')) document.getElementById('lblFan2Title').textContent = t.fan2Title;
+  if (document.getElementById('lblFan1Speed')) document.getElementById('lblFan1Speed').textContent = t.fanSpeed;
+  if (document.getElementById('lblFan2Speed')) document.getElementById('lblFan2Speed').textContent = t.fanSpeed;
+  if (document.getElementById('lblFan1Area')) document.getElementById('lblFan1Area').textContent = t.fanArea;
+  if (document.getElementById('lblFan2Area')) document.getElementById('lblFan2Area').textContent = t.fanArea;
+  if (document.getElementById('btnApplyFan1Area')) document.getElementById('btnApplyFan1Area').textContent = t.btnApplyFanArea;
+  if (document.getElementById('btnApplyFan2Area')) document.getElementById('btnApplyFan2Area').textContent = t.btnApplyFanArea;
+  if (document.getElementById('f1Lvl0')) document.getElementById('f1Lvl0').textContent = t.fanAuto;
+  if (document.getElementById('f2Lvl0')) document.getElementById('f2Lvl0').textContent = t.fanAuto;
   document.getElementById('tabBtnTelemetry').textContent = t.tabTelemetry;
   document.getElementById('tabBtnNetwork').textContent = t.tabNetwork;
   document.getElementById('tabBtnLink').textContent = t.tabLink;
   document.getElementById('tabBtnLogs').textContent = t.tabLogs;
+  if (document.getElementById('lblSchedActiveTitle')) document.getElementById('lblSchedActiveTitle').textContent = t.schedActive;
+  if (document.getElementById('lblSchedActiveDesc')) document.getElementById('lblSchedActiveDesc').textContent = t.schedActiveDesc;
+  if (document.getElementById('lblSetbackTemp')) document.getElementById('lblSetbackTemp').textContent = t.setbackTemp;
+  if (document.getElementById('lblQuickCopy')) document.getElementById('lblQuickCopy').textContent = t.quickCopy;
+  if (document.getElementById('btnCopyWeekdays')) document.getElementById('btnCopyWeekdays').textContent = t.btnCopyWeekdays;
+  if (document.getElementById('btnCopyAll')) document.getElementById('btnCopyAll').textContent = t.btnCopyAll;
+  if (document.getElementById('btnSaveSchedule')) document.getElementById('btnSaveSchedule').textContent = t.btnSaveSchedule;
+  if (t.days) {
+    for (const k in t.days) {
+      const el = document.getElementById('dayName_' + k);
+      if (el) el.textContent = t.days[k];
+    }
+  }
   document.getElementById('lblLogRx').textContent = t.logRx;
   document.getElementById('lblLogTx').textContent = t.logTx;
   document.getElementById('lblLogAuto').textContent = t.logAuto;
@@ -1140,6 +1539,24 @@ function toast(msg) {
   t.style.display = 'block';
   clearTimeout(t.timer);
   t.timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function showCtrlTab(id) {
+  document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.ctrl-content').forEach(c => c.style.display = 'none');
+  if (id === 'ctrl-sched') {
+    const btn = document.getElementById('subtabBtnSched');
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('ctrl-sched');
+    if (panel) panel.style.display = 'flex';
+    initScheduleUI();
+    loadSchedule();
+  } else {
+    const btn = document.getElementById('subtabBtnDirect');
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('ctrl-direct');
+    if (panel) panel.style.display = 'flex';
+  }
 }
 
 function showTab(id) {
@@ -1273,6 +1690,275 @@ function applyRoomTarget() {
 function applyStageTarget() {
   const v = parseInt(document.getElementById('stageRange').value, 10);
   sendControl("targetStage", v);
+}
+
+function toggleFan(n) {
+  if (!lastState) return;
+  const ctrl = lastState.controls || {};
+  const cPos = lastState.controls_pos || [];
+  let curOn = 0;
+  if (n === 1) {
+    curOn = (ctrl.convection_fan1_active !== undefined) ? (ctrl.convection_fan1_active ? 1 : 0) : (cPos.length > 23 ? cPos[23] : 0);
+    sendControl("convectionFan1Active", curOn ? 0 : 1);
+  } else {
+    curOn = (ctrl.convection_fan2_active !== undefined) ? (ctrl.convection_fan2_active ? 1 : 0) : (cPos.length > 26 ? cPos[26] : 0);
+    sendControl("convectionFan2Active", curOn ? 0 : 1);
+  }
+}
+
+function setFanLevel(n, lvl) {
+  if (n === 1) {
+    sendControl("convectionFan1Level", lvl);
+  } else {
+    sendControl("convectionFan2Level", lvl);
+  }
+}
+
+function onFanAreaInput(n, val) {
+  const el = document.getElementById('fan' + n + 'AreaVal');
+  if (el) el.textContent = (val > 0 ? '+' : '') + val;
+  setInteracting();
+}
+
+function applyFanArea(n) {
+  const r = document.getElementById('fan' + n + 'AreaRange');
+  if (!r) return;
+  const val = parseInt(r.value, 10);
+  if (n === 1) {
+    sendControl("convectionFan1Area", val);
+  } else {
+    sendControl("convectionFan2Area", val);
+  }
+}
+
+// --- Programmation hebdomadaire (Heating Schedule) -------------------------
+const DAYS = [
+  { key: 'Mon', fr: 'Lundi', en: 'Monday', de: 'Montag', idx1: 7, idx2: 8 },
+  { key: 'Tue', fr: 'Mardi', en: 'Tuesday', de: 'Dienstag', idx1: 9, idx2: 10 },
+  { key: 'Wed', fr: 'Mercredi', en: 'Wednesday', de: 'Mittwoch', idx1: 11, idx2: 12 },
+  { key: 'Thu', fr: 'Jeudi', en: 'Thursday', de: 'Donnerstag', idx1: 13, idx2: 14 },
+  { key: 'Fri', fr: 'Vendredi', en: 'Friday', de: 'Freitag', idx1: 15, idx2: 16 },
+  { key: 'Sat', fr: 'Samedi', en: 'Saturday', de: 'Samstag', idx1: 17, idx2: 18 },
+  { key: 'Sun', fr: 'Dimanche', en: 'Sunday', de: 'Sonntag', idx1: 19, idx2: 20 }
+];
+let scheduleLoaded = false;
+
+function decodeSlot(val) {
+  if (!val || val <= 0) return { enabled: false, start: '06:00', end: '22:00' };
+  const v = parseInt(val, 10);
+  const sVal = Math.floor(v / 10000);
+  const eVal = v % 10000;
+  const sH = String(Math.floor(sVal / 100)).padStart(2, '0');
+  const sM = String(sVal % 100).padStart(2, '0');
+  const eH = String(Math.floor(eVal / 100)).padStart(2, '0');
+  const eM = String(eVal % 100).padStart(2, '0');
+  return { enabled: true, start: sH + ':' + sM, end: eH + ':' + eM };
+}
+
+function encodeSlot(enabled, startStr, endStr) {
+  if (!enabled) return 0;
+  const sParts = (startStr || '00:00').split(':');
+  const eParts = (endStr || '00:00').split(':');
+  const sH = parseInt(sParts[0], 10) || 0;
+  const sM = parseInt(sParts[1], 10) || 0;
+  const eH = parseInt(eParts[0], 10) || 0;
+  const eM = parseInt(eParts[1], 10) || 0;
+  return (sH * 100 + sM) * 10000 + (eH * 100 + eM);
+}
+
+function initScheduleUI() {
+  const cont = document.getElementById('schedDaysContainer');
+  if (!cont || cont.children.length > 0) return;
+  const t = I18N[curLang] || I18N.fr;
+  let html = '';
+  DAYS.forEach(d => {
+    const dName = (t.days && t.days[d.key]) ? t.days[d.key] : d.fr;
+    html += '<div class="sched-day-row">';
+    html += '  <div class="sched-day-name" id="dayName_' + d.key + '">' + dName + '</div>';
+    html += '  <div class="sched-day-slots">';
+    html += '    <div class="sched-slot-box disabled" id="box_' + d.key + '1">';
+    html += '      <label class="slot-chk-label">';
+    html += '        <input type="checkbox" id="chk_' + d.key + '1" onchange="onSlotToggle(\'' + d.key + '\', 1)">';
+    html += '        <span class="slot-pill">P1</span>';
+    html += '      </label>';
+    html += '      <input type="time" class="input-time" id="start_' + d.key + '1" value="06:00" step="60" disabled onchange="setInteracting()">';
+    html += '      <span class="slot-arrow">➔</span>';
+    html += '      <input type="time" class="input-time" id="end_' + d.key + '1" value="09:00" step="60" disabled onchange="setInteracting()">';
+    html += '    </div>';
+    html += '    <div class="sched-slot-box disabled" id="box_' + d.key + '2">';
+    html += '      <label class="slot-chk-label">';
+    html += '        <input type="checkbox" id="chk_' + d.key + '2" onchange="onSlotToggle(\'' + d.key + '\', 2)">';
+    html += '        <span class="slot-pill">P2</span>';
+    html += '      </label>';
+    html += '      <input type="time" class="input-time" id="start_' + d.key + '2" value="17:00" step="60" disabled onchange="setInteracting()">';
+    html += '      <span class="slot-arrow">➔</span>';
+    html += '      <input type="time" class="input-time" id="end_' + d.key + '2" value="22:00" step="60" disabled onchange="setInteracting()">';
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+function onSlotToggle(dayKey, slotNum) {
+  const chk = document.getElementById('chk_' + dayKey + slotNum);
+  const sIn = document.getElementById('start_' + dayKey + slotNum);
+  const eIn = document.getElementById('end_' + dayKey + slotNum);
+  const box = document.getElementById('box_' + dayKey + slotNum);
+  if (!chk) return;
+  if (sIn) sIn.disabled = !chk.checked;
+  if (eIn) eIn.disabled = !chk.checked;
+  if (box) box.classList.toggle('disabled', !chk.checked);
+  setInteracting();
+}
+
+function onSetbackInput(v) {
+  const el = document.getElementById('setbackTempVal');
+  if (el) el.textContent = parseFloat(v).toFixed(1);
+  setInteracting();
+}
+
+function copyMonday(all) {
+  const t = I18N[curLang] || I18N.fr;
+  const chk1 = document.getElementById('chk_Mon1').checked;
+  const s1 = document.getElementById('start_Mon1').value;
+  const e1 = document.getElementById('end_Mon1').value;
+
+  const chk2 = document.getElementById('chk_Mon2').checked;
+  const s2 = document.getElementById('start_Mon2').value;
+  const e2 = document.getElementById('end_Mon2').value;
+
+  const targets = all ? ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Tue', 'Wed', 'Thu', 'Fri'];
+  targets.forEach(k => {
+    const c1 = document.getElementById('chk_' + k + '1');
+    const st1 = document.getElementById('start_' + k + '1');
+    const en1 = document.getElementById('end_' + k + '1');
+    if (c1 && st1 && en1) {
+      c1.checked = chk1;
+      st1.value = s1;
+      en1.value = e1;
+      onSlotToggle(k, 1);
+    }
+    const c2 = document.getElementById('chk_' + k + '2');
+    const st2 = document.getElementById('start_' + k + '2');
+    const en2 = document.getElementById('end_' + k + '2');
+    if (c2 && st2 && en2) {
+      c2.checked = chk2;
+      st2.value = s2;
+      en2.value = e2;
+      onSlotToggle(k, 2);
+    }
+  });
+  setInteracting();
+  toast(all ? t.copiedAll : t.copiedWeekdays);
+}
+
+function populateScheduleUI(data) {
+  initScheduleUI();
+  const isAct = data.active !== undefined ? data.active : (data.heatingTimesActive == 1);
+  const actToggle = document.getElementById('schedActiveToggle');
+  if (actToggle) actToggle.checked = isAct;
+
+  let sb = 16.0;
+  if (data.setback_temperature !== undefined) sb = data.setback_temperature;
+  else if (data.setBackTemp !== undefined) sb = data.setBackTemp / 10.0;
+  const sbRange = document.getElementById('setbackTempRange');
+  const sbVal = document.getElementById('setbackTempVal');
+  if (sbRange) sbRange.value = sb;
+  if (sbVal) sbVal.textContent = parseFloat(sb).toFixed(1);
+
+  const slots = data.slots || {};
+  DAYS.forEach(d => {
+    for (let s = 1; s <= 2; s++) {
+      const key = 'heatTime' + d.key + s;
+      const val = slots[key] || 0;
+      const dec = decodeSlot(val);
+      const chk = document.getElementById('chk_' + d.key + s);
+      const sIn = document.getElementById('start_' + d.key + s);
+      const eIn = document.getElementById('end_' + d.key + s);
+      if (chk && sIn && eIn) {
+        chk.checked = dec.enabled;
+        sIn.value = dec.start;
+        eIn.value = dec.end;
+        onSlotToggle(d.key, s);
+      }
+    }
+  });
+}
+
+async function loadSchedule(force = false) {
+  initScheduleUI();
+  if (scheduleLoaded && !force) return;
+  try {
+    const res = await fetch('/api/schedule');
+    if (res.ok) {
+      const data = await res.json();
+      populateScheduleUI(data);
+      scheduleLoaded = true;
+      return;
+    }
+  } catch(e) {}
+
+  if (lastState && lastState.controls_pos && lastState.controls_pos.length >= 23) {
+    const cp = lastState.controls_pos;
+    const slots = {};
+    DAYS.forEach(d => {
+      slots['heatTime' + d.key + '1'] = cp[d.idx1] || 0;
+      slots['heatTime' + d.key + '2'] = cp[d.idx2] || 0;
+    });
+    populateScheduleUI({
+      active: cp[21] == 1,
+      heatingTimesActive: cp[21],
+      setBackTemp: cp[22] || 160,
+      setback_temperature: (cp[22] || 160) / 10.0,
+      slots: slots
+    });
+    scheduleLoaded = true;
+  }
+}
+
+async function saveSchedule() {
+  const t = I18N[curLang] || I18N.fr;
+  const isHtActive = document.getElementById('schedActiveToggle').checked ? 1 : 0;
+  const sbVal = parseFloat(document.getElementById('setbackTempRange').value);
+  const payload = {
+    heatingTimesActive: isHtActive,
+    setBackTemp: Math.round(sbVal * 10)
+  };
+  DAYS.forEach(d => {
+    const c1 = document.getElementById('chk_' + d.key + '1');
+    const s1 = document.getElementById('start_' + d.key + '1');
+    const e1 = document.getElementById('end_' + d.key + '1');
+    payload['heatTime' + d.key + '1'] = encodeSlot(c1 ? c1.checked : false, s1 ? s1.value : '06:00', e1 ? e1.value : '09:00');
+
+    const c2 = document.getElementById('chk_' + d.key + '2');
+    const s2 = document.getElementById('start_' + d.key + '2');
+    const e2 = document.getElementById('end_' + d.key + '2');
+    payload['heatTime' + d.key + '2'] = encodeSlot(c2 ? c2.checked : false, s2 ? s2.value : '17:00', e2 ? e2.value : '22:00');
+  });
+
+  const btn = document.getElementById('btnSaveSchedule');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      toast(t.schedSaved);
+      scheduleLoaded = false;
+      setTimeout(() => loadSchedule(true), 800);
+      setTimeout(tick, 300);
+    } else {
+      const err = await res.json();
+      toast(t.errorPrefix + (err.error || 'Erreur'));
+    }
+  } catch(e) {
+    toast(t.netError);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // WiFi credentials are submitted by the native <form> POST to /api/wifi (see the
@@ -1486,6 +2172,87 @@ async function tick() {
     const mName = stObj.model_name || modelNames[mId] || mFallback;
     const vStr = stObj.mainboard_version ? (' V' + stObj.mainboard_version) : '';
     document.getElementById('modelBadge').textContent = mName + vStr;
+
+    // MultiAir (modèles RIKA équipés : 4=ROCO MA, 13=DOMO, 17=PARO, 23=DOMO BACK, 25=SUMO MA)
+    const deck = document.getElementById('multiairDeck');
+    const MULTIAIR_MODELS = [4, 13, 17, 23, 25];
+    const hasMultiAir = MULTIAIR_MODELS.includes(mId);
+    if (deck) {
+      deck.style.display = hasMultiAir ? 'flex' : 'none';
+      if (hasMultiAir) {
+        // Fan 1
+        const f1Active = (ctrl.convection_fan1_active !== undefined) ? (ctrl.convection_fan1_active ? 1 : 0) :
+                         (s.controls_pos && s.controls_pos.length > 23 ? s.controls_pos[23] : 0);
+        const f1Lvl = (ctrl.convection_fan1_level !== undefined) ? ctrl.convection_fan1_level :
+                      (s.controls_pos && s.controls_pos.length > 24 ? s.controls_pos[24] : 0);
+        const f1Area = (ctrl.convection_fan1_area !== undefined) ? ctrl.convection_fan1_area :
+                       (s.controls_pos && s.controls_pos.length > 25 ? s.controls_pos[25] : 0);
+
+        const btnF1 = document.getElementById('fan1ToggleBtn');
+        const txtF1 = document.getElementById('fan1ToggleText');
+        if (btnF1 && txtF1) {
+          if (f1Active == 1) {
+            btnF1.className = 'fan-toggle active';
+            txtF1.textContent = t.fanOn;
+          } else {
+            btnF1.className = 'fan-toggle';
+            txtF1.textContent = t.fanOff;
+          }
+        }
+        for (let l = 0; l <= 5; l++) {
+          const bl = document.getElementById('f1Lvl' + l);
+          if (bl) {
+            if (l === f1Lvl) bl.classList.add('active');
+            else bl.classList.remove('active');
+          }
+        }
+        const sp1Text = document.getElementById('fan1SpeedText');
+        if (sp1Text) sp1Text.textContent = (f1Lvl === 0) ? t.fanAuto : (t.fanSpeed + ' ' + f1Lvl);
+
+        if (!userInteracting) {
+          const r1 = document.getElementById('fan1AreaRange');
+          const v1 = document.getElementById('fan1AreaVal');
+          if (r1) r1.value = f1Area;
+          if (v1) v1.textContent = (f1Area > 0 ? '+' : '') + f1Area;
+        }
+
+        // Fan 2
+        const f2Active = (ctrl.convection_fan2_active !== undefined) ? (ctrl.convection_fan2_active ? 1 : 0) :
+                         (s.controls_pos && s.controls_pos.length > 26 ? s.controls_pos[26] : 0);
+        const f2Lvl = (ctrl.convection_fan2_level !== undefined) ? ctrl.convection_fan2_level :
+                      (s.controls_pos && s.controls_pos.length > 27 ? s.controls_pos[27] : 0);
+        const f2Area = (ctrl.convection_fan2_area !== undefined) ? ctrl.convection_fan2_area :
+                       (s.controls_pos && s.controls_pos.length > 28 ? s.controls_pos[28] : 0);
+
+        const btnF2 = document.getElementById('fan2ToggleBtn');
+        const txtF2 = document.getElementById('fan2ToggleText');
+        if (btnF2 && txtF2) {
+          if (f2Active == 1) {
+            btnF2.className = 'fan-toggle active';
+            txtF2.textContent = t.fanOn;
+          } else {
+            btnF2.className = 'fan-toggle';
+            txtF2.textContent = t.fanOff;
+          }
+        }
+        for (let l = 0; l <= 5; l++) {
+          const bl = document.getElementById('f2Lvl' + l);
+          if (bl) {
+            if (l === f2Lvl) bl.classList.add('active');
+            else bl.classList.remove('active');
+          }
+        }
+        const sp2Text = document.getElementById('fan2SpeedText');
+        if (sp2Text) sp2Text.textContent = (f2Lvl === 0) ? t.fanAuto : (t.fanSpeed + ' ' + f2Lvl);
+
+        if (!userInteracting) {
+          const r2 = document.getElementById('fan2AreaRange');
+          const v2 = document.getElementById('fan2AreaVal');
+          if (r2) r2.value = f2Area;
+          if (v2) v2.textContent = (f2Area > 0 ? '+' : '') + f2Area;
+        }
+      }
+    }
     document.getElementById('netMode').textContent = s.wifi_mode;
     document.getElementById('netIp').textContent = s.ip;
     const rssiVal = (s.device && s.device.wifi_rssi !== undefined) ? s.device.wifi_rssi : (rawS.rssi || '--');
