@@ -182,13 +182,26 @@ static const char* SENSOR_LABELS[] = {
 };
 static const int NUM_SENSOR_LABELS = 53;
 
+// Libellés positionnels pour Firenet V1 (INDUO V2.26 / V2.27 PRIO 1, VA 0x800366bc)
+static const char* V1_SENSOR_LABELS[] = {
+  /*0*/"roomTemp",          /*1*/"flame",             /*2*/"errMask32",        /*3*/"errSub",
+  /*4*/"serviceCountdown",  /*5*/"dischargeMotor",    /*6*/"augerSet",         /*7*/"idFanMeas",
+  /*8*/"airFlaps",          /*9*/"pelletHours",       /*10*/"logHours",        /*11*/"pelletsTotal",
+  /*12*/"onOff",
+};
+static const int NUM_V1_SENSOR_LABELS = 13;
+
 // nom émis pour une position (libellé prouvé, sinon "sNN"/"cNN")
 inline std::string ctrlName(int i) {
   if (i < NUM_CONTROL_LABELS && CONTROL_LABELS[i][0]) return CONTROL_LABELS[i];
   char b[8]; snprintf(b, sizeof b, "c%02d", i); return b;
 }
-inline std::string sensName(int i) {
-  if (i < NUM_SENSOR_LABELS && SENSOR_LABELS[i][0]) return SENSOR_LABELS[i];
+inline std::string sensName(int i, int generation = 0) {
+  if (generation == 2) {
+    if (i < NUM_V1_SENSOR_LABELS && V1_SENSOR_LABELS[i][0]) return V1_SENSOR_LABELS[i];
+  } else {
+    if (i < NUM_SENSOR_LABELS && SENSOR_LABELS[i][0]) return SENSOR_LABELS[i];
+  }
   char b[8]; snprintf(b, sizeof b, "s%02d", i); return b;
 }
 

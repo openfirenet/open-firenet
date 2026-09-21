@@ -44,6 +44,14 @@ public:
 
   // --- réception : appeler avec chaque octet reçu du poêle -------------------
   void onByte(uint8_t b) {
+    if (b == 0x16) {
+      // Octet de sonde SYN : émis par le poêle au boot (VA 0x80039f74)
+      if (!model_.version_ack && txq_.empty()) {
+        sendVersion();
+        last_tx_ms_ = 0;
+      }
+      return;
+    }
     if (!byteAccepted(b)) { dropped_++; if (dbg_){char h[6];snprintf(h,6,"%02X",b);dbg_("drop",h);} return; }  // §4.1
     if (rx_.size() < DONGLE_RX_SIZE) rx_ += (char)b;
     model_.last_rx_ms = now_();
@@ -74,11 +82,11 @@ public:
   //   V1 (older stoves):  "GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ... DT=1; "
   // The stove decides which it accepts, so we send one then the other in turn
   // until it acknowledges with any *_FINISHED, then lock onto that frame (and its DT).
-  struct VersionProfile { const char* prefix; int dt; };
+  struct VersionProfile { const char* prefix; int bl; int app; int rev; int dt; };
   static const VersionProfile& profileV1() { static const VersionProfile p =
-      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 1}; return p; }
+      {"GET_WIFI_VERSION=0; ", 101, 112, 360, 1}; return p; }
   static const VersionProfile& profileV3() { static const VersionProfile p =
-      {"GET_CDCDEVICE3_VERSION=0; ", 3}; return p; }
+      {"GET_CDCDEVICE3_VERSION=0; ", 999, 201, 12201, 3}; return p; }
   const VersionProfile& profile() const { return profile_ ? profileV1() : profileV3(); }
   int dt() const { return profile().dt; }      // effective DT of the active profile
 
@@ -90,48 +98,93 @@ public:
       if (dbg_) dbg_("tx", std::string("[version fallback -> ") + profile().prefix + "]");
     }
     char b[96];
-    snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; DT=%d; ",
-             profile().prefix, BL_VERSION, APP_VERSION, APP_REVISION, profile().dt);
+    if (profile().dt == 1) {
+      // Firenet V1 (INDUO V2.26 / V2.27) : NO DT field, NO GET_CDCDEVICE_VERSION
+      // Format validé par le parseur 0x800375a0 : "GET_WIFI_VERSION=0; BL=%d; APP=%d; REV=%d; "
+      snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; ",
+               profile().prefix, profile().bl, profile().app, profile().rev);
+    } else {
+      // Firenet V3 (DOMO V2.29+) : champ DT présent
+      snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; DT=%d; ",
+               profile().prefix, profile().bl, profile().app, profile().rev, profile().dt);
+    }
     send(b);
     profile_tries_++;
   }
-  void requestStatus() { send(model_.generation == 2 ? "POST_FIRENET_STATUS"
-                                                      : "POST_CDCDEVICE_STATUS"); }
+
+  void setCredentials(const std::string& ssid, const std::string& pass,
+                      const std::string& ip = "", const std::string& mac = "") {
+    ssid_ = ssid; pass_ = pass; ip_ = ip; mac_ = mac;
+  }
+
+  void requestStatus() {
+    if (model_.generation == 2) {
+      pushStatus();
+    } else {
+      send("POST_CDCDEVICE_STATUS");
+    }
+  }
+
   // Firenet V1 status: EXACTLY 19 fields (0 to 18, ending with mac, no OTA fields).
   // bl=101, app=112, rev=360, spwf=0, symbol=4, initialised=1.
-  void pushStatus(const std::string& ssidClear, const std::string& wpa2,
+  void pushStatus(const std::string& ssidClear = "", const std::string& wpa2 = "",
                   const std::string& ip = "", const std::string& mac = "",
                   int rssi = -55, const std::string& id = "0000000",
                   const std::string& token = "00000000") {
-    std::string ssid = (dt() == 3) ? hexEncode(ssidClear) : ssidClear;
+    std::string s_ssid = ssidClear.empty() ? ssid_ : ssidClear;
+    std::string s_pass = wpa2.empty() ? pass_ : wpa2;
+    std::string s_ip   = ip.empty() ? ip_ : ip;
+    std::string s_mac  = mac.empty() ? mac_ : mac;
+
+    std::string ssid = (dt() == 3) ? hexEncode(s_ssid) : s_ssid;
     std::string f = (model_.generation == 2) ? "GET_FIRENET_STATUS=0;\n"
                                               : "GET_CDCDEVICE_STATUS=0;\n";
-    char rssis[8], apps[8];
+    char rssis[8], apps[8], bls[8], revs[8];
     snprintf(rssis, sizeof rssis, "%d", rssi);
-    snprintf(apps, sizeof apps, "%d", APP_VERSION);
+    snprintf(apps, sizeof apps, "%d", profile().app);
+    snprintf(bls, sizeof bls, "%d", profile().bl);
+    snprintf(revs, sizeof revs, "%d", profile().rev);
     const char* vals[19] = {
       "0","1","0","0","1","4","0",          // monitoring,on_off,scan,init,initialised,symbol,error
-      "101", apps, "360", "0", rssis,       // bl,app,rev,spwf,rssi
-      id.c_str(), token.c_str(), "3",       // id,token,protocol
-      ssid.c_str(), wpa2.c_str(),           // ssid(plain),wpa2
-      ip.c_str(), mac.c_str()};             // ip,mac
+      bls, apps, revs, "0", rssis,           // bl,app,rev,spwf,rssi
+      id.c_str(), token.c_str(), (model_.generation == 2 ? "1" : "3"), // id,token,protocol
+      ssid.c_str(), s_pass.c_str(),         // ssid,wpa2
+      s_ip.c_str(), s_mac.c_str()};         // ip,mac
     for (int i = 0; i < 19; i++) { f += vals[i]; f += '\n'; }
+    if (model_.generation != 2) {
+      f += "0\n0\n0\n";
+    }
     send(f);
   }
-  // Lit les capteurs : définit les noms (flag 0) puis réclame l'émission.
-  void pollSensors(const std::vector<std::string>& names) {
-    // Nommer N positions -> le poêle renvoie array[0..N-1] (mapping positionnel,
-    // §17). Limité à ~12 positions (trame <=64 o + "TOO MUCH ENTRIES" au-delà).
-    sendTable("GET_SENSORS", names, 0);
-    sendRevision();                       // déclenche la sélection (§8.3)
-    transferCompleted();                  // -> POST_CONTROLS si en attente
-    transferCompleted();                  // -> POST_SENSORS
+
+  // Lit les capteurs : en V1, requêtes par priorité 1 ou 2. En V3, déclare les sentinelles.
+  void pollSensors(const std::vector<std::string>& names = {}) {
+    if (model_.generation == 2) {
+      send("GET_SENSORS=1; \n");
+      transferCompleted();
+    } else {
+      sendTable("GET_SENSORS", names, 0);
+      sendRevision();                       // déclenche la sélection (§8.3)
+      transferCompleted();                  // -> POST_CONTROLS si en attente
+      transferCompleted();                  // -> POST_SENSORS
+    }
   }
-  void pollControls(const std::vector<std::string>& names) {
-    sendTable("GET_CONTROLS", names, 0);
-    sendRevision();
-    transferCompleted();
-    transferCompleted();
+  void pollPrio2Sensors() {
+    if (model_.generation == 2) {
+      send("GET_SENSORS=2; \n");
+      transferCompleted();
+    }
+  }
+  void pollControls(const std::vector<std::string>& names = {}) {
+    if (model_.generation == 2) {
+      send("GET_CONTROLS=0; \n");
+      transferCompleted();
+    } else {
+      sendTable("GET_CONTROLS", names, 0);
+      sendRevision();
+      transferCompleted();
+      transferCompleted();
+    }
   }
   // §13.2 : applique un jeu COMPLET de controls ordonné par position matérielle (§13).
   void applyControls(const std::vector<std::pair<std::string,long>>& full) {
@@ -273,15 +326,32 @@ private:
     // toute trame de commande connue clôt un dump positionnel en cours ; seules
     // les continuations "=val" (isContinuation) le prolongent (traité plus bas).
     if (!isContinuation(buf)) pending_pos_ = nullptr;
-    bool looksLikeProbe = (buf == "3" || buf == "0" || buf.find('\x16') != std::string::npos);
+    std::string clean = trim(buf);
+    bool looksLikeProbe = (clean == "3" || clean == "0" || buf.find('\x16') != std::string::npos ||
+                           (buf.find('\x02') != std::string::npos && buf.find('0') != std::string::npos));
     if (buf.find("GET_WIFI_VERSION_FINISHED") != std::string::npos) {
       model_.generation = 2; model_.version_ack = true;
-      model_.version_profile = profile_; post_ack_probe_streak_ = 0; return; }
+      model_.version_profile = profile_; post_ack_probe_streak_ = 0;
+      pushStatus();
+      return;
+    }
     if (buf.find("GET_CDCDEVICE_VERSION_FINISHED") != std::string::npos) {
       model_.generation = 1; model_.version_ack = true;
-      model_.version_profile = profile_; post_ack_probe_streak_ = 0; return; }
+      model_.version_profile = profile_; post_ack_probe_streak_ = 0; return;
+    }
     if (buf.find("GET_CDCDEVICE_VERSION_UNFINISHED") != std::string::npos) return;
     if (!model_.version_ack && looksLikeProbe) {
+      txq_.clear();
+      sendVersion();
+      last_tx_ms_ = 0;
+      return;
+    }
+    // Réinitialisation de session poêle V1 (VA 0x8003be74 émet \x02 0 \x03 quand *0x1ac8=0) :
+    // Le poêle signale explicitement que la session est perdue ou expirée.
+    if (clean == "0" || (buf.find('\x02') != std::string::npos && buf.find('0') != std::string::npos)) {
+      model_.version_ack = false;
+      model_.version_profile = -1;
+      post_ack_probe_streak_ = 0;
       txq_.clear();
       sendVersion();
       last_tx_ms_ = 0;
@@ -306,7 +376,11 @@ private:
     if (buf.find("GET_NETWORKS_FINISHED") != std::string::npos) return;
     const char* wantStatus = (model_.generation == 2) ? "POST_FIRENET_STATUS"
                                                        : "POST_CDCDEVICE_STATUS";
-    if (buf.find(wantStatus) != std::string::npos) { pending_pos_ = nullptr; parseStatus(buf); return; }
+    if (buf.find(wantStatus) != std::string::npos ||
+        buf.find("POST_FIRENET_STATUS") != std::string::npos ||
+        buf.find("POST_CDCDEVICE_STATUS") != std::string::npos) {
+      pending_pos_ = nullptr; parseStatus(buf); return;
+    }
     if (buf.find("POST_CONTROLS") != std::string::npos) {
       std::vector<long> tmpPos;
       parseBody(afterHeader(buf), &model_.controls, tmpPos);
@@ -348,7 +422,7 @@ private:
     for (int i = 0; i < NUM_FIELDS && i < (int)v.size(); i++)
       model_.status[CDC_FIELDS[i].name] = v[i];
     auto it = model_.status.find("ssid");      // décodage hexa (§5.3)
-    if (it != model_.status.end() && DT == 3) it->second = hexDecode(it->second);
+    if (it != model_.status.end() && dt() == 3) it->second = hexDecode(it->second);
   }
   // Parse un corps "name=val; name=val; ..." (§7.5). Les paires nommées vont dans
   // `store` (s'il est fourni) ; TOUTES les valeurs sont aussi ajoutées à `pos`
@@ -372,7 +446,7 @@ private:
           } else if (store == &model_.controls) {
             (*store)[ctrlName((int)pos.size() - 1)] = v;
           } else if (store == &model_.sensors) {
-            (*store)[sensName((int)pos.size() - 1)] = v;
+            (*store)[sensName((int)pos.size() - 1, model_.generation)] = v;
           }
         }
       }
@@ -381,8 +455,8 @@ private:
   }
   void postSensors() { /* hook : le firmware relit model().sensors après un cycle */ }
   static std::string trim(const std::string& s) {
-    size_t a = s.find_first_not_of(" \r\n\t");
-    size_t b = s.find_last_not_of(" \r\n\t");
+    size_t a = s.find_first_not_of(" \r\n\t\x02\x03");
+    size_t b = s.find_last_not_of(" \r\n\t\x02\x03");
     return (a == std::string::npos) ? "" : s.substr(a, b - a + 1);
   }
 
@@ -412,6 +486,10 @@ private:
   // handshake instead of polling a dead link forever.
   int post_ack_probe_streak_ = 0;
   static const int POST_ACK_PROBE_RESET_THRESHOLD = 6;
+  std::string ssid_;
+  std::string pass_;
+  std::string ip_;
+  std::string mac_;
 };
 
 } // namespace firenet

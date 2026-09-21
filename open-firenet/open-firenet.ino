@@ -205,53 +205,64 @@ static const char* getStoveModelName(long modelId) {
 static String jsonState() {
   const auto& m = g_link->model();
 
-  long rTemp = (m.sensors_pos.size() > 0) ? m.sensors_pos[0] : 0;
+  long rTemp = 0, fTemp = 0, bTemp = 0, mainSt = 1, sState = 0;
+  long pTotal = 0, pHours = 0, sCount = 700, idFan = 0, auger = 0;
+  long errMask = 0, errSub = 0;
+  long modelId = (m.generation == 2) ? 1 : 13;   // 1 = INDUO, 13 = DOMO
+  long appVer  = (m.generation == 2) ? 227 : 229;
+  long buildVer = (m.generation == 2) ? 44501 : 58512;
+
+  if (m.generation == 2) {
+    // Schéma positionnel V1 (INDUO V2.26 / V2.27, PRIO 1)
+    if (m.sensors_pos.size() > 0)  rTemp = m.sensors_pos[0];
+    if (m.sensors_pos.size() > 1)  fTemp = m.sensors_pos[1];
+    if (m.sensors_pos.size() > 2)  errMask = m.sensors_pos[2];
+    if (m.sensors_pos.size() > 3)  errSub = m.sensors_pos[3];
+    if (m.sensors_pos.size() > 4)  sCount = m.sensors_pos[4];
+    if (m.sensors_pos.size() > 6)  auger = m.sensors_pos[6];
+    if (m.sensors_pos.size() > 7)  idFan = m.sensors_pos[7];
+    if (m.sensors_pos.size() > 9)  pHours = m.sensors_pos[9];
+    if (m.sensors_pos.size() > 11) pTotal = m.sensors_pos[11];
+  } else {
+    // Schéma positionnel V3 (DOMO V2.29+)
+    if (m.sensors_pos.size() > 0)  rTemp = m.sensors_pos[0];
+    if (m.sensors_pos.size() > 1)  fTemp = m.sensors_pos[1];
+    if (m.sensors_pos.size() > 3)  errMask = m.sensors_pos[3];
+    if (m.sensors_pos.size() > 4)  errSub = m.sensors_pos[4];
+    if (m.sensors_pos.size() > 7)  auger = m.sensors_pos[7];
+    if (m.sensors_pos.size() > 9)  idFan = m.sensors_pos[9];
+    if (m.sensors_pos.size() > 27) bTemp = m.sensors_pos[27];
+    if (m.sensors_pos.size() > 31) mainSt = m.sensors_pos[31];
+    if (m.sensors_pos.size() > 32) sState = m.sensors_pos[32];
+    if (m.sensors_pos.size() > 36) modelId = m.sensors_pos[36];
+    if (m.sensors_pos.size() > 38) appVer = m.sensors_pos[38];
+    if (m.sensors_pos.size() > 44) buildVer = m.sensors_pos[44];
+    if (m.sensors_pos.size() > 47) pHours = m.sensors_pos[47];
+    if (m.sensors_pos.size() > 49) pTotal = m.sensors_pos[49];
+    if (m.sensors_pos.size() > 50) sCount = m.sensors_pos[50];
+  }
+
+  // Surcharges par clé nommée si présentes dans model_.sensors
   auto itR = m.sensors.find("roomTemp"); if (itR != m.sensors.end()) rTemp = itR->second;
-
-  long fTemp = (m.sensors_pos.size() > 1) ? m.sensors_pos[1] : 0;
   auto itF = m.sensors.find("flame"); if (itF != m.sensors.end()) fTemp = itF->second;
-
-  long bTemp = (m.sensors_pos.size() > 27) ? m.sensors_pos[27] : 0;
   auto itB = m.sensors.find("boardSensor"); if (itB != m.sensors.end()) bTemp = itB->second;
-
-  long mainSt = (m.sensors_pos.size() > 31) ? m.sensors_pos[31] : 1;
   auto itMS = m.sensors.find("mainState"); if (itMS != m.sensors.end()) mainSt = itMS->second;
-
-  long sState = (m.sensors_pos.size() > 32) ? m.sensors_pos[32] : 0;
   auto itSS = m.sensors.find("subState"); if (itSS != m.sensors.end()) sState = itSS->second;
-
-  long pTotal = (m.sensors_pos.size() > 49) ? m.sensors_pos[49] : 0;
   auto itPT = m.sensors.find("pelletsTotal"); if (itPT != m.sensors.end()) pTotal = itPT->second;
-
-  long pHours = (m.sensors_pos.size() > 47) ? m.sensors_pos[47] : 0;
   auto itPH = m.sensors.find("pelletHours"); if (itPH != m.sensors.end()) pHours = itPH->second;
-
-  long sCount = (m.sensors_pos.size() > 50) ? m.sensors_pos[50] : 700;
   auto itSC = m.sensors.find("serviceCountdown"); if (itSC != m.sensors.end()) sCount = itSC->second;
-
-  long idFan = (m.sensors_pos.size() > 9) ? m.sensors_pos[9] : 0;
   auto itFan = m.sensors.find("idFanMeas"); if (itFan != m.sensors.end()) idFan = itFan->second;
-
-  long auger = (m.sensors_pos.size() > 7) ? m.sensors_pos[7] : 0;
   auto itAug = m.sensors.find("augerSet"); if (itAug != m.sensors.end()) auger = itAug->second;
-
-  long errMask = (m.sensors_pos.size() > 3) ? m.sensors_pos[3] : 0;
   auto itEM = m.sensors.find("errMask32"); if (itEM != m.sensors.end()) errMask = itEM->second;
-
-  long errSub = (m.sensors_pos.size() > 4) ? m.sensors_pos[4] : 0;
   auto itES = m.sensors.find("errSub"); if (itES != m.sensors.end()) errSub = itES->second;
-
-  long modelId = (m.sensors_pos.size() > 36) ? m.sensors_pos[36] : 13;
   auto itMod = m.sensors.find("model"); if (itMod != m.sensors.end()) modelId = itMod->second;
-  const char* modelName = getStoveModelName(modelId);
-
-  long appVer = (m.sensors_pos.size() > 38) ? m.sensors_pos[38] : 229;
   auto itAV = m.sensors.find("appVerBoard"); if (itAV != m.sensors.end()) appVer = itAV->second;
-
-  long buildVer = (m.sensors_pos.size() > 44) ? m.sensors_pos[44] : 58512;
   auto itBV = m.sensors.find("firmwareBuild"); if (itBV != m.sensors.end()) buildVer = itBV->second;
 
+  const char* modelName = getStoveModelName(modelId);
+
   long curOn = 0, curMode = 2, curStage = 70, curRoom = 200;
+  if (m.generation == 2 && m.sensors_pos.size() > 12) curOn = m.sensors_pos[12];
   auto itOn = m.controls.find("onOff"); if (itOn != m.controls.end()) curOn = itOn->second;
   else if (m.controls_pos.size() >= 5) curOn = m.controls_pos[1];
 
@@ -380,7 +391,8 @@ static String jsonState() {
   first = true;
   for (auto& kv : m.status) {
     if (!first) j += ","; first = false;
-    j += "\"" + String(kv.first.c_str()) + "\":\"" + String(kv.second.c_str()) + "\"";
+    String val = (kv.first == "wpa2" && !kv.second.empty() && kv.second != "0") ? "********" : String(kv.second.c_str());
+    j += "\"" + String(kv.first.c_str()) + "\":\"" + val + "\"";
   }
   j += "},";
 
@@ -592,29 +604,38 @@ static void handleApiSensors() {
     first = false;
   };
 
-  long rTemp = (m.sensors_pos.size() > 0) ? m.sensors_pos[0] : 0;
+  long rTemp = 0, fTemp = 0, mState = 1, sState = 0;
+  long pTotal = 0, pHours = 0, sCount = 700, idFan = 0;
+  long modelId = (m.generation == 2) ? 1 : 13;
+
+  if (m.generation == 2) {
+    if (m.sensors_pos.size() > 0)  rTemp = m.sensors_pos[0];
+    if (m.sensors_pos.size() > 1)  fTemp = m.sensors_pos[1];
+    if (m.sensors_pos.size() > 4)  sCount = m.sensors_pos[4];
+    if (m.sensors_pos.size() > 7)  idFan = m.sensors_pos[7];
+    if (m.sensors_pos.size() > 9)  pHours = m.sensors_pos[9];
+    if (m.sensors_pos.size() > 11) pTotal = m.sensors_pos[11];
+  } else {
+    if (m.sensors_pos.size() > 0)  rTemp = m.sensors_pos[0];
+    if (m.sensors_pos.size() > 1)  fTemp = m.sensors_pos[1];
+    if (m.sensors_pos.size() > 9)  idFan = m.sensors_pos[9];
+    if (m.sensors_pos.size() > 31) mState = m.sensors_pos[31];
+    if (m.sensors_pos.size() > 32) sState = m.sensors_pos[32];
+    if (m.sensors_pos.size() > 36) modelId = m.sensors_pos[36];
+    if (m.sensors_pos.size() > 47) pHours = m.sensors_pos[47];
+    if (m.sensors_pos.size() > 49) pTotal = m.sensors_pos[49];
+    if (m.sensors_pos.size() > 50) sCount = m.sensors_pos[50];
+  }
+
   auto itR = m.sensors.find("roomTemp"); if (itR != m.sensors.end()) rTemp = itR->second;
-
-  long fTemp = (m.sensors_pos.size() > 1) ? m.sensors_pos[1] : 0;
   auto itF = m.sensors.find("flame"); if (itF != m.sensors.end()) fTemp = itF->second;
-
-  long mState = (m.sensors_pos.size() > 31) ? m.sensors_pos[31] : 1;
   auto itMS = m.sensors.find("mainState"); if (itMS != m.sensors.end()) mState = itMS->second;
-
-  long sState = (m.sensors_pos.size() > 32) ? m.sensors_pos[32] : 0;
   auto itSS = m.sensors.find("subState"); if (itSS != m.sensors.end()) sState = itSS->second;
-
-  long pTotal = (m.sensors_pos.size() > 49) ? m.sensors_pos[49] : 0;
   auto itPT = m.sensors.find("pelletsTotal"); if (itPT != m.sensors.end()) pTotal = itPT->second;
-
-  long pHours = (m.sensors_pos.size() > 47) ? m.sensors_pos[47] : 0;
   auto itPH = m.sensors.find("pelletHours"); if (itPH != m.sensors.end()) pHours = itPH->second;
-
-  long sCount = (m.sensors_pos.size() > 50) ? m.sensors_pos[50] : 700;
   auto itSC = m.sensors.find("serviceCountdown"); if (itSC != m.sensors.end()) sCount = itSC->second;
-
-  long idFan = (m.sensors_pos.size() > 9) ? m.sensors_pos[9] : 0;
   auto itFan = m.sensors.find("idFanMeas"); if (itFan != m.sensors.end()) idFan = itFan->second;
+  auto itMod = m.sensors.find("model"); if (itMod != m.sensors.end()) modelId = itMod->second;
 
   // Clé 'f0' essentielle pour les configurations Home Assistant (value_json.f0)
   addKV("f0", String(rTemp));
@@ -631,8 +652,6 @@ static void handleApiSensors() {
   addKV("serviceCountdownKg", String(sCount));
   addKV("idFan", String(idFan));
 
-  long modelId = (m.sensors_pos.size() > 36) ? m.sensors_pos[36] : 13;
-  auto itMod = m.sensors.find("model"); if (itMod != m.sensors.end()) modelId = itMod->second;
   addKV("model", String(modelId));
   addKV("modelName", getStoveModelName(modelId));
 
@@ -901,6 +920,7 @@ void setup() {
   prefs.end();
 
   if (wifiSsid.length()) {
+    g_link->setCredentials(wifiSsid.c_str(), wifiPass.c_str());
     g_isApMode = false;
     g_staStart = millis();
     // Connexion STA robuste — méthode open-firenet (fonctionne en coexistence USB
@@ -916,6 +936,11 @@ void setup() {
       else if (e == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
         g_staConnected = true;
         DBG.printf("[wifi] GOT_IP %s\n", WiFi.localIP().toString().c_str());
+        g_link->setCredentials(wifiSsid.c_str(), wifiPass.c_str(),
+                               WiFi.localIP().toString().c_str(), WiFi.macAddress().c_str());
+        if (g_link->model().version_ack) {
+          g_link->pushStatus();
+        }
       }
     });
     WiFi.setTxPower(WIFI_POWER_17dBm);
@@ -1052,20 +1077,36 @@ void loop() {
     lastPoll = millis();
     if (WiFi.status() == WL_CONNECTED) g_link->setRssi(WiFi.RSSI());  // RSSI réel (§7.4)
 
-    static bool controlsRegistered = false;
-    if (g_link->model().sensors_pos.size() < 50) {
-      // Phase 1 : enregistrer la table complète de 53 capteurs dans le poêle
-      g_link->pollSensors(SENSOR_NAMES);
-    } else if (!controlsRegistered) {
-      // Phase 2 : enregistrer la table des controls
-      g_link->pollControls(CONTROL_NAMES);
-      controlsRegistered = true;
+    if (g_link->model().generation == 2) {
+      // V1 (INDUO V2.26 / V2.27) : pas de sentinelles textuelles
+      static uint32_t v1Cycle = 0;
+      v1Cycle++;
+      if (v1Cycle % 10 == 0) {
+        // Périodiquement (~toutes les 20s) : PRIO 2 et rafraîchissement statut
+        g_link->pollPrio2Sensors();
+        g_link->requestStatus();
+      } else {
+        // Routine (toutes les 2s) : PRIO 1 capteurs + contrôles
+        g_link->pollSensors();
+        g_link->pollControls();
+      }
     } else {
-      // Phase 3 : routine d'interrogation cadencée
-      g_link->requestStatus();
-      g_link->sendRevision();
-      g_link->transferCompleted();
-      g_link->transferCompleted();
+      // V3 (DOMO V2.29+) : enregistrement préalable des sentinelles
+      static bool controlsRegistered = false;
+      if (g_link->model().sensors_pos.size() < 50) {
+        // Phase 1 : enregistrer la table complète de 53 capteurs dans le poêle
+        g_link->pollSensors(SENSOR_NAMES);
+      } else if (!controlsRegistered) {
+        // Phase 2 : enregistrer la table des controls
+        g_link->pollControls(CONTROL_NAMES);
+        controlsRegistered = true;
+      } else {
+        // Phase 3 : routine d'interrogation cadencée
+        g_link->requestStatus();
+        g_link->sendRevision();
+        g_link->transferCompleted();
+        g_link->transferCompleted();
+      }
     }
   }
 #endif

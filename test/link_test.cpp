@@ -12,7 +12,7 @@ int main(){
   auto drain=[&](){ for(int i=0;i<64 && !link.txIdle();i++){ clk+=DongleLink::TX_GAP_MS; link.poll(); } };
   // négociation
   link.poll(); drain();              // queue + emit the version (V1 profile by default)
-  CH("V1 version emitted", wire.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1; ")!=std::string::npos);
+  CH("V1 version emitted", wire.find("GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; ")!=std::string::npos);
   // le poêle répond FINISHED
   std::string fin="GET_CDCDEVICE_VERSION_FINISHED";
   for(char c:fin) link.onByte(c);
@@ -30,7 +30,7 @@ int main(){
     // no ACK: force several version retransmission cycles
     for(int r=0;r<5;r++){ l2.poll(); drain2(); c2+=DongleLink::VERSION_RETRY_MS; }
     CH("fallback also emits the V3 frame", w2.find("GET_CDCDEVICE3_VERSION=0; ")!=std::string::npos);
-    CH("both V1 and V3 tried", w2.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ")!=std::string::npos);
+    CH("both V1 and V3 tried", w2.find("GET_WIFI_VERSION=0; ")!=std::string::npos);
     // the stove finally acknowledges (whatever the current profile) -> lock
     std::string fin2="GET_WIFI_VERSION_FINISHED";
     for(char c:fin2) l2.onByte(c);
@@ -162,8 +162,66 @@ int main(){
     CH("version_ack cleared after sustained post-ack probing", !l4.model().version_ack);
     w4.clear();
     c4+=DongleLink::TX_GAP_MS; l4.poll();
-    CH("handshake re-sent after recovery", w4.find("GET_CDCDEVICE_VERSION")!=std::string::npos);
+    CH("handshake re-sent after recovery", w4.find("GET_WIFI_VERSION")!=std::string::npos || w4.find("GET_CDCDEVICE")!=std::string::npos);
   }
+
+  // --- Tests spécifiques Firenet V1 (INDUO V2.26 / V2.27) ---
+  // 1) Handshake V1 : envoi GET_WIFI_VERSION -> réception GET_WIFI_VERSION_FINISHED -> push immédiat de GET_FIRENET_STATUS
+  {
+    std::string w5; uint32_t c5=0;
+    DongleLink l5([&](const uint8_t*d,size_t n){ w5.append((const char*)d,n); },
+                  [&](){ return c5; });
+    l5.setCredentials("MonSSID", "MonPass", "192.168.1.50", "AA:BB:CC:DD:EE:FF");
+    auto drain5=[&](){ for(int i=0;i<64 && !l5.txIdle();i++){ c5+=DongleLink::TX_GAP_MS; l5.poll(); } };
+    l5.poll(); drain5();
+    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; ")!=std::string::npos);
+    CH("V1 version has NO DT", w5.find("DT=") == std::string::npos);
+
+    // Poêle INDUO répond GET_WIFI_VERSION_FINISHED
+    w5.clear();
+    std::string ack="GET_WIFI_VERSION_FINISHED\r\n";
+    for(char c:ack) l5.onByte(c);
+    c5+=60; l5.poll();
+    CH("V1 generation == 2 after ACK", l5.model().version_ack && l5.model().generation == 2);
+    drain5();
+    CH("V1 immediately pushed GET_FIRENET_STATUS=0;", w5.find("GET_FIRENET_STATUS=0;\n") != std::string::npos);
+    CH("V1 plain text SSID pushed", w5.find("MonSSID\n") != std::string::npos);
+    CH("V1 plain text pass pushed", w5.find("MonPass\n") != std::string::npos);
+    CH("V1 protocol is 1", w5.find("\n1\nMonSSID") != std::string::npos);
+
+    // Poêle INDUO répond POST_FIRENET_STATUS=0;
+    std::string st_v1="POST_FIRENET_STATUS=0;\n0\n1\n0\n0\n1\n4\n0\n101\n112\n360\n0\n-55\n0000000\n00000000\n1\nMonSSID\nMonPass\n192.168.1.50\nAA:BB:CC:DD:EE:FF\n-------\n";
+    for(char c:st_v1) l5.onByte(c);
+    c5+=60; l5.poll();
+    CH("V1 status parsed", l5.model().status.at("ssid") == "MonSSID" && l5.model().status.at("symbol") == "4");
+
+    // 2) Télémétrie positionnelle V1 : GET_SENSORS=1; -> POST_SENSORS=0; =val0; =val1; ...
+    w5.clear();
+    l5.pollSensors(); drain5();
+    CH("V1 pollSensors sends GET_SENSORS=1;", w5.find("GET_SENSORS=1; ") != std::string::npos);
+    CH("V1 does NOT send sentinels", w5.find("s00=0") == std::string::npos);
+
+    // Réponse poêle INDUO V1 (PRIO 1) : 13 valeurs positionnelles
+    std::string sens_v1 = "POST_SENSORS=0; =215; =450; =0; =0; =650; =0; =75; =1450; =50; =3600; =1200; =4200; =1; ";
+    for(char c:sens_v1) l5.onByte(c);
+    c5+=60; l5.poll();
+    CH("V1 sensors_pos size 13", l5.model().sensors_pos.size() == 13);
+    CH("V1 roomTemp mapped", l5.model().sensors.at("roomTemp") == 215);
+    CH("V1 flame mapped", l5.model().sensors.at("flame") == 450);
+    CH("V1 augerSet mapped", l5.model().sensors.at("augerSet") == 75);
+    CH("V1 idFanMeas mapped", l5.model().sensors.at("idFanMeas") == 1450);
+    CH("V1 pelletHours mapped", l5.model().sensors.at("pelletHours") == 3600);
+    CH("V1 pelletsTotal mapped", l5.model().sensors.at("pelletsTotal") == 4200);
+
+    // 3) Réinitialisation par STX '0' ETX (\x02 0 \x03)
+    w5.clear();
+    l5.onByte(0x02); l5.onByte('0'); l5.onByte(0x03);
+    c5+=60; l5.poll();
+    CH("V1 STX 0 ETX clears version_ack immediately", !l5.model().version_ack);
+    drain5();
+    CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION=0; ") != std::string::npos);
+  }
+
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;
 }

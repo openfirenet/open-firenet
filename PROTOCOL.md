@@ -45,19 +45,17 @@ recent stove accepts the `V3` frame, an older one the `V1` frame:
 GET_CDCDEVICE3_VERSION=0; BL=999; APP=201; REV=12201; DT=3;
 ```
 
-**V1 (older stoves):**
+**V1 (older stoves, e.g. INDUO V2.26 / V2.27):**
 ```
-GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1;
-```
-
-**Expected stove response (either frame):**
-```
-GET_WIFI_VERSION_FINISHED
-GET_CDCDEVICE_VERSION_FINISHED
+GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; 
 ```
 
-Note the two differences in the V1 frame: it is prefixed with `GET_WIFI_VERSION_`, and
-it uses `GET_CDCDEVICE_VERSION` (no `3`) with `DT=1`.
+**Expected stove response:**
+- Recent stoves (V3): `GET_CDCDEVICE_VERSION_FINISHED`
+- Older stoves (V1): `GET_WIFI_VERSION_FINISHED`
+
+Note the differences in the V1 frame: it uses `GET_WIFI_VERSION=0; ` without `DT` and without `GET_CDCDEVICE`.
+Older stoves (INDUO) strictly expect `APP=112` (validated by `FUN_800375a0`).
 
 `BL` / `APP` / `REV` are the dongle's own firmware version numbers. These values do
 **not** decide whether the handshake is accepted — a DOMO 2.29 finishes with `BL=112`
@@ -70,11 +68,12 @@ it and keep re-sending the probe. The firmware therefore **alternates** the two 
 until the stove acknowledges with any `*_FINISHED`, then locks onto the winning frame
 (and its `DT`) for the session.
 
-### 2. Announcement (blank status)
+### 2. Announcement (Status Handshake)
 
-Once the version is acknowledged, the stove pushes an initial
-`POST_CDCDEVICE_STATUS`. The dongle answers with a `GET_CDCDEVICE_STATUS` carrying
-blank credentials while unprovisioned, or full credentials once connected (see below).
+- **Recent stoves (V3):** The stove pushes an initial `POST_CDCDEVICE_STATUS`.
+  The dongle answers with a `GET_CDCDEVICE_STATUS` carrying blank credentials while unprovisioned, or full credentials once connected.
+- **Older stoves (V1, INDUO):** The dongle must immediately push `GET_FIRENET_STATUS=0;\n` with 19 fields upon receiving `GET_WIFI_VERSION_FINISHED`.
+  This is required to set the stove's internal SRAM flags (`*0x57e5`, `*0x57e2`, `*0x57e6 = 1`). If this is omitted, the stove silently ignores all subsequent commands. The stove responds with `POST_FIRENET_STATUS=0;\n` (19 fields).
 
 ### 3. Main loop
 
