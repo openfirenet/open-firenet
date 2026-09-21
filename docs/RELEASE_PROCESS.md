@@ -51,25 +51,29 @@ Le workflow [`.github/workflows/release.yml`](../.github/workflows/release.yml) 
 Pour créer et publier une release, lancez simplement le script depuis votre terminal local :
 
 ```bash
-# Incrément patch automatique (ex: v2.0.0 -> v2.0.1)
+# Détection automatique SemVer basée sur l'historique Conventional Commits (recommandé)
 ./scripts/release.sh
 
-# Incrément minor (ex: v2.0.0 -> v2.1.0)
+# Ou forcer manuellement un type d'incrément spécifique
+./scripts/release.sh patch
 ./scripts/release.sh minor
-
-# Incrément major (ex: v2.0.0 -> v3.0.0)
 ./scripts/release.sh major
 
-# Version spécifique
-./scripts/release.sh v2.0.0
+# Ou spécifier explicitement une version cible
+./scripts/release.sh v2.3.0
 ```
 
 ### Ce que fait le script :
 1. Vérifie que l'arbre git est propre et que vous êtes sur `main`.
 2. Vérifie que vous êtes synchronisé avec `origin/main`.
 3. Lance les tests unitaires locaux en amont (bloque si un test échoue).
-4. Affiche l'historique des commits depuis la précédente version.
-5. Vous demande confirmation avant de créer le tag annoté et de le pousser.
+4. Affiche l'historique des commits depuis le dernier tag.
+5. **Analyse automatique SemVer** des commits depuis la précédente version :
+   - Détecte les **Breaking Changes** (`feat!:`, `BREAKING CHANGE:`) $\rightarrow$ incrément **MAJOR**
+   - Détecte les **Nouvelles fonctionnalités** (`feat:`, branches/PR `feat/*`) $\rightarrow$ incrément **MINOR**
+   - Sinon (correctifs `fix:`, `refactor:`, `docs:`, etc.) $\rightarrow$ incrément **PATCH**
+6. Propose le tag calculé avec confirmation interactive (ou saisie d'un tag/type alternatif directement au prompt).
+7. Met à jour `OPENFIRENET_VERSION` dans le firmware, crée le commit et le tag annoté, puis pousse vers GitHub.
 
 ---
 

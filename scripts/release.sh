@@ -28,7 +28,8 @@ err()   { echo -e "${RED}✖${NC} $*" >&2; }
 fatal() { err "$*"; exit 1; }
 
 # Trouver la racine du dépôt git
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "$REPO_ROOT" ]]; then
   fatal "Ce script doit être exécuté dans un dépôt Git."
 fi
@@ -81,13 +82,15 @@ else
   warn "Script test/build_and_test.sh non trouvé, passage outre."
 fi
 
-# 5. Détection du dernier tag et calcul SemVer
+# 5. Détection du dernier tag et calcul des cibles SemVer
 LATEST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 
 if [[ -z "$LATEST_TAG" ]]; then
   warn "Aucun tag existant trouvé dans ce dépôt."
-  DEFAULT_NEXT="v2.0.0"
   LATEST_TAG="aucun"
+  NEXT_PATCH="v2.0.1"
+  NEXT_MINOR="v2.1.0"
+  NEXT_MAJOR="v3.0.0"
 else
   info "Dernier tag détecté : ${BOLD}${LATEST_TAG}${NC}"
   # Extraire major, minor, patch (supporte 'vX.Y.Z' ou 'X.Y.Z')
@@ -97,11 +100,75 @@ else
   NEXT_PATCH="v${MAJOR}.${MINOR}.$((PATCH + 1))"
   NEXT_MINOR="v${MAJOR}.$((MINOR + 1)).0"
   NEXT_MAJOR="v$((MAJOR + 1)).0.0"
-  DEFAULT_NEXT="$NEXT_PATCH"
 fi
 
-# Traitement de l'argument utilisateur (patch, minor, major ou version explicite)
-TARGET_TYPE="${1:-patch}"
+# 6. Affichage des commits depuis le dernier tag
+echo ""
+echo -e "${BOLD}Historique depuis ${LATEST_TAG} :${NC}"
+COMMIT_LIST=""
+if [[ "$LATEST_TAG" != "aucun" ]]; then
+  COMMIT_LIST="$(git log --oneline "${LATEST_TAG}..HEAD" 2>/dev/null || true)"
+  if [[ -n "$COMMIT_LIST" ]]; then
+    echo "$COMMIT_LIST" | sed 's/^/  • /'
+  else
+    echo "  (aucun nouveau commit)"
+  fi
+else
+  git log -n 5 --oneline | sed 's/^/  • /'
+fi
+echo ""
+
+# 7. Analyse sémantique Conventional Commits (auto-bump)
+AUTO_DETECTED="patch"
+AUTO_REASON=""
+
+if [[ "$LATEST_TAG" != "aucun" ]]; then
+  LOG_RANGE="${LATEST_TAG}..HEAD"
+else
+  LOG_RANGE="HEAD"
+fi
+
+if [[ "$LATEST_TAG" != "aucun" && -z "$COMMIT_LIST" ]]; then
+  warn "Aucun nouveau commit détecté depuis le tag ${LATEST_TAG}."
+  AUTO_DETECTED="patch"
+  AUTO_REASON="aucun nouveau commit (défaut patch)"
+else
+  # Recherche des Breaking Changes (MAJOR) : 'type!:' ou footer 'BREAKING CHANGE:'
+  BREAKING_MATCHES="$(git log --format="%s%n%b" "$LOG_RANGE" 2>/dev/null | grep -E "^[a-zA-Z]+(\([^)]+\))?!:|^BREAKING[ -]CHANGE:" || true)"
+
+  # Recherche des Nouvelles Fonctionnalités (MINOR) : 'feat:' ou merge d'une PR/branche 'feat/'
+  FEAT_MATCHES="$(git log --format="%s" "$LOG_RANGE" 2>/dev/null | grep -E "^feat(\([^)]+\))?:|Merge pull request #[0-9]+ from [^/]+/feat/|Merge branch 'feat/" || true)"
+
+  if [[ -n "$BREAKING_MATCHES" ]]; then
+    AUTO_DETECTED="major"
+    AUTO_REASON="présence de Breaking Change(s) (ex: type!: ou BREAKING CHANGE:)"
+  elif [[ -n "$FEAT_MATCHES" ]]; then
+    AUTO_DETECTED="minor"
+    AUTO_REASON="présence de nouvelle(s) fonctionnalité(s) (commit(s) feat / branche feat)"
+  else
+    AUTO_DETECTED="patch"
+    AUTO_REASON="correctifs ou maintenance (aucun commit feat ou breaking change)"
+  fi
+fi
+
+# 8. Traitement du type cible (auto par défaut, ou forcé par argument)
+TARGET_TYPE="${1:-auto}"
+case "$TARGET_TYPE" in
+  auto)
+    TARGET_TYPE="$AUTO_DETECTED"
+    info "Incrément SemVer auto-détecté : ${BOLD}${CYAN}${TARGET_TYPE}${NC} (${AUTO_REASON})"
+    ;;
+  patch|minor|major)
+    info "Incrément forcé par argument : ${BOLD}${TARGET_TYPE}${NC}"
+    ;;
+  v*.*.*|[0-9]*.*.*)
+    info "Version explicite demandée : ${BOLD}${TARGET_TYPE}${NC}"
+    ;;
+  *)
+    fatal "Type d'incrémentation inconnu : '$TARGET_TYPE'. Utilisation : $0 [auto|patch|minor|major|vX.Y.Z]"
+    ;;
+esac
+
 case "$TARGET_TYPE" in
   patch)
     NEW_TAG="${NEXT_PATCH:-v2.0.0}"
@@ -118,35 +185,36 @@ case "$TARGET_TYPE" in
   [0-9]*.*.*)
     NEW_TAG="v$TARGET_TYPE"
     ;;
-  *)
-    fatal "Type d'incrémentation inconnu : '$TARGET_TYPE'. Utilisation : $0 [patch|minor|major|vX.Y.Z]"
-    ;;
 esac
 
 if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
   fatal "Le tag $NEW_TAG existe déjà dans le dépôt."
 fi
 
-# 6. Affichage des commits depuis le dernier tag
-echo ""
-echo -e "${BOLD}Historique depuis ${LATEST_TAG} :${NC}"
-if [[ "$LATEST_TAG" != "aucun" ]]; then
-  git log --oneline "${LATEST_TAG}..HEAD" | sed 's/^/  • /' || echo "  (aucun nouveau commit)"
-else
-  git log -n 5 --oneline | sed 's/^/  • /'
+# 9. Confirmation utilisateur (avec possibilité de changer directement)
+echo -e "${BOLD}Tag à créer : ${GREEN}${NEW_TAG}${NC} (${TARGET_TYPE})"
+read -rp "Confirmer la création de la release ${NEW_TAG} ? [O/n] (ou tapez une alternative ex: minor, patch, v2.3.1) : " CONFIRM
+
+if [[ -n "$CONFIRM" && ! "$CONFIRM" =~ ^[oOyY]$ ]]; then
+  if [[ "$CONFIRM" =~ ^[nN]$ ]]; then
+    echo -e "\nRelease annulée."
+    exit 0
+  fi
+  case "$CONFIRM" in
+    patch) NEW_TAG="$NEXT_PATCH" ;;
+    minor) NEW_TAG="$NEXT_MINOR" ;;
+    major) NEW_TAG="$NEXT_MAJOR" ;;
+    v*.*.*) NEW_TAG="$CONFIRM" ;;
+    [0-9]*.*.*) NEW_TAG="v$CONFIRM" ;;
+    *) fatal "Valeur alternative invalide : '$CONFIRM'" ;;
+  esac
+  if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+    fatal "Le tag $NEW_TAG existe déjà dans le dépôt."
+  fi
+  echo -e "Nouveau tag retenu : ${BOLD}${GREEN}${NEW_TAG}${NC}"
 fi
-echo ""
 
-# 7. Confirmation utilisateur
-echo -e "${BOLD}Tag à créer : ${GREEN}${NEW_TAG}${NC}"
-read -rp "Confirmer la création et le déploiement de la release ${NEW_TAG} ? [o/N] " CONFIRM
-
-if [[ ! "$CONFIRM" =~ ^[oOyY]$ ]]; then
-  echo -e "\nRelease annulée."
-  exit 0
-fi
-
-# 8. Mise à jour automatique de la version dans le firmware
+# 10. Mise à jour automatique de la version dans le firmware
 CLEAN_VER="${NEW_TAG#v}"
 info "Mise à jour de OPENFIRENET_VERSION vers ${CLEAN_VER}..."
 sed -i -E "s/(#define OPENFIRENET_VERSION )\"[^\"]+\"/\1\"$CLEAN_VER\"/" open-firenet/open-firenet.ino
@@ -155,6 +223,7 @@ if ! grep -q "#define OPENFIRENET_VERSION \"$CLEAN_VER\"" open-firenet/open-fire
 fi
 ok "OPENFIRENET_VERSION synchronisé (${CLEAN_VER})."
 
+# 11. Commit automatique de la version
 info "Commit automatique de la version ${NEW_TAG}..."
 git add open-firenet/open-firenet.ino
 if ! git diff --cached --quiet; then
@@ -166,12 +235,12 @@ else
   ok "OPENFIRENET_VERSION déjà à jour, aucun commit nécessaire."
 fi
 
-# 9. Création du tag annoté
+# 12. Création du tag annoté
 info "Création du tag Git ${NEW_TAG}..."
 git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
 ok "Tag local $NEW_TAG créé."
 
-# 10. Push du tag vers le dépôt distant
+# 13. Push du tag vers le dépôt distant
 info "Push du tag sur origin..."
 git push origin "$NEW_TAG"
 
