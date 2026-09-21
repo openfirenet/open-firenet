@@ -819,7 +819,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <!-- Setback Temperature Slider -->
       <div class="slider-box" style="margin-top:4px">
         <div class="slider-head">
-          <label id="lblSetbackTemp">Température de réduction (Éco)</label>
+          <label id="lblSetbackTemp">Température de maintien (Éco)</label>
           <span class="val"><span id="setbackTempVal">16.0</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
         </div>
         <input type="range" id="setbackTempRange" min="12" max="22" step="0.5" value="16" oninput="onSetbackInput(this.value)">
@@ -983,7 +983,7 @@ const I18N = {
     schedTitle: "Programmation hebdomadaire",
     schedActive: "Programmation active",
     schedActiveDesc: "Active ou désactive le planning des plages horaires de chauffe.",
-    setbackTemp: "Température de réduction (Éco)",
+    setbackTemp: "Température de maintien (Éco)",
     quickCopy: "Actions rapides :",
     btnCopyWeekdays: "📋 Lun ➔ Lun-Ven",
     btnCopyAll: "📋 Lun ➔ Semaine",
