@@ -183,6 +183,25 @@ static bool findJsonFloat(const String& str, const String& key, float& out) {
   return false;
 }
 
+static bool findJsonLong(const String& str, const String& key, long& out) {
+  int idx = str.indexOf("\"" + key + "\"");
+  if (idx < 0) idx = str.indexOf("'" + key + "'");
+  if (idx < 0) idx = str.indexOf(key + "=");
+  if (idx < 0) return false;
+  int sep = str.indexOf(':', idx);
+  if (sep < 0 || (str.indexOf('=', idx) > 0 && str.indexOf('=', idx) < sep)) sep = str.indexOf('=', idx);
+  if (sep < 0) return false;
+  int start = sep + 1;
+  while (start < str.length() && (str[start] == ' ' || str[start] == '"' || str[start] == '\'')) start++;
+  int end = start;
+  while (end < str.length() && (isDigit(str[end]) || str[end] == '-')) end++;
+  if (end > start) {
+    out = str.substring(start, end).toInt();
+    return true;
+  }
+  return false;
+}
+
 static bool findJsonString(const String& str, const String& key, String& out) {
   int idx = str.indexOf("\"" + key + "\"");
   if (idx < 0) idx = str.indexOf("'" + key + "'");
@@ -329,8 +348,15 @@ static String jsonState() {
     case 2: modeName = "comfort"; break;
   }
 
+  long htActive = 0, sbTemp = 160;
+  auto itHTA = m.controls.find("heatingTimesActive"); if (itHTA != m.controls.end()) htActive = itHTA->second;
+  else if (m.controls_pos.size() > 21) htActive = m.controls_pos[21];
+  auto itSBT = m.controls.find("setBackTemp"); if (itSBT != m.controls.end()) sbTemp = itSBT->second;
+  else if (m.controls_pos.size() > 22) sbTemp = m.controls_pos[22];
+
   float rTempF = rTemp / 10.0f;
   float rTargetF = curRoom / 10.0f;
+  float sbTempF = sbTemp / 10.0f;
   float fTempF = (float)fTemp;
   float bTempF = (float)bTemp;
 
@@ -380,6 +406,8 @@ static String jsonState() {
       "\"mode_code\":%ld,"
       "\"target_temperature\":%.1f,"
       "\"power_percent\":%ld,"
+      "\"heating_times_active\":%s,"
+      "\"setback_temperature\":%.1f,"
       "\"convection_fan1_active\":%s,"
       "\"convection_fan1_level\":%ld,"
       "\"convection_fan1_area\":%ld,"
@@ -402,6 +430,7 @@ static String jsonState() {
     rTempF, fTempF, bTempF, pTotal, pHours, sCount, idFan, auger,
     (curOn == 1) ? "true" : "false",
     modeName, curMode, rTargetF, curStage,
+    (htActive == 1) ? "true" : "false", sbTempF,
     (fan1On == 1) ? "true" : "false", fan1Level, fan1Area,
     (fan2On == 1) ? "true" : "false", fan2Level, fan2Area
   );
@@ -800,10 +829,17 @@ static void handleApiControls() {
     auto itF2A = m.controls.find("convectionFan2Area"); if (itF2A != m.controls.end()) fan2Area = itF2A->second;
     else if (m.controls_pos.size() > 28) fan2Area = m.controls_pos[28];
 
+    long curHeatingTimesActive = 0, curSetBackTemp = 160;
+    auto itHTA = m.controls.find("heatingTimesActive"); if (itHTA != m.controls.end()) curHeatingTimesActive = itHTA->second;
+    else if (m.controls_pos.size() > 21) curHeatingTimesActive = m.controls_pos[21];
+    auto itSBT = m.controls.find("setBackTemp"); if (itSBT != m.controls.end()) curSetBackTemp = itSBT->second;
+    else if (m.controls_pos.size() > 22) curSetBackTemp = m.controls_pos[22];
+
     const char* modeName = (curMode == 0) ? "manual" : ((curMode == 1) ? "auto" : "comfort");
     float rTargetF = curRoom / 10.0f;
+    float sbTempF = curSetBackTemp / 10.0f;
 
-    char buf[512];
+    char buf[768];
     snprintf(buf, sizeof(buf),
       "{"
       "\"on\":%s,"
@@ -815,6 +851,10 @@ static void handleApiControls() {
       "\"operatingMode\":%ld,"
       "\"heatingPower\":%ld,"
       "\"tempRoomTarget\":%ld,"
+      "\"heatingTimesActive\":%ld,"
+      "\"heating_times_active\":%s,"
+      "\"setBackTemp\":%ld,"
+      "\"setback_temperature\":%.1f,"
       "\"convectionFan1Active\":%ld,"
       "\"convectionFan1Level\":%ld,"
       "\"convectionFan1Area\":%ld,"
@@ -825,6 +865,8 @@ static void handleApiControls() {
       (curOn == 1) ? "true" : "false",
       modeName, curMode, rTargetF, curStage,
       curOn, curMode, curStage, curRoom,
+      curHeatingTimesActive, (curHeatingTimesActive == 1) ? "true" : "false",
+      curSetBackTemp, sbTempF,
       fan1On, fan1Level, fan1Area,
       fan2On, fan2Level, fan2Area
     );
@@ -837,6 +879,9 @@ static void handleApiControls() {
   long newOn = -1, newMode = -1, newStage = -1, newRoom = -1;
   long newFan1On = -1, newFan1Level = -1, newFan1Area = -999;
   long newFan2On = -1, newFan2Level = -1, newFan2Area = -999;
+  long newHeatingTimesActive = -1, newSetBackTemp = -1;
+  long newHeatTimes[14];
+  for (int i = 0; i < 14; i++) newHeatTimes[i] = -1;
 
   // 1) Analyse JSON
   bool bVal = false;
@@ -889,6 +934,18 @@ static void handleApiControls() {
   if (newFan1On < 0 && (findJsonFloat(raw, "convectionFan1Active", fVal) || findJsonFloat(raw, "fan1On", fVal) || findJsonFloat(raw, "fan1", fVal))) newFan1On = (long)fVal;
   if (newFan2On < 0 && (findJsonFloat(raw, "convectionFan2Active", fVal) || findJsonFloat(raw, "fan2On", fVal) || findJsonFloat(raw, "fan2", fVal))) newFan2On = (long)fVal;
 
+  if (findJsonBool(raw, "heatingTimesActive", bVal) || findJsonBool(raw, "heating_times_active", bVal) || findJsonBool(raw, "scheduleActive", bVal)) {
+    newHeatingTimesActive = bVal ? 1 : 0;
+  }
+  if (findJsonFloat(raw, "setBackTemp", fVal) || findJsonFloat(raw, "setback_temperature", fVal) || findJsonFloat(raw, "setbackTemp", fVal) || findJsonFloat(raw, "tempEco", fVal)) {
+    newSetBackTemp = (fVal < 50.0f) ? (long)round(fVal * 10.0f) : (long)fVal;
+  }
+  for (int i = 0; i < 14; i++) {
+    std::string k = firenet::ctrlName(7 + i);
+    long lVal = 0;
+    if (findJsonLong(raw, k.c_str(), lVal)) newHeatTimes[i] = lVal;
+  }
+
   // 2) Form arguments / Query arguments
   if (web.hasArg("on")) {
     String s = web.arg("on");
@@ -934,6 +991,20 @@ static void handleApiControls() {
   if (web.hasArg("convectionFan2Level") || web.hasArg("fan2Level")) newFan2Level = (web.hasArg("convectionFan2Level") ? web.arg("convectionFan2Level") : web.arg("fan2Level")).toInt();
   if (web.hasArg("convectionFan2Area") || web.hasArg("fan2Area")) newFan2Area = (web.hasArg("convectionFan2Area") ? web.arg("convectionFan2Area") : web.arg("fan2Area")).toInt();
 
+  if (web.hasArg("heatingTimesActive") || web.hasArg("scheduleActive")) {
+    String s = web.hasArg("heatingTimesActive") ? web.arg("heatingTimesActive") : web.arg("scheduleActive");
+    newHeatingTimesActive = (s == "true" || s == "1") ? 1 : 0;
+  }
+  if (web.hasArg("setBackTemp") || web.hasArg("setback_temperature") || web.hasArg("setbackTemp") || web.hasArg("tempEco")) {
+    String s = web.hasArg("setBackTemp") ? web.arg("setBackTemp") : (web.hasArg("setback_temperature") ? web.arg("setback_temperature") : (web.hasArg("setbackTemp") ? web.arg("setbackTemp") : web.arg("tempEco")));
+    float f = s.toFloat();
+    newSetBackTemp = (f < 50.0f) ? (long)round(f * 10.0f) : (long)f;
+  }
+  for (int i = 0; i < 14; i++) {
+    std::string k = firenet::ctrlName(7 + i);
+    if (web.hasArg(k.c_str())) newHeatTimes[i] = web.arg(k.c_str()).toInt();
+  }
+
   // 3) Form single name/value (utilisé par steppers & sliders web UI)
   if (web.hasArg("name") && web.hasArg("value")) {
     String n = web.arg("name");
@@ -961,6 +1032,18 @@ static void handleApiControls() {
       newFan2Level = v.toInt();
     } else if (n == "convectionFan2Area" || n == "fan2Area") {
       newFan2Area = v.toInt();
+    } else if (n == "heatingTimesActive" || n == "scheduleActive") {
+      newHeatingTimesActive = (v == "true" || v == "1") ? 1 : 0;
+    } else if (n == "setBackTemp" || n == "setback_temperature" || n == "setbackTemp" || n == "tempEco") {
+      float f = v.toFloat();
+      newSetBackTemp = (f < 50.0f) ? (long)round(f * 10.0f) : (long)f;
+    } else {
+      for (int i = 0; i < 14; i++) {
+        if (n == firenet::ctrlName(7 + i).c_str()) {
+          newHeatTimes[i] = v.toInt();
+          break;
+        }
+      }
     }
   }
 
@@ -1034,6 +1117,12 @@ static void handleApiControls() {
   full.push_back({"convectionFan2Level", finalFan2Level});
   full.push_back({"convectionFan2Area", finalFan2Area});
 
+  if (newHeatingTimesActive >= 0) full.push_back({"heatingTimesActive", newHeatingTimesActive});
+  if (newSetBackTemp >= 0) full.push_back({"setBackTemp", newSetBackTemp});
+  for (int i = 0; i < 14; i++) {
+    if (newHeatTimes[i] >= 0) full.push_back({firenet::ctrlName(7 + i), newHeatTimes[i]});
+  }
+
   g_link->applyControls(full);
   lastPoll = millis();
 
@@ -1061,6 +1150,42 @@ static void handleApiControls() {
     finalFan2On, finalFan2Level, finalFan2Area
   );
   web.send(200, "application/json", resBuf);
+}
+
+// GET & POST /api/schedule
+static void handleApiSchedule() {
+  sendCors();
+  if (web.method() == HTTP_OPTIONS) { web.send(204); return; }
+  const auto& m = g_link->model();
+
+  if (web.method() == HTTP_GET) {
+    long htActive = 0, sbTemp = 160;
+    auto itH = m.controls.find("heatingTimesActive"); if (itH != m.controls.end()) htActive = itH->second;
+    else if (m.controls_pos.size() > 21) htActive = m.controls_pos[21];
+
+    auto itS = m.controls.find("setBackTemp"); if (itS != m.controls.end()) sbTemp = itS->second;
+    else if (m.controls_pos.size() > 22) sbTemp = m.controls_pos[22];
+
+    String json = "{\"ok\":true,\"active\":" + String(htActive == 1 ? "true" : "false") + ",";
+    json += "\"heatingTimesActive\":" + String(htActive) + ",";
+    json += "\"setback_temperature\":" + String(sbTemp / 10.0f, 1) + ",";
+    json += "\"setBackTemp\":" + String(sbTemp) + ",";
+    json += "\"slots\":{";
+    for (int i = 0; i < 14; i++) {
+      std::string key = firenet::ctrlName(7 + i);
+      long val = 0;
+      auto it = m.controls.find(key); if (it != m.controls.end()) val = it->second;
+      else if (m.controls_pos.size() > (size_t)(7 + i)) val = m.controls_pos[7 + i];
+      if (i > 0) json += ",";
+      json += "\"" + String(key.c_str()) + "\":" + String(val);
+    }
+    json += "}}";
+    web.send(200, "application/json", json);
+    return;
+  }
+
+  // POST / PUT: delegate to handleApiControls
+  handleApiControls();
 }
 
 // GET /log (compatibilité open-firenet)
@@ -1150,6 +1275,7 @@ void setup() {
   web.on("/api/state", handleState);
   web.on("/api/control", handleApiControls);
   web.on("/api/controls", handleApiControls);
+  web.on("/api/schedule", handleApiSchedule);
   web.on("/api/restart", handleRestart);
   web.on("/restart", handleRestart);
   web.on("/api/arm", handleArm);

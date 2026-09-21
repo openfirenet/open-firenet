@@ -151,6 +151,21 @@ int main(){
     CH("controls_pos still has 29 elements", l3.model().controls_pos.size()>=29);
     CH("MultiAir fan1Active preserved across partial POST", l3.model().controls_pos[23]==1);
     CH("MultiAir fan1Level preserved across partial POST", l3.model().controls_pos[24]==4);
+
+    // Heating schedule control test
+    sent.clear();
+    l3.applyControls({{"heatingTimesActive", 1}, {"setBackTemp", 180}, {"heatTimeMon1", 8001030}, {"heatTimeThu1", 21002200}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("heatingTimesActive emitted", sent.find("heatingTimesActive=1;")!=std::string::npos);
+    CH("setBackTemp emitted", sent.find("setBackTemp=180;")!=std::string::npos);
+    CH("heatTimeMon1 emitted", sent.find("heatTimeMon1=8001030;")!=std::string::npos);
+    CH("heatTimeThu1 emitted", sent.find("heatTimeThu1=21002200;")!=std::string::npos);
+    CH("controls_pos[21] is heatingTimesActive", l3.model().controls_pos[21]==1);
+    CH("controls_pos[22] is setBackTemp", l3.model().controls_pos[22]==180);
+    CH("controls_pos[7] is heatTimeMon1", l3.model().controls_pos[7]==8001030);
+    CH("controls_pos[13] is heatTimeThu1", l3.model().controls_pos[13]==21002200);
   }
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;

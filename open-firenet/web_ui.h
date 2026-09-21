@@ -460,6 +460,76 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   font-size: 0.9rem;
   z-index: 1000;
 }
+
+/* Heating Schedule */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider-switch { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #202738; border: 1px solid var(--border); transition: .25s; border-radius: 24px; }
+.slider-switch:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--text-dim); transition: .25s; border-radius: 50%; }
+input:checked + .slider-switch { background-color: rgba(16,185,129,0.2); border-color: var(--green); }
+input:checked + .slider-switch:before { transform: translateX(20px); background-color: var(--green); }
+
+.sched-day-row {
+  background: #1a202c;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .sched-day-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.sched-day-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  min-width: 100px;
+}
+.sched-day-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+@media (min-width: 580px) {
+  .sched-day-slots {
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}
+.sched-slot-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #141822;
+  border: 1px solid rgba(255,255,255,0.05);
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: opacity 0.2s;
+}
+.sched-slot-box.disabled { opacity: 0.45; }
+.slot-chk-label { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.slot-chk-label input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+.slot-pill { font-size: 0.75rem; font-weight: 700; background: #252d3f; color: var(--text-dim); padding: 2px 6px; border-radius: 4px; }
+.slot-arrow { color: var(--text-muted); font-size: 0.85rem; }
+.input-time {
+  background: #0f131c;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  outline: none;
+}
+.input-time:focus { border-color: var(--primary); }
+.input-time:disabled { color: var(--text-muted); background: #0a0d14; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -712,6 +782,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   <!-- Tabs Navigation -->
   <div class="tabs">
     <button class="tab-btn active" id="tabBtnTelemetry" onclick="showTab('tab-telemetry')">📊 Télémétrie complète</button>
+    <button class="tab-btn" id="tabBtnSchedule" onclick="showTab('tab-schedule')">📅 Programmation</button>
     <button class="tab-btn" id="tabBtnNetwork" onclick="showTab('tab-network')">📶 Réseau & WiFi</button>
     <button class="tab-btn" id="tabBtnLink" onclick="showTab('tab-link')">⚙️ Liaison CDC</button>
     <button class="tab-btn" id="tabBtnLogs" onclick="showTab('tab-logs')">📜 Logs CDC</button>
@@ -727,6 +798,49 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <thead><tr><th id="thSensorName">Capteur</th><th id="thSensorId">Identifiant</th><th id="thSensorVal">Valeur</th></tr></thead>
         <tbody id="sensorsBody"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Tab: Heating Schedule -->
+  <div class="tab-content" id="tab-schedule">
+    <div class="card" style="gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h3 id="lblSchedTitle">Programmation hebdomadaire</h3>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <span id="lblSchedActiveTitle" style="font-weight:600;font-size:0.9rem">Programmation active</span>
+          <label class="switch">
+            <input type="checkbox" id="schedActiveToggle">
+            <span class="slider-switch"></span>
+          </label>
+        </label>
+      </div>
+      <p id="lblSchedActiveDesc" style="font-size:0.82rem;color:var(--text-dim);margin-top:-8px">Active ou désactive le planning des plages horaires de chauffe.</p>
+
+      <!-- Setback Temperature Slider -->
+      <div class="slider-box" style="margin-top:4px">
+        <div class="slider-head">
+          <label id="lblSetbackTemp">Température de réduction (Éco)</label>
+          <span class="val"><span id="setbackTempVal">16.0</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
+        </div>
+        <input type="range" id="setbackTempRange" min="12" max="22" step="0.5" value="16" oninput="onSetbackInput(this.value)">
+      </div>
+
+      <!-- Quick Actions -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:0.85rem;color:var(--text-dim)" id="lblQuickCopy">Actions rapides :</span>
+        <button type="button" class="btn-lock" id="btnCopyWeekdays" onclick="copyMonday(false)">📋 Lun ➔ Lun-Ven</button>
+        <button type="button" class="btn-lock" id="btnCopyAll" onclick="copyMonday(true)">📋 Lun ➔ Semaine</button>
+      </div>
+
+      <!-- Days Rows -->
+      <div style="display:flex;flex-direction:column;gap:10px" id="schedDaysContainer"></div>
+
+      <!-- Save Button -->
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="power-btn" id="btnSaveSchedule" onclick="saveSchedule()" style="width:100%;justify-content:center">
+          💾 Enregistrer la programmation
+        </button>
+      </div>
     </div>
   </div>
 
@@ -862,9 +976,22 @@ const I18N = {
     fanOff: "Arrêt",
     fanAuto: "Auto",
     tabTelemetry: "📊 Télémétrie complète",
+    tabSchedule: "📅 Programmation",
     tabNetwork: "📶 Réseau & WiFi",
     tabLink: "⚙️ Liaison CDC",
     tabLogs: "📜 Logs CDC",
+    schedTitle: "Programmation hebdomadaire",
+    schedActive: "Programmation active",
+    schedActiveDesc: "Active ou désactive le planning des plages horaires de chauffe.",
+    setbackTemp: "Température de réduction (Éco)",
+    quickCopy: "Actions rapides :",
+    btnCopyWeekdays: "📋 Lun ➔ Lun-Ven",
+    btnCopyAll: "📋 Lun ➔ Semaine",
+    copiedWeekdays: "Horaires copiés du Lundi au Vendredi",
+    copiedAll: "Horaires copiés sur toute la semaine",
+    btnSaveSchedule: "💾 Enregistrer la programmation",
+    schedSaved: "Programmation enregistrée avec succès !",
+    days: { Mon: "Lundi", Tue: "Mardi", Wed: "Mercredi", Thu: "Jeudi", Fri: "Vendredi", Sat: "Samedi", Sun: "Dimanche" },
     logRx: "Poêle → Clef (RX)",
     logTx: "Clef → Poêle (TX)",
     logAuto: "Auto",
@@ -1008,9 +1135,22 @@ const I18N = {
     fanOff: "Off",
     fanAuto: "Auto",
     tabTelemetry: "📊 Full Telemetry",
+    tabSchedule: "📅 Heating Schedule",
     tabNetwork: "📶 Network & WiFi",
     tabLink: "⚙️ USB CDC Link",
     tabLogs: "📜 CDC Logs",
+    schedTitle: "Weekly Heating Schedule",
+    schedActive: "Heating schedule active",
+    schedActiveDesc: "Enables or disables the weekly heating schedule.",
+    setbackTemp: "Setback temperature (Eco)",
+    quickCopy: "Quick actions:",
+    btnCopyWeekdays: "📋 Mon ➔ Mon-Fri",
+    btnCopyAll: "📋 Mon ➔ All week",
+    copiedWeekdays: "Schedule copied to Monday-Friday",
+    copiedAll: "Schedule copied to entire week",
+    btnSaveSchedule: "💾 Save Heating Schedule",
+    schedSaved: "Schedule saved successfully!",
+    days: { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" },
     logRx: "Stove → Dongle (RX)",
     logTx: "Dongle → Stove (TX)",
     logAuto: "Auto",
@@ -1154,9 +1294,22 @@ const I18N = {
     fanOff: "Aus",
     fanAuto: "Auto",
     tabTelemetry: "📊 Vollständige Telemetrie",
+    tabSchedule: "📅 Heizzeiten",
     tabNetwork: "📶 Netzwerk & WLAN",
     tabLink: "⚙️ USB CDC Verbindung",
     tabLogs: "📜 CDC Protokolle",
+    schedTitle: "Wöchentlicher Heizplan",
+    schedActive: "Heizzeiten aktiv",
+    schedActiveDesc: "Aktiviert oder deaktiviert den wöchentlichen Heizzeitplan.",
+    setbackTemp: "Absenktemperatur (Eco)",
+    quickCopy: "Schnellaktionen:",
+    btnCopyWeekdays: "📋 Mo ➔ Mo-Fr",
+    btnCopyAll: "📋 Mo ➔ Ganze Woche",
+    copiedWeekdays: "Heizzeiten auf Montag-Freitag kopiert",
+    copiedAll: "Heizzeiten auf ganze Woche kopiert",
+    btnSaveSchedule: "💾 Heizzeiten speichern",
+    schedSaved: "Heizzeiten erfolgreich gespeichert!",
+    days: { Mon: "Montag", Tue: "Dienstag", Wed: "Mittwoch", Thu: "Donnerstag", Fri: "Freitag", Sat: "Samstag", Sun: "Sonntag" },
     logRx: "Ofen → Dongle (RX)",
     logTx: "Dongle → Ofen (TX)",
     logAuto: "Auto",
@@ -1293,9 +1446,24 @@ function applyLang() {
   if (document.getElementById('f1Lvl0')) document.getElementById('f1Lvl0').textContent = t.fanAuto;
   if (document.getElementById('f2Lvl0')) document.getElementById('f2Lvl0').textContent = t.fanAuto;
   document.getElementById('tabBtnTelemetry').textContent = t.tabTelemetry;
+  if (document.getElementById('tabBtnSchedule')) document.getElementById('tabBtnSchedule').textContent = t.tabSchedule;
   document.getElementById('tabBtnNetwork').textContent = t.tabNetwork;
   document.getElementById('tabBtnLink').textContent = t.tabLink;
   document.getElementById('tabBtnLogs').textContent = t.tabLogs;
+  if (document.getElementById('lblSchedTitle')) document.getElementById('lblSchedTitle').textContent = t.schedTitle;
+  if (document.getElementById('lblSchedActiveTitle')) document.getElementById('lblSchedActiveTitle').textContent = t.schedActive;
+  if (document.getElementById('lblSchedActiveDesc')) document.getElementById('lblSchedActiveDesc').textContent = t.schedActiveDesc;
+  if (document.getElementById('lblSetbackTemp')) document.getElementById('lblSetbackTemp').textContent = t.setbackTemp;
+  if (document.getElementById('lblQuickCopy')) document.getElementById('lblQuickCopy').textContent = t.quickCopy;
+  if (document.getElementById('btnCopyWeekdays')) document.getElementById('btnCopyWeekdays').textContent = t.btnCopyWeekdays;
+  if (document.getElementById('btnCopyAll')) document.getElementById('btnCopyAll').textContent = t.btnCopyAll;
+  if (document.getElementById('btnSaveSchedule')) document.getElementById('btnSaveSchedule').textContent = t.btnSaveSchedule;
+  if (t.days) {
+    for (const k in t.days) {
+      const el = document.getElementById('dayName_' + k);
+      if (el) el.textContent = t.days[k];
+    }
+  }
   document.getElementById('lblLogRx').textContent = t.logRx;
   document.getElementById('lblLogTx').textContent = t.logTx;
   document.getElementById('lblLogAuto').textContent = t.logAuto;
@@ -1349,11 +1517,15 @@ function toast(msg) {
 function showTab(id) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  const btnMap = {'tab-network':'tabBtnNetwork','tab-link':'tabBtnLink','tab-logs':'tabBtnLogs','tab-telemetry':'tabBtnTelemetry'};
+  const btnMap = {'tab-schedule':'tabBtnSchedule','tab-network':'tabBtnNetwork','tab-link':'tabBtnLink','tab-logs':'tabBtnLogs','tab-telemetry':'tabBtnTelemetry'};
   const btn = document.getElementById(btnMap[id] || 'tabBtnTelemetry');
   if (btn) btn.classList.add('active');
   const tab = document.getElementById(id);
   if (tab) tab.classList.add('active');
+  if (id === 'tab-schedule') {
+    initScheduleUI();
+    loadSchedule();
+  }
   if (id === 'tab-network' && document.getElementById('ssidSelect').options.length <= 1) {
     scanWifi();
   }
@@ -1515,6 +1687,236 @@ function applyFanArea(n) {
     sendControl("convectionFan1Area", val);
   } else {
     sendControl("convectionFan2Area", val);
+  }
+}
+
+// --- Programmation hebdomadaire (Heating Schedule) -------------------------
+const DAYS = [
+  { key: 'Mon', fr: 'Lundi', en: 'Monday', de: 'Montag', idx1: 7, idx2: 8 },
+  { key: 'Tue', fr: 'Mardi', en: 'Tuesday', de: 'Dienstag', idx1: 9, idx2: 10 },
+  { key: 'Wed', fr: 'Mercredi', en: 'Wednesday', de: 'Mittwoch', idx1: 11, idx2: 12 },
+  { key: 'Thu', fr: 'Jeudi', en: 'Thursday', de: 'Donnerstag', idx1: 13, idx2: 14 },
+  { key: 'Fri', fr: 'Vendredi', en: 'Friday', de: 'Freitag', idx1: 15, idx2: 16 },
+  { key: 'Sat', fr: 'Samedi', en: 'Saturday', de: 'Samstag', idx1: 17, idx2: 18 },
+  { key: 'Sun', fr: 'Dimanche', en: 'Sunday', de: 'Sonntag', idx1: 19, idx2: 20 }
+];
+let scheduleLoaded = false;
+
+function decodeSlot(val) {
+  if (!val || val <= 0) return { enabled: false, start: '06:00', end: '22:00' };
+  const v = parseInt(val, 10);
+  const sVal = Math.floor(v / 10000);
+  const eVal = v % 10000;
+  const sH = String(Math.floor(sVal / 100)).padStart(2, '0');
+  const sM = String(sVal % 100).padStart(2, '0');
+  const eH = String(Math.floor(eVal / 100)).padStart(2, '0');
+  const eM = String(eVal % 100).padStart(2, '0');
+  return { enabled: true, start: sH + ':' + sM, end: eH + ':' + eM };
+}
+
+function encodeSlot(enabled, startStr, endStr) {
+  if (!enabled) return 0;
+  const sParts = (startStr || '00:00').split(':');
+  const eParts = (endStr || '00:00').split(':');
+  const sH = parseInt(sParts[0], 10) || 0;
+  const sM = parseInt(sParts[1], 10) || 0;
+  const eH = parseInt(eParts[0], 10) || 0;
+  const eM = parseInt(eParts[1], 10) || 0;
+  return (sH * 100 + sM) * 10000 + (eH * 100 + eM);
+}
+
+function initScheduleUI() {
+  const cont = document.getElementById('schedDaysContainer');
+  if (!cont || cont.children.length > 0) return;
+  const t = I18N[curLang] || I18N.fr;
+  let html = '';
+  DAYS.forEach(d => {
+    const dName = (t.days && t.days[d.key]) ? t.days[d.key] : d.fr;
+    html += '<div class="sched-day-row">';
+    html += '  <div class="sched-day-name" id="dayName_' + d.key + '">' + dName + '</div>';
+    html += '  <div class="sched-day-slots">';
+    html += '    <div class="sched-slot-box disabled" id="box_' + d.key + '1">';
+    html += '      <label class="slot-chk-label">';
+    html += '        <input type="checkbox" id="chk_' + d.key + '1" onchange="onSlotToggle(\'' + d.key + '\', 1)">';
+    html += '        <span class="slot-pill">P1</span>';
+    html += '      </label>';
+    html += '      <input type="time" class="input-time" id="start_' + d.key + '1" value="06:00" step="60" disabled onchange="setInteracting()">';
+    html += '      <span class="slot-arrow">➔</span>';
+    html += '      <input type="time" class="input-time" id="end_' + d.key + '1" value="09:00" step="60" disabled onchange="setInteracting()">';
+    html += '    </div>';
+    html += '    <div class="sched-slot-box disabled" id="box_' + d.key + '2">';
+    html += '      <label class="slot-chk-label">';
+    html += '        <input type="checkbox" id="chk_' + d.key + '2" onchange="onSlotToggle(\'' + d.key + '\', 2)">';
+    html += '        <span class="slot-pill">P2</span>';
+    html += '      </label>';
+    html += '      <input type="time" class="input-time" id="start_' + d.key + '2" value="17:00" step="60" disabled onchange="setInteracting()">';
+    html += '      <span class="slot-arrow">➔</span>';
+    html += '      <input type="time" class="input-time" id="end_' + d.key + '2" value="22:00" step="60" disabled onchange="setInteracting()">';
+    html += '    </div>';
+    html += '  </div>';
+    html += '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+function onSlotToggle(dayKey, slotNum) {
+  const chk = document.getElementById('chk_' + dayKey + slotNum);
+  const sIn = document.getElementById('start_' + dayKey + slotNum);
+  const eIn = document.getElementById('end_' + dayKey + slotNum);
+  const box = document.getElementById('box_' + dayKey + slotNum);
+  if (!chk) return;
+  if (sIn) sIn.disabled = !chk.checked;
+  if (eIn) eIn.disabled = !chk.checked;
+  if (box) box.classList.toggle('disabled', !chk.checked);
+  setInteracting();
+}
+
+function onSetbackInput(v) {
+  const el = document.getElementById('setbackTempVal');
+  if (el) el.textContent = parseFloat(v).toFixed(1);
+  setInteracting();
+}
+
+function copyMonday(all) {
+  const t = I18N[curLang] || I18N.fr;
+  const chk1 = document.getElementById('chk_Mon1').checked;
+  const s1 = document.getElementById('start_Mon1').value;
+  const e1 = document.getElementById('end_Mon1').value;
+
+  const chk2 = document.getElementById('chk_Mon2').checked;
+  const s2 = document.getElementById('start_Mon2').value;
+  const e2 = document.getElementById('end_Mon2').value;
+
+  const targets = all ? ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Tue', 'Wed', 'Thu', 'Fri'];
+  targets.forEach(k => {
+    const c1 = document.getElementById('chk_' + k + '1');
+    const st1 = document.getElementById('start_' + k + '1');
+    const en1 = document.getElementById('end_' + k + '1');
+    if (c1 && st1 && en1) {
+      c1.checked = chk1;
+      st1.value = s1;
+      en1.value = e1;
+      onSlotToggle(k, 1);
+    }
+    const c2 = document.getElementById('chk_' + k + '2');
+    const st2 = document.getElementById('start_' + k + '2');
+    const en2 = document.getElementById('end_' + k + '2');
+    if (c2 && st2 && en2) {
+      c2.checked = chk2;
+      st2.value = s2;
+      en2.value = e2;
+      onSlotToggle(k, 2);
+    }
+  });
+  setInteracting();
+  toast(all ? t.copiedAll : t.copiedWeekdays);
+}
+
+function populateScheduleUI(data) {
+  initScheduleUI();
+  const isAct = data.active !== undefined ? data.active : (data.heatingTimesActive == 1);
+  const actToggle = document.getElementById('schedActiveToggle');
+  if (actToggle) actToggle.checked = isAct;
+
+  let sb = 16.0;
+  if (data.setback_temperature !== undefined) sb = data.setback_temperature;
+  else if (data.setBackTemp !== undefined) sb = data.setBackTemp / 10.0;
+  const sbRange = document.getElementById('setbackTempRange');
+  const sbVal = document.getElementById('setbackTempVal');
+  if (sbRange) sbRange.value = sb;
+  if (sbVal) sbVal.textContent = parseFloat(sb).toFixed(1);
+
+  const slots = data.slots || {};
+  DAYS.forEach(d => {
+    for (let s = 1; s <= 2; s++) {
+      const key = 'heatTime' + d.key + s;
+      const val = slots[key] || 0;
+      const dec = decodeSlot(val);
+      const chk = document.getElementById('chk_' + d.key + s);
+      const sIn = document.getElementById('start_' + d.key + s);
+      const eIn = document.getElementById('end_' + d.key + s);
+      if (chk && sIn && eIn) {
+        chk.checked = dec.enabled;
+        sIn.value = dec.start;
+        eIn.value = dec.end;
+        onSlotToggle(d.key, s);
+      }
+    }
+  });
+}
+
+async function loadSchedule(force = false) {
+  initScheduleUI();
+  if (scheduleLoaded && !force) return;
+  try {
+    const res = await fetch('/api/schedule');
+    if (res.ok) {
+      const data = await res.json();
+      populateScheduleUI(data);
+      scheduleLoaded = true;
+      return;
+    }
+  } catch(e) {}
+
+  if (lastState && lastState.controls_pos && lastState.controls_pos.length >= 23) {
+    const cp = lastState.controls_pos;
+    const slots = {};
+    DAYS.forEach(d => {
+      slots['heatTime' + d.key + '1'] = cp[d.idx1] || 0;
+      slots['heatTime' + d.key + '2'] = cp[d.idx2] || 0;
+    });
+    populateScheduleUI({
+      active: cp[21] == 1,
+      heatingTimesActive: cp[21],
+      setBackTemp: cp[22] || 160,
+      setback_temperature: (cp[22] || 160) / 10.0,
+      slots: slots
+    });
+    scheduleLoaded = true;
+  }
+}
+
+async function saveSchedule() {
+  const t = I18N[curLang] || I18N.fr;
+  const isHtActive = document.getElementById('schedActiveToggle').checked ? 1 : 0;
+  const sbVal = parseFloat(document.getElementById('setbackTempRange').value);
+  const payload = {
+    heatingTimesActive: isHtActive,
+    setBackTemp: Math.round(sbVal * 10)
+  };
+  DAYS.forEach(d => {
+    const c1 = document.getElementById('chk_' + d.key + '1');
+    const s1 = document.getElementById('start_' + d.key + '1');
+    const e1 = document.getElementById('end_' + d.key + '1');
+    payload['heatTime' + d.key + '1'] = encodeSlot(c1 ? c1.checked : false, s1 ? s1.value : '06:00', e1 ? e1.value : '09:00');
+
+    const c2 = document.getElementById('chk_' + d.key + '2');
+    const s2 = document.getElementById('start_' + d.key + '2');
+    const e2 = document.getElementById('end_' + d.key + '2');
+    payload['heatTime' + d.key + '2'] = encodeSlot(c2 ? c2.checked : false, s2 ? s2.value : '17:00', e2 ? e2.value : '22:00');
+  });
+
+  const btn = document.getElementById('btnSaveSchedule');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      toast(t.schedSaved);
+      scheduleLoaded = false;
+      setTimeout(() => loadSchedule(true), 800);
+      setTimeout(tick, 300);
+    } else {
+      const err = await res.json();
+      toast(t.errorPrefix + (err.error || 'Erreur'));
+    }
+  } catch(e) {
+    toast(t.netError);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 

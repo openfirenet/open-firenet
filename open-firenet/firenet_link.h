@@ -168,6 +168,7 @@ public:
     else if (model_.controls_pos.size() > 28) fan2Area = model_.controls_pos[28];
 
     bool hasMultiAirCmd = false;
+    bool hasScheduleCmd = false;
 
     // Mettre à jour avec les valeurs passées dans `full`
     for (const auto& kv : full) {
@@ -192,6 +193,34 @@ public:
       }
       else if (kv.first == "convectionFan2Area" || kv.first == "fan2Area") {
         fan2Area = kv.second; hasMultiAirCmd = true;
+      }
+      else if (kv.first == "heatingTimesActive" || kv.first == "scheduleActive") {
+        if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+        long hta = kv.second ? 1 : 0;
+        model_.controls["heatingTimesActive"] = hta;
+        model_.controls_pos[21] = hta;
+        hasScheduleCmd = true;
+      }
+      else if (kv.first == "setBackTemp" || kv.first == "setback_temperature" || kv.first == "setbackTemp" || kv.first == "tempEco") {
+        if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+        long sbt = kv.second;
+        if (sbt < 50) sbt *= 10;
+        if (sbt < 100) sbt = 100;
+        if (sbt > 250) sbt = 250;
+        model_.controls["setBackTemp"] = sbt;
+        model_.controls_pos[22] = sbt;
+        hasScheduleCmd = true;
+      }
+      else {
+        for (int i = 7; i <= 20; i++) {
+          if (kv.first == ctrlName(i)) {
+            if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+            model_.controls_pos[i] = kv.second;
+            model_.controls[kv.first] = kv.second;
+            hasScheduleCmd = true;
+            break;
+          }
+        }
       }
     }
 
@@ -242,7 +271,7 @@ public:
     model_.controls_pos[3] = targetStage;
     model_.controls_pos[4] = roomTarget;
 
-    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd);
+    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd);
     if (sendExtended) {
       if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
       model_.controls_pos[23] = fan1On;
@@ -373,6 +402,10 @@ private:
       parseBody(afterHeader(buf), &model_.controls, tmpPos);
       if (tmpPos.size() >= 5 && tmpPos.size() >= model_.controls_pos.size()) {
         model_.controls_pos = tmpPos;
+        for (size_t i = 0; i < model_.controls_pos.size(); i++) {
+          std::string nm = ctrlName(i);
+          if (!nm.empty()) model_.controls[nm] = model_.controls_pos[i];
+        }
       } else {
         long on = 0, md = 2, st = 70, rm = 200;
         auto itO = model_.controls.find("onOff"); if (itO != model_.controls.end()) on = itO->second;
