@@ -18,9 +18,11 @@ RIKA stoves use a USB CDC dongle (the "Firenet 2.0" stick) to connect to RIKA's 
 
 - Speaks the same USB CDC protocol as the original dongle
 - Connects to your home WiFi
-- Exposes a local web interface at `http://open-firenet.local`
-- Exposes a REST API for home automation (Home Assistant, etc.)
-- Stores all state locally — no external dependency
+- Exposes a responsive local web interface at `http://open-firenet.local` with direct controls, weekly heating schedule, and live diagnostics
+- Controls **MultiAir 1 & 2** forced-air convection fans on supported stove models (DOMO, PARO, ROCO MULTIAIR, SUMO MULTIAIR, DOMO BACK)
+- Manages the **7-day heating schedule** (14 time slots) and setback / maintenance temperature locally
+- Exposes a comprehensive REST API for home automation (Home Assistant, Node-RED, etc.)
+- Stores all state locally — no cloud account, no internet dependency, 100% private
 
 ---
 
@@ -183,16 +185,47 @@ The SSID ends at the first `:`; everything after it is the password (so a passwo
 
 Once connected, open **`http://open-firenet.local`** in any web browser (or use the device IP assigned by your router).
 
-- **Language selector with flags**: 🇫🇷 Français / 🇬🇧 English dropdown in the header.
-- **Glassmorphism dark UI**: responsive for mobile and desktop screens.
-- **Live stove status**: operational state (Standby, Ignition, Start, Regulation, Cleaning, Burnoff, Splitlog), room temperature, flame temperature, Wi-Fi signal strength.
-- **Interactive controls**:
-  - Power **ON / OFF** toggle
-  - **Operating Mode**: Manuel, Auto (Thermostat), Confort, Réduit (Setback)
-  - **Target Room Temperature**: slider 14.0°C – 28.0°C (in Confort mode)
-  - **Heating Power**: slider 30% – 100% (in Manuel / Auto modes)
-- **Live CDC Link Log**: collapsible console streaming USB CDC communication with the stove.
-- **Restart button**: reboot the ESP32 bridge directly from the UI without unplugging.
+- **Modern glassmorphism UI**: mobile-first, responsive dark theme.
+- **Language selector with flags**: 🇫🇷 Français / 🇬🇧 English instant toggle.
+- **Live stove status header**: operational state badges (Standby, Ignition, Start, Regulation, Cleaning, Burnoff, Splitlog), room temperature, flame temperature, Wi-Fi RSSI.
+- **Control Deck ("Pilotage du Poêle")** with segmented navigation:
+  - **🔥 Commandes directes**:
+    - Power **ON / OFF** toggle
+    - **Operating Mode**: Manuel, Auto (Thermostat), Confort
+    - **Target Room Temperature**: slider & stepper 14.0°C – 28.0°C (in Confort mode)
+    - **Heating Power**: slider & stepper 30% – 100% (in Manuel / Auto modes)
+    - **MultiAir 1 & 2** (dynamically displayed for MultiAir-equipped models):
+      - Fan On / Off toggle
+      - Speed regulation: **Auto** mode vs **Manual** levels 1 to 5
+      - Convection trim / correction slider: **-30% to +30%**
+  - **📅 Programmation (Chauffage hebdomadaire)**:
+    - Independent schedule activation toggle (**Activer la programmation**) — works across all heating modes
+    - **Température de maintien (Éco)**: setback temperature applied outside scheduled heating slots (10.0°C – 25.0°C)
+    - **14 Weekly time slots** (2 slots per day, Monday to Sunday):
+      - Native HTML5 time pickers (`HH:MM` start and end)
+      - Per-day clear button (quick reset)
+      - Single-click bulk apply with immediate CDC synchronization
+- **Supervision & Diagnostics Deck**:
+  - **Télémétrie**: live metrics table (temperatures, combustion chamber, pellet consumption, auger & exhaust fan RPM, runtime hours, service countdown, error and warning bitmasks)
+  - **Réseau & Wi-Fi**: IP, MAC address, signal strength, AP scan, Wi-Fi reconfiguration & reset
+  - **Liaison CDC**: USB CDC state, packet counters, protocol revision
+  - **Logs CDC**: collapsible real-time console streaming raw bidirectional USB packets with sanitized WiFi credentials
+
+---
+
+## MultiAir Compatibility
+
+MultiAir forced convection fans are automatically detected and displayed in the Web UI based on the stove model ID reported by the main board:
+
+| Model ID | Model Name | MultiAir Hardware |
+|:---:|:---|:---|
+| **`4`** | **RIKA ROCO MULTIAIR** | MultiAir 1 & 2 |
+| **`13`** | **RIKA DOMO** | MultiAir 1 & 2 |
+| **`17`** | **RIKA PARO** | MultiAir 1 & 2 |
+| **`23`** | **RIKA DOMO BACK** | MultiAir 1 & 2 |
+| **`25`** | **RIKA SUMO MULTIAIR** | MultiAir 1 & 2 |
+
+*Stoves with natural convection only (e.g. FILO, COMO, REVO, CORSO) automatically hide the MultiAir control card in the Web UI to keep the interface simple and clutter-free.*
 
 ---
 
@@ -202,12 +235,15 @@ Open-Firenet V2 provides a clean, unified REST JSON API with natural units (temp
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/api/state` | GET | **V2 Unified state**: device info, stove state, sensors, controls |
-| `/api/controls` | POST | **V2 Set controls**: accepts clean JSON payload (partial updates supported) |
+| `/api/state` | GET | **V2 Unified state**: device info, stove telemetry, sensors, controls, and MultiAir / schedule status |
+| `/api/controls` | GET | Current controls in JSON format |
+| `/api/controls` | POST | **Set controls**: accepts clean JSON payload (partial updates supported) |
+| `/api/schedule` | GET | **Weekly schedule**: active toggle, setback temperature, and 14 time slots |
+| `/api/schedule` | POST | Update weekly schedule, slot timings, and setback temperature |
+| `/api/version` | GET | Firmware version, build date, and target platform |
 | `/api/restart` | POST | Software restart of the ESP32 bridge |
 | `/api/status` | GET | *Legacy* status endpoint (retained for backward compatibility) |
 | `/api/sensors` | GET | *Legacy* sensors endpoint (retained for backward compatibility) |
-| `/api/controls` | GET | Current controls in JSON format |
 | `/reset-wifi` | GET / POST | Erase Wi-Fi credentials from NVS and reboot into provisioning AP |
 | `/log` | GET | Plain-text live USB CDC debug log |
 
@@ -228,22 +264,41 @@ Open-Firenet V2 provides a clean, unified REST JSON API with natural units (temp
     "state_code": 3,
     "igniter_on": false,
     "error_mask": 0,
-    "warning_mask": 0
+    "warning_mask": 0,
+    "model": 13,
+    "model_name": "RIKA DOMO",
+    "mainboard_version": "2.29",
+    "firmware_build": "58512"
   },
   "sensors": {
     "room_temperature": 20.4,
-    "flame_temperature": 412.0
+    "combustion_temperature": 412.0,
+    "board_temperature": 32.5,
+    "pellets_total_kg": 2450,
+    "pellet_hours": 1250,
+    "service_countdown_kg": 550,
+    "fan_speed_rpm": 1450,
+    "auger_speed_rpm": 420
   },
   "controls": {
     "on": true,
     "mode": "comfort",
+    "mode_code": 2,
+    "target_temperature": 21.0,
     "power_percent": 70,
-    "target_temperature": 21.0
+    "heating_times_active": true,
+    "setback_temperature": 16.0,
+    "convection_fan1_active": true,
+    "convection_fan1_level": 0,
+    "convection_fan1_area": 10,
+    "convection_fan2_active": false,
+    "convection_fan2_level": 0,
+    "convection_fan2_area": 0
   }
 }
 ```
 
-### `POST /api/controls` example
+### `POST /api/controls` (Direct controls & MultiAir)
 
 Send a JSON object with `Content-Type: application/json`. Partial updates are fully supported:
 
@@ -257,13 +312,92 @@ curl -X POST http://open-firenet.local/api/controls \
 curl -X POST http://open-firenet.local/api/controls \
   -H "Content-Type: application/json" \
   -d '{"on": true, "power_percent": 80}'
+
+# Configure MultiAir Fan 1: turn ON in Auto mode with +10% convection trim
+curl -X POST http://open-firenet.local/api/controls \
+  -H "Content-Type: application/json" \
+  -d '{
+    "convectionFan1Active": true,
+    "convectionFan1Level": 0,
+    "convectionFan1Area": 10
+  }'
 ```
 
 Supported fields:
-- `on`: boolean (`true` or `false`)
-- `mode`: string (`"manual"`, `"auto"`, `"comfort"`, `"setback"`)
-- `power_percent`: integer (`30` – `100`)
-- `target_temperature`: float in °C (`14.0` – `28.0`)
+- **Power & Mode**:
+  - `on` (or `onOff`): boolean or `0`/`1`
+  - `mode`: string (`"manual"`, `"auto"`, `"comfort"`) or integer (`0`, `1`, `2`)
+  - `power_percent` (or `power`, `heatingPower`, `targetStage`): integer (`30` – `100`)
+  - `target_temperature` (or `temperature`, `roomTarget`): float in °C (`14.0` – `28.0`)
+- **MultiAir Fans (1 & 2)**:
+  - `convectionFan1Active` / `convectionFan2Active`: boolean or `0`/`1`
+  - `convectionFan1Level` / `convectionFan2Level`: integer (`0` = Auto, `1`–`5` = manual speed level)
+  - `convectionFan1Area` / `convectionFan2Area`: integer (`-30` to `+30`%)
+
+---
+
+### Weekly Heating Schedule API (`/api/schedule`)
+
+The heating schedule controls heating windows across the 7 days of the week (2 slots per day). Time slots are encoded over the wire as decimal integers: `(StartHH * 100 + StartMM) * 10000 + (EndHH * 100 + EndMM)`. For example, `06:00` to `08:30` is encoded as `6000830`, and `0` indicates a disabled slot.
+
+#### `GET /api/schedule`
+
+```bash
+curl http://open-firenet.local/api/schedule
+```
+
+Example response:
+```json
+{
+  "ok": true,
+  "active": true,
+  "heatingTimesActive": 1,
+  "setback_temperature": 16.0,
+  "setBackTemp": 160,
+  "slots": {
+    "heatTimeMon1": 6000800,
+    "heatTimeMon2": 17002200,
+    "heatTimeTue1": 6000800,
+    "heatTimeTue2": 17002200,
+    "heatTimeWed1": 6000800,
+    "heatTimeWed2": 17002200,
+    "heatTimeThu1": 6000800,
+    "heatTimeThu2": 17002200,
+    "heatTimeFri1": 6000800,
+    "heatTimeFri2": 23002330,
+    "heatTimeSat1": 7302300,
+    "heatTimeSat2": 0,
+    "heatTimeSun1": 8002230,
+    "heatTimeSun2": 0
+  }
+}
+```
+
+#### `POST /api/schedule`
+
+Partial updates are supported. You can activate/deactivate the schedule, adjust the setback temperature, and modify individual slots:
+
+```bash
+# Enable schedule, set setback temperature to 16.5 °C, and program Monday slot 1 (06:30 -> 08:30)
+curl -X POST http://open-firenet.local/api/schedule \
+  -H "Content-Type: application/json" \
+  -d '{
+    "heatingTimesActive": true,
+    "setback_temperature": 16.5,
+    "heatTimeMon1": 6300830
+  }'
+
+# Disable Tuesday slot 2
+curl -X POST http://open-firenet.local/api/schedule \
+  -H "Content-Type: application/json" \
+  -d '{"heatTimeTue2": 0}'
+```
+
+Supported fields:
+- `heatingTimesActive` (or `scheduleActive`): boolean or `0`/`1`
+- `setback_temperature` (or `setBackTemp`): float in °C (e.g. `16.5`) or raw integer ×10 (`165`)
+- `heatTimeMon1`, `heatTimeMon2`, `heatTimeTue1`, ..., `heatTimeSun2`: integer slot encoding (`0` = disabled)
+
 
 ---
 
@@ -274,7 +408,9 @@ For Home Assistant, use the official custom integration repository:
 
 Features:
 - Single-step setup via UI Config Flow (enter `http://open-firenet.local` or IP)
-- Native **Climate** entity (`climate.stove`) with target temperature, presets (`manual`, `auto`, `comfort`, `setback`), and fan power
+- Native **Climate** entity (`climate.stove`) with target temperature, presets (`manual`, `auto`, `comfort`), and heating power
+- **MultiAir 1 & 2 Fan entities**: fan speed controls, auto regulation toggle, and convection trim controls
+- **Weekly Schedule entities**: heating schedule toggle, setback temperature control, and time slot configurations
 - **11 native sensor entities**: room temperature, flame temperature, operational state, sub-state, Wi-Fi RSSI, runtime, pellet consumption, error masks
 - **Binary sensors**: Stove connection, combustion active, error status
 - Real-time updates via asynchronous polling of the V2 API without cloud lag
