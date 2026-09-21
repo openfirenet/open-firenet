@@ -418,6 +418,23 @@ input[type=range]::-webkit-slider-thumb {
 .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
 .tab-btn.active { color: var(--text); background: #202738; }
 
+.subtab-btn {
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.subtab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.subtab-btn.active { color: var(--text); background: #202738; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 .log-console {
@@ -647,165 +664,150 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 
   <!-- Control Deck -->
   <div class="control-deck">
-    <div class="deck-title">
-      <span>🎛️</span> <span id="lblDeckTitle">Commandes & Consignes</span>
-    </div>
-
-    <!-- Mode Selector -->
-    <div>
-      <label id="lblRegulationMode" style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;display:block">MODE DE RÉGULATION</label>
-      <div class="mode-selector">
-        <div class="mode-btn" id="modeBtn2" onclick="setMode(2)">
-          <div class="m-icon">🛋️</div>
-          <div class="m-title" id="lblModeTitle2">Confort</div>
-          <div class="m-desc" id="lblModeDesc2">Sonde de température</div>
-        </div>
-        <div class="mode-btn" id="modeBtn1" onclick="setMode(1)">
-          <div class="m-icon">⏱️</div>
-          <div class="m-title" id="lblModeTitle1">Auto</div>
-          <div class="m-desc" id="lblModeDesc1">Horaires programmés</div>
-        </div>
-        <div class="mode-btn" id="modeBtn0" onclick="setMode(0)">
-          <div class="m-icon">⚙️</div>
-          <div class="m-title" id="lblModeTitle0">Manuel</div>
-          <div class="m-desc" id="lblModeDesc0">Puissance fixe (%)</div>
-        </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px">
+      <div class="deck-title" style="margin:0">
+        <span>🎛️</span> <span id="lblDeckTitle">Pilotage du Poêle</span>
+      </div>
+      <div style="display:flex;gap:6px;background:#10141e;padding:4px;border-radius:10px;border:1px solid var(--border)">
+        <button type="button" class="subtab-btn active" id="subtabBtnDirect" onclick="showCtrlTab('ctrl-direct')">🔥 <span id="lblSubtabDirect">Commandes directes</span></button>
+        <button type="button" class="subtab-btn" id="subtabBtnSched" onclick="showCtrlTab('ctrl-sched')">📅 <span id="lblSubtabSched">Programmation</span></button>
       </div>
     </div>
 
-    <!-- Sliders Grid -->
-    <div class="sliders-grid">
-      <!-- Target Room Temp -->
-      <div class="slider-box">
-        <div class="slider-head">
-          <label id="lblSliderTemp">Consigne Ambiance (Confort)</label>
-          <span class="val"><span id="sliderTempVal">20</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
+    <!-- Sub-tab 1: Commandes directes -->
+    <div id="ctrl-direct" class="ctrl-content" style="display:flex;flex-direction:column;gap:20px">
+      <!-- Mode Selector -->
+      <div>
+        <label id="lblRegulationMode" style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;display:block">MODE DE RÉGULATION</label>
+        <div class="mode-selector">
+          <div class="mode-btn" id="modeBtn2" onclick="setMode(2)">
+            <div class="m-icon">🛋️</div>
+            <div class="m-title" id="lblModeTitle2">Confort</div>
+            <div class="m-desc" id="lblModeDesc2">Sonde de température</div>
+          </div>
+          <div class="mode-btn" id="modeBtn1" onclick="setMode(1)">
+            <div class="m-icon">⏱️</div>
+            <div class="m-title" id="lblModeTitle1">Auto</div>
+            <div class="m-desc" id="lblModeDesc1">Horaires programmés</div>
+          </div>
+          <div class="mode-btn" id="modeBtn0" onclick="setMode(0)">
+            <div class="m-icon">⚙️</div>
+            <div class="m-title" id="lblModeTitle0">Manuel</div>
+            <div class="m-desc" id="lblModeDesc0">Puissance fixe (%)</div>
+          </div>
         </div>
-        <input type="range" id="tempRange" min="14" max="28" step="1" value="20" oninput="onTempSlider(this.value)">
-        <button class="btn-apply" id="btnApplyTemp" onclick="applyRoomTarget()">Appliquer la température</button>
       </div>
 
-      <!-- Target Stage Power -->
-      <div class="slider-box">
-        <div class="slider-head">
-          <label id="lblSliderStage">Puissance (Auto & Manuel)</label>
-          <span class="val"><span id="sliderStageVal">70</span> <small style="font-size:0.9rem;color:var(--text-muted)">%</small></span>
+      <!-- Sliders Grid -->
+      <div class="sliders-grid">
+        <!-- Target Room Temp -->
+        <div class="slider-box">
+          <div class="slider-head">
+            <label id="lblSliderTemp">Consigne Ambiance (Confort)</label>
+            <span class="val"><span id="sliderTempVal">20</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
+          </div>
+          <input type="range" id="tempRange" min="14" max="28" step="1" value="20" oninput="onTempSlider(this.value)">
+          <button class="btn-apply" id="btnApplyTemp" onclick="applyRoomTarget()">Appliquer la température</button>
         </div>
-        <input type="range" id="stageRange" min="30" max="100" step="5" value="70" oninput="onStageSlider(this.value)">
-        <button class="btn-apply" id="btnApplyStage" onclick="applyStageTarget()">Appliquer la puissance</button>
+
+        <!-- Target Stage Power -->
+        <div class="slider-box">
+          <div class="slider-head">
+            <label id="lblSliderStage">Puissance (Auto & Manuel)</label>
+            <span class="val"><span id="sliderStageVal">70</span> <small style="font-size:0.9rem;color:var(--text-muted)">%</small></span>
+          </div>
+          <input type="range" id="stageRange" min="30" max="100" step="5" value="70" oninput="onStageSlider(this.value)">
+          <button class="btn-apply" id="btnApplyStage" onclick="applyStageTarget()">Appliquer la puissance</button>
+        </div>
+      </div>
+
+      <!-- MultiAir Fans -->
+      <div id="multiairDeck" style="display:none;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label id="lblMultiAirTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">VENTILATION MULTIAIR</label>
+        </div>
+        <div class="multiair-grid">
+          <!-- Fan 1 -->
+          <div class="fan-card" id="fanCard1">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+                <span>🌀</span> <span id="lblFan1Title">MultiAir 1</span>
+              </div>
+              <button class="fan-toggle" id="fan1ToggleBtn" onclick="toggleFan(1)">
+                <span class="dot" style="display:inline-block"></span>
+                <span id="fan1ToggleText">Arrêt</span>
+              </button>
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span id="lblFan1Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
+                <span id="fan1SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
+              </div>
+              <div class="fan-levels">
+                <button class="btn-lvl active" id="f1Lvl0" onclick="setFanLevel(1, 0)">Auto</button>
+                <button class="btn-lvl" id="f1Lvl1" onclick="setFanLevel(1, 1)">1</button>
+                <button class="btn-lvl" id="f1Lvl2" onclick="setFanLevel(1, 2)">2</button>
+                <button class="btn-lvl" id="f1Lvl3" onclick="setFanLevel(1, 3)">3</button>
+                <button class="btn-lvl" id="f1Lvl4" onclick="setFanLevel(1, 4)">4</button>
+                <button class="btn-lvl" id="f1Lvl5" onclick="setFanLevel(1, 5)">5</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span id="lblFan1Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
+                <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan1AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
+              </div>
+              <input type="range" id="fan1AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(1, this.value)">
+              <button class="btn-apply" id="btnApplyFan1Area" onclick="applyFanArea(1)">Appliquer correction</button>
+            </div>
+          </div>
+
+          <!-- Fan 2 -->
+          <div class="fan-card" id="fanCard2">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+                <span>🌀</span> <span id="lblFan2Title">MultiAir 2</span>
+              </div>
+              <button class="fan-toggle" id="fan2ToggleBtn" onclick="toggleFan(2)">
+                <span class="dot" style="display:inline-block"></span>
+                <span id="fan2ToggleText">Arrêt</span>
+              </button>
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span id="lblFan2Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
+                <span id="fan2SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
+              </div>
+              <div class="fan-levels">
+                <button class="btn-lvl active" id="f2Lvl0" onclick="setFanLevel(2, 0)">Auto</button>
+                <button class="btn-lvl" id="f2Lvl1" onclick="setFanLevel(2, 1)">1</button>
+                <button class="btn-lvl" id="f2Lvl2" onclick="setFanLevel(2, 2)">2</button>
+                <button class="btn-lvl" id="f2Lvl3" onclick="setFanLevel(2, 3)">3</button>
+                <button class="btn-lvl" id="f2Lvl4" onclick="setFanLevel(2, 4)">4</button>
+                <button class="btn-lvl" id="f2Lvl5" onclick="setFanLevel(2, 5)">5</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span id="lblFan2Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
+                <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan2AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
+              </div>
+              <input type="range" id="fan2AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(2, this.value)">
+              <button class="btn-apply" id="btnApplyFan2Area" onclick="applyFanArea(2)">Appliquer correction</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- MultiAir Fans -->
-    <div id="multiairDeck" style="display:none;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;flex-direction:column;gap:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <label id="lblMultiAirTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">VENTILATION MULTIAIR</label>
-      </div>
-      <div class="multiair-grid">
-        <!-- Fan 1 -->
-        <div class="fan-card" id="fanCard1">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-              <span>🌀</span> <span id="lblFan1Title">MultiAir 1</span>
-            </div>
-            <button class="fan-toggle" id="fan1ToggleBtn" onclick="toggleFan(1)">
-              <span class="dot" style="display:inline-block"></span>
-              <span id="fan1ToggleText">Arrêt</span>
-            </button>
-          </div>
-
-          <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-              <span id="lblFan1Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
-              <span id="fan1SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
-            </div>
-            <div class="fan-levels">
-              <button class="btn-lvl active" id="f1Lvl0" onclick="setFanLevel(1, 0)">Auto</button>
-              <button class="btn-lvl" id="f1Lvl1" onclick="setFanLevel(1, 1)">1</button>
-              <button class="btn-lvl" id="f1Lvl2" onclick="setFanLevel(1, 2)">2</button>
-              <button class="btn-lvl" id="f1Lvl3" onclick="setFanLevel(1, 3)">3</button>
-              <button class="btn-lvl" id="f1Lvl4" onclick="setFanLevel(1, 4)">4</button>
-              <button class="btn-lvl" id="f1Lvl5" onclick="setFanLevel(1, 5)">5</button>
-            </div>
-          </div>
-
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span id="lblFan1Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
-              <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan1AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
-            </div>
-            <input type="range" id="fan1AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(1, this.value)">
-            <button class="btn-apply" id="btnApplyFan1Area" onclick="applyFanArea(1)">Appliquer correction</button>
-          </div>
-        </div>
-
-        <!-- Fan 2 -->
-        <div class="fan-card" id="fanCard2">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-              <span>🌀</span> <span id="lblFan2Title">MultiAir 2</span>
-            </div>
-            <button class="fan-toggle" id="fan2ToggleBtn" onclick="toggleFan(2)">
-              <span class="dot" style="display:inline-block"></span>
-              <span id="fan2ToggleText">Arrêt</span>
-            </button>
-          </div>
-
-          <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-              <span id="lblFan2Speed" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Vitesse</span>
-              <span id="fan2SpeedText" style="font-size:0.85rem;font-weight:700;color:var(--text)">Auto</span>
-            </div>
-            <div class="fan-levels">
-              <button class="btn-lvl active" id="f2Lvl0" onclick="setFanLevel(2, 0)">Auto</button>
-              <button class="btn-lvl" id="f2Lvl1" onclick="setFanLevel(2, 1)">1</button>
-              <button class="btn-lvl" id="f2Lvl2" onclick="setFanLevel(2, 2)">2</button>
-              <button class="btn-lvl" id="f2Lvl3" onclick="setFanLevel(2, 3)">3</button>
-              <button class="btn-lvl" id="f2Lvl4" onclick="setFanLevel(2, 4)">4</button>
-              <button class="btn-lvl" id="f2Lvl5" onclick="setFanLevel(2, 5)">5</button>
-            </div>
-          </div>
-
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span id="lblFan2Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
-              <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan2AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
-            </div>
-            <input type="range" id="fan2AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(2, this.value)">
-            <button class="btn-apply" id="btnApplyFan2Area" onclick="applyFanArea(2)">Appliquer correction</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tabs Navigation -->
-  <div class="tabs">
-    <button class="tab-btn active" id="tabBtnTelemetry" onclick="showTab('tab-telemetry')">📊 Télémétrie complète</button>
-    <button class="tab-btn" id="tabBtnSchedule" onclick="showTab('tab-schedule')">📅 Programmation</button>
-    <button class="tab-btn" id="tabBtnNetwork" onclick="showTab('tab-network')">📶 Réseau & WiFi</button>
-    <button class="tab-btn" id="tabBtnLink" onclick="showTab('tab-link')">⚙️ Liaison CDC</button>
-    <button class="tab-btn" id="tabBtnLogs" onclick="showTab('tab-logs')">📜 Logs CDC</button>
-  </div>
-
-  <!-- Tab 1: Telemetry -->
-  <div class="tab-content active" id="tab-telemetry">
-    <div class="card" style="padding:14px">
-      <div style="margin-bottom:12px;display:flex;gap:10px">
-        <input class="input-text" id="sensorSearch" placeholder="🔍 Filtrer les 53 capteurs..." oninput="filterSensors(this.value)">
-      </div>
-      <table id="sensorsTable">
-        <thead><tr><th id="thSensorName">Capteur</th><th id="thSensorId">Identifiant</th><th id="thSensorVal">Valeur</th></tr></thead>
-        <tbody id="sensorsBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Tab: Heating Schedule -->
-  <div class="tab-content" id="tab-schedule">
-    <div class="card" style="gap:18px">
+    <!-- Sub-tab 2: Programmation -->
+    <div id="ctrl-sched" class="ctrl-content" style="display:none;flex-direction:column;gap:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <h3 id="lblSchedTitle">Programmation hebdomadaire</h3>
+        <label id="lblSchedSectionTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">PLANNING HEBDOMADAIRE</label>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <span id="lblSchedActiveTitle" style="font-weight:600;font-size:0.9rem">Programmation active</span>
           <label class="switch">
@@ -817,7 +819,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <p id="lblSchedActiveDesc" style="font-size:0.82rem;color:var(--text-dim);margin-top:-8px">Active ou désactive le planning des plages horaires de chauffe.</p>
 
       <!-- Setback Temperature Slider -->
-      <div class="slider-box" style="margin-top:4px">
+      <div class="slider-box">
         <div class="slider-head">
           <label id="lblSetbackTemp">Température de maintien (Éco)</label>
           <span class="val"><span id="setbackTempVal">16.0</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
@@ -841,6 +843,27 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           💾 Enregistrer la programmation
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnTelemetry" onclick="showTab('tab-telemetry')">📊 Télémétrie complète</button>
+    <button class="tab-btn" id="tabBtnNetwork" onclick="showTab('tab-network')">📶 Réseau & WiFi</button>
+    <button class="tab-btn" id="tabBtnLink" onclick="showTab('tab-link')">⚙️ Liaison CDC</button>
+    <button class="tab-btn" id="tabBtnLogs" onclick="showTab('tab-logs')">📜 Logs CDC</button>
+  </div>
+
+  <!-- Tab 1: Telemetry -->
+  <div class="tab-content active" id="tab-telemetry">
+    <div class="card" style="padding:14px">
+      <div style="margin-bottom:12px;display:flex;gap:10px">
+        <input class="input-text" id="sensorSearch" placeholder="🔍 Filtrer les 53 capteurs..." oninput="filterSensors(this.value)">
+      </div>
+      <table id="sensorsTable">
+        <thead><tr><th id="thSensorName">Capteur</th><th id="thSensorId">Identifiant</th><th id="thSensorVal">Valeur</th></tr></thead>
+        <tbody id="sensorsBody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -954,7 +977,10 @@ const I18N = {
     pelletsHeader: "Compteurs & Entretien",
     serviceCountPrefix: "Service restant : ",
     pelletHoursSuffix: " h granulés",
-    deckTitle: "Commandes & Consignes",
+    deckTitle: "Pilotage du Poêle",
+    subtabDirect: "Commandes directes",
+    subtabSched: "Programmation",
+    schedSectionTitle: "PLANNING HEBDOMADAIRE",
     regulationMode: "MODE DE RÉGULATION",
     modeTitle2: "Confort",
     modeDesc2: "Sonde de température",
@@ -976,11 +1002,9 @@ const I18N = {
     fanOff: "Arrêt",
     fanAuto: "Auto",
     tabTelemetry: "📊 Télémétrie complète",
-    tabSchedule: "📅 Programmation",
     tabNetwork: "📶 Réseau & WiFi",
     tabLink: "⚙️ Liaison CDC",
     tabLogs: "📜 Logs CDC",
-    schedTitle: "Programmation hebdomadaire",
     schedActive: "Programmation active",
     schedActiveDesc: "Active ou désactive le planning des plages horaires de chauffe.",
     setbackTemp: "Température de maintien (Éco)",
@@ -1113,7 +1137,10 @@ const I18N = {
     pelletsHeader: "Counters & Service",
     serviceCountPrefix: "Service countdown: ",
     pelletHoursSuffix: " h pellets",
-    deckTitle: "Controls & Setpoints",
+    deckTitle: "Stove Controls",
+    subtabDirect: "Direct Controls",
+    subtabSched: "Schedule",
+    schedSectionTitle: "WEEKLY SCHEDULE",
     regulationMode: "REGULATION MODE",
     modeTitle2: "Comfort",
     modeDesc2: "Room thermostat sensor",
@@ -1135,11 +1162,9 @@ const I18N = {
     fanOff: "Off",
     fanAuto: "Auto",
     tabTelemetry: "📊 Full Telemetry",
-    tabSchedule: "📅 Heating Schedule",
     tabNetwork: "📶 Network & WiFi",
     tabLink: "⚙️ USB CDC Link",
     tabLogs: "📜 CDC Logs",
-    schedTitle: "Weekly Heating Schedule",
     schedActive: "Heating schedule active",
     schedActiveDesc: "Enables or disables the weekly heating schedule.",
     setbackTemp: "Setback temperature (Eco)",
@@ -1272,7 +1297,10 @@ const I18N = {
     pelletsHeader: "Zähler & Wartung",
     serviceCountPrefix: "Wartung in: ",
     pelletHoursSuffix: " h Pellets",
-    deckTitle: "Steuerung & Sollwerte",
+    deckTitle: "Ofensteuerung",
+    subtabDirect: "Direktsteuerung",
+    subtabSched: "Heizzeiten",
+    schedSectionTitle: "WÖCHENTLICHER ZEITPLAN",
     regulationMode: "REGELUNGSMODUS",
     modeTitle2: "Komfort",
     modeDesc2: "Raumtemperatursensor",
@@ -1294,11 +1322,9 @@ const I18N = {
     fanOff: "Aus",
     fanAuto: "Auto",
     tabTelemetry: "📊 Vollständige Telemetrie",
-    tabSchedule: "📅 Heizzeiten",
     tabNetwork: "📶 Netzwerk & WLAN",
     tabLink: "⚙️ USB CDC Verbindung",
     tabLogs: "📜 CDC Protokolle",
-    schedTitle: "Wöchentlicher Heizplan",
     schedActive: "Heizzeiten aktiv",
     schedActiveDesc: "Aktiviert oder deaktiviert den wöchentlichen Heizzeitplan.",
     setbackTemp: "Absenktemperatur (Eco)",
@@ -1422,7 +1448,10 @@ function applyLang() {
   document.getElementById('lblPelletsHeader').textContent = t.pelletsHeader;
   document.getElementById('lblServiceCountPrefix').textContent = t.serviceCountPrefix;
   document.getElementById('lblPelletHoursSuffix').textContent = t.pelletHoursSuffix;
-  document.getElementById('lblDeckTitle').textContent = t.deckTitle;
+  if (document.getElementById('lblDeckTitle')) document.getElementById('lblDeckTitle').textContent = t.deckTitle;
+  if (document.getElementById('lblSubtabDirect')) document.getElementById('lblSubtabDirect').textContent = t.subtabDirect;
+  if (document.getElementById('lblSubtabSched')) document.getElementById('lblSubtabSched').textContent = t.subtabSched;
+  if (document.getElementById('lblSchedSectionTitle')) document.getElementById('lblSchedSectionTitle').textContent = t.schedSectionTitle;
   document.getElementById('lblRegulationMode').textContent = t.regulationMode;
   document.getElementById('lblModeTitle2').textContent = t.modeTitle2;
   document.getElementById('lblModeDesc2').textContent = t.modeDesc2;
@@ -1446,11 +1475,9 @@ function applyLang() {
   if (document.getElementById('f1Lvl0')) document.getElementById('f1Lvl0').textContent = t.fanAuto;
   if (document.getElementById('f2Lvl0')) document.getElementById('f2Lvl0').textContent = t.fanAuto;
   document.getElementById('tabBtnTelemetry').textContent = t.tabTelemetry;
-  if (document.getElementById('tabBtnSchedule')) document.getElementById('tabBtnSchedule').textContent = t.tabSchedule;
   document.getElementById('tabBtnNetwork').textContent = t.tabNetwork;
   document.getElementById('tabBtnLink').textContent = t.tabLink;
   document.getElementById('tabBtnLogs').textContent = t.tabLogs;
-  if (document.getElementById('lblSchedTitle')) document.getElementById('lblSchedTitle').textContent = t.schedTitle;
   if (document.getElementById('lblSchedActiveTitle')) document.getElementById('lblSchedActiveTitle').textContent = t.schedActive;
   if (document.getElementById('lblSchedActiveDesc')) document.getElementById('lblSchedActiveDesc').textContent = t.schedActiveDesc;
   if (document.getElementById('lblSetbackTemp')) document.getElementById('lblSetbackTemp').textContent = t.setbackTemp;
@@ -1514,18 +1541,32 @@ function toast(msg) {
   t.timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
 
+function showCtrlTab(id) {
+  document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.ctrl-content').forEach(c => c.style.display = 'none');
+  if (id === 'ctrl-sched') {
+    const btn = document.getElementById('subtabBtnSched');
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('ctrl-sched');
+    if (panel) panel.style.display = 'flex';
+    initScheduleUI();
+    loadSchedule();
+  } else {
+    const btn = document.getElementById('subtabBtnDirect');
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('ctrl-direct');
+    if (panel) panel.style.display = 'flex';
+  }
+}
+
 function showTab(id) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  const btnMap = {'tab-schedule':'tabBtnSchedule','tab-network':'tabBtnNetwork','tab-link':'tabBtnLink','tab-logs':'tabBtnLogs','tab-telemetry':'tabBtnTelemetry'};
+  const btnMap = {'tab-network':'tabBtnNetwork','tab-link':'tabBtnLink','tab-logs':'tabBtnLogs','tab-telemetry':'tabBtnTelemetry'};
   const btn = document.getElementById(btnMap[id] || 'tabBtnTelemetry');
   if (btn) btn.classList.add('active');
   const tab = document.getElementById(id);
   if (tab) tab.classList.add('active');
-  if (id === 'tab-schedule') {
-    initScheduleUI();
-    loadSchedule();
-  }
   if (id === 'tab-network' && document.getElementById('ssidSelect').options.length <= 1) {
     scanWifi();
   }
@@ -2132,11 +2173,10 @@ async function tick() {
     const vStr = stObj.mainboard_version ? (' V' + stObj.mainboard_version) : '';
     document.getElementById('modelBadge').textContent = mName + vStr;
 
-    // MultiAir
+    // MultiAir (modèles RIKA équipés : 4=ROCO MA, 13=DOMO, 17=PARO, 23=DOMO BACK, 25=SUMO MA)
     const deck = document.getElementById('multiairDeck');
-    const hasMultiAir = (s.controls_pos && s.controls_pos.length > 23) ||
-                        (ctrl.convection_fan1_active !== undefined) ||
-                        [4, 13, 17, 23, 25].includes(mId);
+    const MULTIAIR_MODELS = [4, 13, 17, 23, 25];
+    const hasMultiAir = MULTIAIR_MODELS.includes(mId);
     if (deck) {
       deck.style.display = hasMultiAir ? 'flex' : 'none';
       if (hasMultiAir) {
