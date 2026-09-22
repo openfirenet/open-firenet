@@ -166,6 +166,31 @@ int main(){
     CH("controls_pos[22] is setBackTemp", l3.model().controls_pos[22]==180);
     CH("controls_pos[7] is heatTimeMon1", l3.model().controls_pos[7]==8001030);
     CH("controls_pos[13] is heatTimeThu1", l3.model().controls_pos[13]==21002200);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // Frost protection control test
+    sent.clear();
+    l3.applyControls({{"frostProtectionActive", 1}, {"frostProtectionTemp", 75}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("frostProtectionActive emitted", sent.find("frostProtectionActive=1;")!=std::string::npos);
+    CH("frostProtectionTemp emitted", sent.find("frostProtectionTemp=75;")!=std::string::npos);
+    CH("controls_pos has at least 31 elements", l3.model().controls_pos.size()>=31);
+    CH("controls_pos[29] is frostProtectionActive", l3.model().controls_pos[29]==1);
+    CH("controls_pos[30] is frostProtectionTemp", l3.model().controls_pos[30]==75);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // Frost protection scaling / clamping test
+    sent.clear();
+    l3.applyControls({{"frost_protection_active", 0}, {"frost_protection_temperature", 5}}); // 5 -> 50
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("frostProtectionActive=0 emitted", sent.find("frostProtectionActive=0;")!=std::string::npos);
+    CH("frostProtectionTemp=50 emitted", sent.find("frostProtectionTemp=50;")!=std::string::npos);
+    CH("controls_pos[29] is 0", l3.model().controls_pos[29]==0);
+    CH("controls_pos[30] is 50", l3.model().controls_pos[30]==50);
   }
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;

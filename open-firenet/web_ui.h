@@ -802,6 +802,32 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           </div>
         </div>
       </div>
+
+      <!-- Frost Protection (Hors-Gel) -->
+      <div id="frostDeck" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label id="lblFrostTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">PROTECTION HORS-GEL</label>
+        </div>
+        <div class="fan-card" style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+              <span style="font-size:1.2rem">❄️</span> <span id="lblFrostToggle">Hors-gel</span>
+            </div>
+            <button class="fan-toggle" id="frostToggleBtn" onclick="toggleFrost()">
+              <span class="dot" style="display:inline-block"></span>
+              <span id="frostToggleText">Arrêt</span>
+            </button>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span id="lblFrostTemp" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Température de consigne</span>
+              <span class="val" style="font-size:1.2rem;font-weight:700"><span id="frostTempVal">5.0</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
+            </div>
+            <input type="range" id="frostTempRange" min="4.0" max="10.0" step="0.5" value="5.0" oninput="onFrostTempInput(this.value)">
+            <button class="btn-apply" id="btnApplyFrostTemp" onclick="applyFrostTemp()">Appliquer hors-gel</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Sub-tab 2: Programmation -->
@@ -1001,6 +1027,12 @@ const I18N = {
     fanOn: "Actif",
     fanOff: "Arrêt",
     fanAuto: "Auto",
+    frostTitle: "PROTECTION HORS-GEL",
+    frostToggle: "Hors-gel",
+    frostTemp: "Température de consigne",
+    btnApplyFrostTemp: "Appliquer hors-gel",
+    frostOn: "Actif",
+    frostOff: "Arrêt",
     tabTelemetry: "📊 Télémétrie complète",
     tabNetwork: "📶 Réseau & WiFi",
     tabLink: "⚙️ Liaison CDC",
@@ -1108,7 +1140,9 @@ const I18N = {
       convectionFan1Area: "MultiAir 1 correction (%)",
       convectionFan2Active: "MultiAir 2 actif",
       convectionFan2Level: "MultiAir 2 vitesse (0=Auto, 1-5)",
-      convectionFan2Area: "MultiAir 2 correction (%)"
+      convectionFan2Area: "MultiAir 2 correction (%)",
+      frostProtectionActive: "Protection hors-gel active",
+      frostProtectionTemp: "Température hors-gel (°C ×10)"
     }
   },
   en: {
@@ -1161,6 +1195,12 @@ const I18N = {
     fanOn: "Active",
     fanOff: "Off",
     fanAuto: "Auto",
+    frostTitle: "FROST PROTECTION",
+    frostToggle: "Frost protection",
+    frostTemp: "Target temperature",
+    btnApplyFrostTemp: "Apply frost temp",
+    frostOn: "Active",
+    frostOff: "Off",
     tabTelemetry: "📊 Full Telemetry",
     tabNetwork: "📶 Network & WiFi",
     tabLink: "⚙️ USB CDC Link",
@@ -1268,7 +1308,9 @@ const I18N = {
       convectionFan1Area: "MultiAir 1 correction (%)",
       convectionFan2Active: "MultiAir 2 active",
       convectionFan2Level: "MultiAir 2 speed (0=Auto, 1-5)",
-      convectionFan2Area: "MultiAir 2 correction (%)"
+      convectionFan2Area: "MultiAir 2 correction (%)",
+      frostProtectionActive: "Frost protection active",
+      frostProtectionTemp: "Frost protection temperature (°C ×10)"
     }
   },
   de: {
@@ -1321,6 +1363,12 @@ const I18N = {
     fanOn: "Aktiv",
     fanOff: "Aus",
     fanAuto: "Auto",
+    frostTitle: "FROSTSCHUTZ",
+    frostToggle: "Frostschutz",
+    frostTemp: "Soll-Temperatur",
+    btnApplyFrostTemp: "Frostschutz übernehmen",
+    frostOn: "Aktiv",
+    frostOff: "Aus",
     tabTelemetry: "📊 Vollständige Telemetrie",
     tabNetwork: "📶 Netzwerk & WLAN",
     tabLink: "⚙️ USB CDC Verbindung",
@@ -1428,7 +1476,9 @@ const I18N = {
       convectionFan1Area: "MultiAir 1 Korrektur (%)",
       convectionFan2Active: "MultiAir 2 aktiv",
       convectionFan2Level: "MultiAir 2 Stufe (0=Auto, 1-5)",
-      convectionFan2Area: "MultiAir 2 Korrektur (%)"
+      convectionFan2Area: "MultiAir 2 Korrektur (%)",
+      frostProtectionActive: "Frostschutz aktiv",
+      frostProtectionTemp: "Frostschutz-Temperatur (°C ×10)"
     }
   }
 };
@@ -1474,6 +1524,10 @@ function applyLang() {
   if (document.getElementById('btnApplyFan2Area')) document.getElementById('btnApplyFan2Area').textContent = t.btnApplyFanArea;
   if (document.getElementById('f1Lvl0')) document.getElementById('f1Lvl0').textContent = t.fanAuto;
   if (document.getElementById('f2Lvl0')) document.getElementById('f2Lvl0').textContent = t.fanAuto;
+  if (document.getElementById('lblFrostTitle')) document.getElementById('lblFrostTitle').textContent = t.frostTitle;
+  if (document.getElementById('lblFrostToggle')) document.getElementById('lblFrostToggle').textContent = t.frostToggle;
+  if (document.getElementById('lblFrostTemp')) document.getElementById('lblFrostTemp').textContent = t.frostTemp;
+  if (document.getElementById('btnApplyFrostTemp')) document.getElementById('btnApplyFrostTemp').textContent = t.btnApplyFrostTemp;
   document.getElementById('tabBtnTelemetry').textContent = t.tabTelemetry;
   document.getElementById('tabBtnNetwork').textContent = t.tabNetwork;
   document.getElementById('tabBtnLink').textContent = t.tabLink;
@@ -1729,6 +1783,29 @@ function applyFanArea(n) {
   } else {
     sendControl("convectionFan2Area", val);
   }
+}
+
+function toggleFrost() {
+  if (!lastState) return;
+  const ctrl = lastState.controls || {};
+  const cPos = lastState.controls_pos || [];
+  const curOn = (ctrl.frost_protection_active !== undefined) ? (ctrl.frost_protection_active ? 1 : 0) :
+                ((ctrl.frostProtectionActive !== undefined) ? (ctrl.frostProtectionActive ? 1 : 0) :
+                (cPos.length > 29 ? cPos[29] : 0));
+  sendControl("frostProtectionActive", curOn ? 0 : 1);
+}
+
+function onFrostTempInput(val) {
+  const el = document.getElementById('frostTempVal');
+  if (el) el.textContent = parseFloat(val).toFixed(1);
+  setInteracting();
+}
+
+function applyFrostTemp() {
+  const r = document.getElementById('frostTempRange');
+  if (!r) return;
+  const val = parseFloat(r.value);
+  sendControl("frostProtectionTemp", Math.round(val * 10));
 }
 
 // --- Programmation hebdomadaire (Heating Schedule) -------------------------
@@ -2253,6 +2330,33 @@ async function tick() {
         }
       }
     }
+
+    // Frost Protection
+    const frostActive = (ctrl.frost_protection_active !== undefined) ? (ctrl.frost_protection_active ? 1 : 0) :
+                        ((ctrl.frostProtectionActive !== undefined) ? (ctrl.frostProtectionActive ? 1 : 0) :
+                        (s.controls_pos && s.controls_pos.length > 29 ? s.controls_pos[29] : 0));
+    const frostTemp = (ctrl.frost_protection_temperature !== undefined) ? ctrl.frost_protection_temperature :
+                      ((ctrl.frostProtectionTemp !== undefined) ? (ctrl.frostProtectionTemp / 10.0) :
+                      (s.controls_pos && s.controls_pos.length > 30 && s.controls_pos[30] > 0 ? (s.controls_pos[30] / 10.0) : 5.0));
+
+    const btnFrost = document.getElementById('frostToggleBtn');
+    const txtFrost = document.getElementById('frostToggleText');
+    if (btnFrost && txtFrost) {
+      if (frostActive == 1) {
+        btnFrost.className = 'fan-toggle active';
+        txtFrost.textContent = t.frostOn;
+      } else {
+        btnFrost.className = 'fan-toggle';
+        txtFrost.textContent = t.frostOff;
+      }
+    }
+    if (!userInteracting) {
+      const rf = document.getElementById('frostTempRange');
+      const vf = document.getElementById('frostTempVal');
+      if (rf) rf.value = frostTemp.toFixed(1);
+      if (vf) vf.textContent = frostTemp.toFixed(1);
+    }
+
     document.getElementById('netMode').textContent = s.wifi_mode;
     document.getElementById('netIp').textContent = s.ip;
     const rssiVal = (s.device && s.device.wifi_rssi !== undefined) ? s.device.wifi_rssi : (rawS.rssi || '--');

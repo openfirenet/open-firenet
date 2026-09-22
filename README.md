@@ -349,6 +349,9 @@ Supported fields:
   - `convectionFan1Active` / `convectionFan2Active`: boolean or `0`/`1`
   - `convectionFan1Level` / `convectionFan2Level`: integer (`0` = Auto, `1`–`5` = manual speed level)
   - `convectionFan1Area` / `convectionFan2Area`: integer (`-30` to `+30`%)
+- **Frost Protection (Hors-Gel)**:
+  - `frostProtectionActive` (or `frost_protection_active`): boolean or `0`/`1`
+  - `frostProtectionTemp` (or `frost_protection_temperature`, `frost_protection_temp`): float or integer in °C (`4.0` – `10.0` °C, or ×10 `40` – `100`)
 
 ---
 
