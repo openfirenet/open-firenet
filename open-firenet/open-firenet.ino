@@ -362,6 +362,10 @@ static String jsonState() {
   auto itFT = m.controls.find("frostProtectionTemp"); if (itFT != m.controls.end()) frostTemp = itFT->second;
   else if (m.controls_pos.size() > 30 && m.controls_pos[30] > 0) frostTemp = m.controls_pos[30];
 
+  long bakeTarget = 180;
+  auto itBT = m.controls.find("bakeTarget"); if (itBT != m.controls.end()) bakeTarget = itBT->second;
+  else if (m.controls_pos.size() > 5 && m.controls_pos[5] > 0) bakeTarget = m.controls_pos[5];
+
   float rTempF = rTemp / 10.0f;
   float rTargetF = curRoom / 10.0f;
   float sbTempF = sbTemp / 10.0f;
@@ -424,7 +428,8 @@ static String jsonState() {
       "\"convection_fan2_level\":%ld,"
       "\"convection_fan2_area\":%ld,"
       "\"frost_protection_active\":%s,"
-      "\"frost_protection_temperature\":%.1f"
+      "\"frost_protection_temperature\":%.1f,"
+      "\"bake_target_temperature\":%ld"
     "},",
     (WiFi.getMode()==WIFI_AP?WiFi.softAPIP():WiFi.localIP()).toString().c_str(),
     WiFi.macAddress().c_str(),
@@ -444,7 +449,8 @@ static String jsonState() {
     (htActive == 1) ? "true" : "false", sbTempF,
     (fan1On == 1) ? "true" : "false", fan1Level, fan1Area,
     (fan2On == 1) ? "true" : "false", fan2Level, fan2Area,
-    (frostActive == 1) ? "true" : "false", frostTempF
+    (frostActive == 1) ? "true" : "false", frostTempF,
+    bakeTarget
   );
 
   String j = String(buf);
@@ -853,6 +859,10 @@ static void handleApiControls() {
     auto itFT = m.controls.find("frostProtectionTemp"); if (itFT != m.controls.end()) curFrostTemp = itFT->second;
     else if (m.controls_pos.size() > 30 && m.controls_pos[30] > 0) curFrostTemp = m.controls_pos[30];
 
+    long curBakeTarget = 180;
+    auto itBT = m.controls.find("bakeTarget"); if (itBT != m.controls.end()) curBakeTarget = itBT->second;
+    else if (m.controls_pos.size() > 5 && m.controls_pos[5] > 0) curBakeTarget = m.controls_pos[5];
+
     const char* modeName = (curMode == 0) ? "manual" : ((curMode == 1) ? "auto" : "comfort");
     float rTargetF = curRoom / 10.0f;
     float sbTempF = curSetBackTemp / 10.0f;
@@ -883,7 +893,9 @@ static void handleApiControls() {
       "\"frostProtectionActive\":%ld,"
       "\"frost_protection_active\":%s,"
       "\"frostProtectionTemp\":%ld,"
-      "\"frost_protection_temperature\":%.1f"
+      "\"frost_protection_temperature\":%.1f,"
+      "\"bakeTarget\":%ld,"
+      "\"bake_target_temperature\":%ld"
       "}",
       (curOn == 1) ? "true" : "false",
       modeName, curMode, rTargetF, curStage,
@@ -893,7 +905,8 @@ static void handleApiControls() {
       fan1On, fan1Level, fan1Area,
       fan2On, fan2Level, fan2Area,
       curFrostActive, (curFrostActive == 1) ? "true" : "false",
-      curFrostTemp, frostTempF
+      curFrostTemp, frostTempF,
+      curBakeTarget, curBakeTarget
     );
     web.send(200, "application/json", buf);
     return;
@@ -904,6 +917,7 @@ static void handleApiControls() {
   long newOn = -1, newMode = -1, newStage = -1, newRoom = -1;
   long newFan1On = -1, newFan1Level = -1, newFan1Area = -999;
   long newFan2On = -1, newFan2Level = -1, newFan2Area = -999;
+  long newBakeTarget = -1;
   long newHeatingTimesActive = -1, newSetBackTemp = -1;
   long newFrostActive = -1, newFrostTemp = -1;
   long newHeatTimes[14];
@@ -967,6 +981,10 @@ static void handleApiControls() {
   if (findJsonFloat(raw, "frostProtectionTemp", fVal) || findJsonFloat(raw, "frost_protection_temperature", fVal) ||
       findJsonFloat(raw, "frost_protection_temp", fVal) || findJsonFloat(raw, "frostTemp", fVal) || findJsonFloat(raw, "tempFrost", fVal)) {
     newFrostTemp = (fVal < 40.0f && fVal > 0.0f) ? (long)round(fVal * 10.0f) : (long)fVal;
+  }
+  if (findJsonFloat(raw, "bakeTarget", fVal) || findJsonFloat(raw, "bake_target_temperature", fVal) ||
+      findJsonFloat(raw, "bake_target", fVal) || findJsonFloat(raw, "bakeTemp", fVal) || findJsonFloat(raw, "bake", fVal)) {
+    newBakeTarget = (long)round(fVal);
   }
 
   if (findJsonBool(raw, "heatingTimesActive", bVal) || findJsonBool(raw, "heating_times_active", bVal) || findJsonBool(raw, "scheduleActive", bVal)) {
@@ -1040,6 +1058,13 @@ static void handleApiControls() {
     float f = s.toFloat();
     newFrostTemp = (f < 40.0f && f > 0.0f) ? (long)round(f * 10.0f) : (long)f;
   }
+  if (web.hasArg("bakeTarget") || web.hasArg("bake_target_temperature") || web.hasArg("bake_target") || web.hasArg("bakeTemp") || web.hasArg("bake")) {
+    String s = web.hasArg("bakeTarget") ? web.arg("bakeTarget") :
+               (web.hasArg("bake_target_temperature") ? web.arg("bake_target_temperature") :
+               (web.hasArg("bake_target") ? web.arg("bake_target") :
+               (web.hasArg("bakeTemp") ? web.arg("bakeTemp") : web.arg("bake"))));
+    newBakeTarget = (long)round(s.toFloat());
+  }
 
   if (web.hasArg("heatingTimesActive") || web.hasArg("scheduleActive")) {
     String s = web.hasArg("heatingTimesActive") ? web.arg("heatingTimesActive") : web.arg("scheduleActive");
@@ -1087,6 +1112,8 @@ static void handleApiControls() {
     } else if (n == "frostProtectionTemp" || n == "frost_protection_temperature" || n == "frost_protection_temp" || n == "frostTemp" || n == "tempFrost") {
       float f = v.toFloat();
       newFrostTemp = (f < 40.0f && f > 0.0f) ? (long)round(f * 10.0f) : (long)f;
+    } else if (n == "bakeTarget" || n == "bake_target_temperature" || n == "bake_target" || n == "bakeTemp" || n == "bake") {
+      newBakeTarget = (long)round(v.toFloat());
     } else if (n == "heatingTimesActive" || n == "scheduleActive") {
       newHeatingTimesActive = (v == "true" || v == "1") ? 1 : 0;
     } else if (n == "setBackTemp" || n == "setback_temperature" || n == "setbackTemp" || n == "tempEco") {
@@ -1154,6 +1181,10 @@ static void handleApiControls() {
   auto itFT = m.controls.find("frostProtectionTemp"); if (itFT != m.controls.end()) curFrostTemp = itFT->second;
   else if (m.controls_pos.size() > 30 && m.controls_pos[30] > 0) curFrostTemp = m.controls_pos[30];
 
+  long curBakeTarget = 180;
+  auto itBT = m.controls.find("bakeTarget"); if (itBT != m.controls.end()) curBakeTarget = itBT->second;
+  else if (m.controls_pos.size() > 5 && m.controls_pos[5] > 0) curBakeTarget = m.controls_pos[5];
+
   long finalOn = (newOn >= 0) ? newOn : curOn;
   long finalMode = (newMode >= 0) ? newMode : curMode;
   long finalStage = (newStage >= 0) ? newStage : curStage;
@@ -1167,6 +1198,10 @@ static void handleApiControls() {
   long finalFrostActive = (newFrostActive >= 0) ? newFrostActive : curFrostActive;
   long finalFrostTemp = (newFrostTemp >= 0) ? newFrostTemp : curFrostTemp;
   float fFrostTempF = finalFrostTemp / 10.0f;
+
+  long finalBakeTarget = (newBakeTarget >= 0) ? newBakeTarget : curBakeTarget;
+  if (finalBakeTarget < 130) finalBakeTarget = 130;
+  if (finalBakeTarget > 340) finalBakeTarget = 340;
 
   std::vector<std::pair<std::string,long>> full;
   full.push_back({"revision", (long)m.revision});
@@ -1185,6 +1220,7 @@ static void handleApiControls() {
   if (newSetBackTemp >= 0) full.push_back({"setBackTemp", newSetBackTemp});
   if (newFrostActive >= 0) full.push_back({"frostProtectionActive", newFrostActive});
   if (newFrostTemp >= 0) full.push_back({"frostProtectionTemp", newFrostTemp});
+  if (newBakeTarget >= 0) full.push_back({"bakeTarget", finalBakeTarget});
   for (int i = 0; i < 14; i++) {
     if (newHeatTimes[i] >= 0) full.push_back({firenet::ctrlName(7 + i), newHeatTimes[i]});
   }
@@ -1212,14 +1248,17 @@ static void handleApiControls() {
     "\"frostProtectionActive\":%ld,"
     "\"frost_protection_active\":%s,"
     "\"frostProtectionTemp\":%ld,"
-    "\"frost_protection_temperature\":%.1f"
+    "\"frost_protection_temperature\":%.1f,"
+    "\"bakeTarget\":%ld,"
+    "\"bake_target_temperature\":%ld"
     "}",
     (finalOn == 1) ? "true" : "false",
     modeName, finalMode, rTargetF, finalStage,
     finalFan1On, finalFan1Level, finalFan1Area,
     finalFan2On, finalFan2Level, finalFan2Area,
     finalFrostActive, (finalFrostActive == 1) ? "true" : "false",
-    finalFrostTemp, fFrostTempF
+    finalFrostTemp, fFrostTempF,
+    finalBakeTarget, finalBakeTarget
   );
   web.send(200, "application/json", resBuf);
 }

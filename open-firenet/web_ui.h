@@ -828,6 +828,28 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           </div>
         </div>
       </div>
+
+      <!-- Baking Oven (DOMO BACK) -->
+      <div id="bakeDeck" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;display:none;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <label id="lblBakeTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">FOUR DE CUISSON (DOMO BACK)</label>
+        </div>
+        <div class="fan-card" style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+              <span style="font-size:1.2rem">🍲</span> <span id="lblBakeSubTitle">Consigne température de cuisson</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span id="lblBakeTemp" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Température du four</span>
+              <span class="val" style="font-size:1.2rem;font-weight:700"><span id="bakeTempVal">180</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
+            </div>
+            <input type="range" id="bakeTempRange" min="130" max="340" step="5" value="180" oninput="onBakeTempInput(this.value)">
+            <button class="btn-apply" id="btnApplyBakeTemp" onclick="applyBakeTemp()">Appliquer consigne four</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Sub-tab 2: Programmation -->
@@ -1033,6 +1055,10 @@ const I18N = {
     btnApplyFrostTemp: "Appliquer hors-gel",
     frostOn: "Actif",
     frostOff: "Arrêt",
+    bakeTitle: "FOUR DE CUISSON (DOMO BACK)",
+    bakeSubTitle: "Consigne de cuisson",
+    bakeTemp: "Température du four",
+    btnApplyBakeTemp: "Appliquer consigne four",
     tabTelemetry: "📊 Télémétrie complète",
     tabNetwork: "📶 Réseau & WiFi",
     tabLink: "⚙️ Liaison CDC",
@@ -1142,7 +1168,8 @@ const I18N = {
       convectionFan2Level: "MultiAir 2 vitesse (0=Auto, 1-5)",
       convectionFan2Area: "MultiAir 2 correction (%)",
       frostProtectionActive: "Protection hors-gel active",
-      frostProtectionTemp: "Température hors-gel (°C ×10)"
+      frostProtectionTemp: "Température hors-gel (°C ×10)",
+      bakeTarget: "Consigne température four (°C)"
     }
   },
   en: {
@@ -1201,6 +1228,10 @@ const I18N = {
     btnApplyFrostTemp: "Apply frost temp",
     frostOn: "Active",
     frostOff: "Off",
+    bakeTitle: "BAKING OVEN (DOMO BACK)",
+    bakeSubTitle: "Baking setpoint",
+    bakeTemp: "Oven temperature",
+    btnApplyBakeTemp: "Apply oven target",
     tabTelemetry: "📊 Full Telemetry",
     tabNetwork: "📶 Network & WiFi",
     tabLink: "⚙️ USB CDC Link",
@@ -1310,7 +1341,8 @@ const I18N = {
       convectionFan2Level: "MultiAir 2 speed (0=Auto, 1-5)",
       convectionFan2Area: "MultiAir 2 correction (%)",
       frostProtectionActive: "Frost protection active",
-      frostProtectionTemp: "Frost protection temperature (°C ×10)"
+      frostProtectionTemp: "Frost protection temperature (°C ×10)",
+      bakeTarget: "Bake target temperature (°C)"
     }
   },
   de: {
@@ -1369,6 +1401,10 @@ const I18N = {
     btnApplyFrostTemp: "Frostschutz übernehmen",
     frostOn: "Aktiv",
     frostOff: "Aus",
+    bakeTitle: "BACKOFEN (DOMO BACK)",
+    bakeSubTitle: "Backtemperatur-Sollwert",
+    bakeTemp: "Backofentemperatur",
+    btnApplyBakeTemp: "Backtemperatur übernehmen",
     tabTelemetry: "📊 Vollständige Telemetrie",
     tabNetwork: "📶 Netzwerk & WLAN",
     tabLink: "⚙️ USB CDC Verbindung",
@@ -1478,7 +1514,8 @@ const I18N = {
       convectionFan2Level: "MultiAir 2 Stufe (0=Auto, 1-5)",
       convectionFan2Area: "MultiAir 2 Korrektur (%)",
       frostProtectionActive: "Frostschutz aktiv",
-      frostProtectionTemp: "Frostschutz-Temperatur (°C ×10)"
+      frostProtectionTemp: "Frostschutz-Temperatur (°C ×10)",
+      bakeTarget: "Backofen-Solltemperatur (°C)"
     }
   }
 };
@@ -1528,6 +1565,10 @@ function applyLang() {
   if (document.getElementById('lblFrostToggle')) document.getElementById('lblFrostToggle').textContent = t.frostToggle;
   if (document.getElementById('lblFrostTemp')) document.getElementById('lblFrostTemp').textContent = t.frostTemp;
   if (document.getElementById('btnApplyFrostTemp')) document.getElementById('btnApplyFrostTemp').textContent = t.btnApplyFrostTemp;
+  if (document.getElementById('lblBakeTitle')) document.getElementById('lblBakeTitle').textContent = t.bakeTitle;
+  if (document.getElementById('lblBakeSubTitle')) document.getElementById('lblBakeSubTitle').textContent = t.bakeSubTitle;
+  if (document.getElementById('lblBakeTemp')) document.getElementById('lblBakeTemp').textContent = t.bakeTemp;
+  if (document.getElementById('btnApplyBakeTemp')) document.getElementById('btnApplyBakeTemp').textContent = t.btnApplyBakeTemp;
   document.getElementById('tabBtnTelemetry').textContent = t.tabTelemetry;
   document.getElementById('tabBtnNetwork').textContent = t.tabNetwork;
   document.getElementById('tabBtnLink').textContent = t.tabLink;
@@ -1806,6 +1847,19 @@ function applyFrostTemp() {
   if (!r) return;
   const val = parseFloat(r.value);
   sendControl("frostProtectionTemp", Math.round(val * 10));
+}
+
+function onBakeTempInput(val) {
+  const el = document.getElementById('bakeTempVal');
+  if (el) el.textContent = parseInt(val, 10);
+  setInteracting();
+}
+
+function applyBakeTemp() {
+  const r = document.getElementById('bakeTempRange');
+  if (!r) return;
+  const val = parseInt(r.value, 10);
+  sendControl("bakeTarget", val);
 }
 
 // --- Programmation hebdomadaire (Heating Schedule) -------------------------
@@ -2355,6 +2409,24 @@ async function tick() {
       const vf = document.getElementById('frostTempVal');
       if (rf) rf.value = frostTemp.toFixed(1);
       if (vf) vf.textContent = frostTemp.toFixed(1);
+    }
+
+    // Baking Oven (DOMO BACK model 23)
+    const hasBake = (mId === 23);
+    const bakeDeck = document.getElementById('bakeDeck');
+    if (bakeDeck) {
+      bakeDeck.style.display = hasBake ? 'flex' : 'none';
+      if (hasBake) {
+        const bakeTarget = (ctrl.bake_target_temperature !== undefined) ? ctrl.bake_target_temperature :
+                           ((ctrl.bakeTarget !== undefined) ? ctrl.bakeTarget :
+                           (s.controls_pos && s.controls_pos.length > 5 && s.controls_pos[5] > 0 ? s.controls_pos[5] : 180));
+        if (!userInteracting) {
+          const rb = document.getElementById('bakeTempRange');
+          const vb = document.getElementById('bakeTempVal');
+          if (rb) rb.value = bakeTarget;
+          if (vb) vb.textContent = bakeTarget;
+        }
+      }
     }
 
     document.getElementById('netMode').textContent = s.wifi_mode;
