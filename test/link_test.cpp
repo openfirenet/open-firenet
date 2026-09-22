@@ -191,6 +191,36 @@ int main(){
     CH("frostProtectionTemp=50 emitted", sent.find("frostProtectionTemp=50;")!=std::string::npos);
     CH("controls_pos[29] is 0", l3.model().controls_pos[29]==0);
     CH("controls_pos[30] is 50", l3.model().controls_pos[30]==50);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // DOMO BACK bakeTarget control test
+    sent.clear();
+    l3.applyControls({{"bakeTarget", 220}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("bakeTarget=220 emitted", sent.find("bakeTarget=220;")!=std::string::npos);
+    CH("controls_pos[5] is bakeTarget 220", l3.model().controls_pos[5]==220);
+    CH("model controls bakeTarget is 220", l3.model().controls.at("bakeTarget")==220);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // DOMO BACK bakeTarget clamping & alias test
+    sent.clear();
+    l3.applyControls({{"bake_target_temperature", 100}}); // Clamped to 130
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("bakeTarget clamped low to 130", sent.find("bakeTarget=130;")!=std::string::npos);
+    CH("controls_pos[5] clamped to 130", l3.model().controls_pos[5]==130);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    sent.clear();
+    l3.applyControls({{"bakeTemp", 400}}); // Clamped to 340
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("bakeTarget clamped high to 340", sent.find("bakeTarget=340;")!=std::string::npos);
+    CH("controls_pos[5] clamped to 340", l3.model().controls_pos[5]==340);
   }
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;

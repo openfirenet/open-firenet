@@ -175,7 +175,7 @@ may lag what was just written.
 | 2 | mode | 0–3 | 0 = Manual, 1 = Auto/thermostat, 2 = Comfort, 3 = Setback |
 | 3 | targetStage | 30–100 | heating power, % |
 | 4 | roomTarget | 140–280 | room target ×10 (210 = 21.0 °C) |
-| 5 | bakeTarget | — | bake target temperature (DOMO BACK) |
+| 5 | bakeTarget | 130–340 | bake target temperature, °C (DOMO BACK model 23) |
 | 6 | (reserved) | — | reserved control slot |
 | 7 | heatTimeMon1 | 0, decimal | Monday slot 1 (start/end encoded as integer) |
 | 8 | heatTimeMon2 | 0, decimal | Monday slot 2 |

@@ -176,9 +176,15 @@ public:
     if (itFT != model_.controls.end()) frostTemp = itFT->second;
     else if (model_.controls_pos.size() > 30 && model_.controls_pos[30] > 0) frostTemp = model_.controls_pos[30];
 
+    long bakeTarget = 180;
+    auto itBT = model_.controls.find("bakeTarget");
+    if (itBT != model_.controls.end()) bakeTarget = itBT->second;
+    else if (model_.controls_pos.size() > 5 && model_.controls_pos[5] > 0) bakeTarget = model_.controls_pos[5];
+
     bool hasMultiAirCmd = false;
     bool hasScheduleCmd = false;
     bool hasFrostCmd = false;
+    bool hasBakeCmd = false;
 
     // Mettre à jour avec les valeurs passées dans `full`
     for (const auto& kv : full) {
@@ -233,6 +239,10 @@ public:
         frostTemp = ft;
         hasFrostCmd = true;
       }
+      else if (kv.first == "bakeTarget" || kv.first == "bake_target_temperature" || kv.first == "bake_target" || kv.first == "bakeTemp" || kv.first == "bake") {
+        bakeTarget = kv.second;
+        hasBakeCmd = true;
+      }
       else {
         for (int i = 7; i <= 20; i++) {
           if (kv.first == ctrlName(i)) {
@@ -276,6 +286,9 @@ public:
     if (frostTemp < 40) frostTemp = 40;
     if (frostTemp > 100) frostTemp = 100;
 
+    if (bakeTarget < 130) bakeTarget = 130;
+    if (bakeTarget > 340) bakeTarget = 340;
+
     // Mettre à jour immédiatement le modèle local car le poêle recopie value -> prev
     // et n'émettra pas de POST_CONTROLS pour les valeurs imposées (§13.2)
     model_.controls["onOff"] = onOff;
@@ -292,6 +305,7 @@ public:
     model_.controls["convectionFan2Area"] = fan2Area;
     model_.controls["frostProtectionActive"] = frostActive;
     model_.controls["frostProtectionTemp"] = frostTemp;
+    model_.controls["bakeTarget"] = bakeTarget;
 
     if (model_.controls_pos.size() < 5) model_.controls_pos.resize(5, 0);
     model_.controls_pos[0] = (long)model_.revision;
@@ -300,11 +314,12 @@ public:
     model_.controls_pos[3] = targetStage;
     model_.controls_pos[4] = roomTarget;
 
-    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd || hasFrostCmd);
+    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd || hasFrostCmd || hasBakeCmd);
     if (sendExtended) {
       bool sendFrost = (model_.controls_pos.size() >= 31 || hasFrostCmd);
       size_t reqSize = sendFrost ? 31 : 29;
       if (model_.controls_pos.size() < reqSize) model_.controls_pos.resize(reqSize, 0);
+      model_.controls_pos[5] = bakeTarget;
       model_.controls_pos[23] = fan1On;
       model_.controls_pos[24] = fan1Level;
       model_.controls_pos[25] = fan1Area;
@@ -323,7 +338,6 @@ public:
       b += "targetStage=" + std::to_string(targetStage) + "; ";
       b += "roomTarget=" + std::to_string(roomTarget) + "; ";
 
-      long bakeTarget = (model_.controls_pos.size() > 5 && model_.controls_pos[5] > 0) ? model_.controls_pos[5] : 180;
       long reserved6 = (model_.controls_pos.size() > 6) ? model_.controls_pos[6] : 0;
       b += "bakeTarget=" + std::to_string(bakeTarget) + "; ";
       b += "reserved6=" + std::to_string(reserved6) + "; ";
