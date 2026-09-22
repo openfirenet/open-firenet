@@ -98,10 +98,19 @@ public:
 
   void sendVersion() {
     // test/v1-protocol : pas de fallback V1↔V3 — on reste sur V1 fixe jusqu'à l'ACK.
-    // Format textuel officiel FireNet V1 (STM32 VA 0x08012304) :
+    //
+    // DIAGNOSTIC ISOLÉ (issue #4) : on a deux changements candidats pour expliquer
+    // pourquoi Cyril n'a jamais reçu GET_WIFI_VERSION_FINISHED le 22/09 :
+    //   (a) le contenu de la trame (forme "pure" vs forme officielle concaténée+DT=1)
+    //   (b) le timing de réponse au SYN 0x16 (répondre immédiatement, cf onByte())
+    // Les deux ont été committés ensemble dans af34508, ce qui empêche de savoir
+    // lequel compte. On teste ICI (b) seul, avec la forme "pure" (celle qui avait déjà
+    // été testée sans le fix de timing le 22/09) — si Cyril obtient FINISHED, c'est le
+    // timing qui manquait, pas le format de trame ; sinon on retente avec la forme
+    // officielle concaténée (profileV1() ci-dessus) en gardant le fix de timing.
     char b[96];
-    snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; DT=%d; ",
-             profileV1().prefix, profileV1().bl, profileV1().app, profileV1().rev, profileV1().dt);
+    snprintf(b, sizeof b, "GET_WIFI_VERSION=0; BL=%d; APP=%d; REV=%d; ",
+             profileV1().bl, profileV1().app, profileV1().rev);
     send(b);
     profile_tries_++;
   }

@@ -12,7 +12,7 @@ int main(){
   auto drain=[&](){ for(int i=0;i<64 && !link.txIdle();i++){ clk+=DongleLink::TX_GAP_MS; link.poll(); } };
   // négociation
   link.poll(); drain();              // queue + emit the version (V1 profile by default)
-  CH("V1 version emitted", wire.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ")!=std::string::npos);
+  CH("V1 version emitted", wire.find("GET_WIFI_VERSION=0; BL=101; APP=111; REV=360; ")!=std::string::npos);
   // le poêle répond FINISHED
   std::string fin="GET_CDCDEVICE_VERSION_FINISHED";
   for(char c:fin) link.onByte(c);
@@ -156,8 +156,8 @@ int main(){
     l5.setCredentials("MonSSID", "MonPass", "192.168.1.50", "AA:BB:CC:DD:EE:FF");
     auto drain5=[&](){ for(int i=0;i<64 && !l5.txIdle();i++){ c5+=DongleLink::TX_GAP_MS; l5.poll(); } };
     l5.poll(); drain5();
-    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=111; REV=360; DT=1; ")!=std::string::npos);
-    CH("V1 version has DT=1", w5.find("DT=1; ") != std::string::npos);
+    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION=0; BL=101; APP=111; REV=360; ")!=std::string::npos);
+    CH("V1 version has NO DT (isolated diagnostic, see sendVersion())", w5.find("DT=") == std::string::npos);
 
     // Poêle INDUO répond GET_WIFI_VERSION_FINISHED
     w5.clear();
@@ -201,7 +201,7 @@ int main(){
     c5+=60; l5.poll();
     CH("V1 STX 0 ETX clears version_ack immediately", !l5.model().version_ack);
     drain5();
-    CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ") != std::string::npos);
+    CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION=0; ") != std::string::npos);
   }
 
   std::cout << ok << " ok, " << ko << " failures\n";

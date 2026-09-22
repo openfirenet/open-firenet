@@ -112,7 +112,7 @@ class InduoV1StoveSimulator:
             if "DT=" in frame:
                 # REJET : DT non supporté en V1
                 return []
-            if "BL=101;" in frame and "APP=112;" in frame:
+            if "BL=101;" in frame and "APP=111;" in frame:
                 # Version validée par la carte mère
                 self.session_linked = True
                 self.watchdog_ticks = 100
@@ -208,7 +208,7 @@ def run_induo_simulation_tests():
     # Etape 1 : Le poêle envoie la sonde de boot \x16 3
     print("\n--- 1. Émission de la sonde de boot (SYN '3') ---")
     tx_list, _ = bridge.rx("\x163")
-    # Le dongle doit répondre avec GET_WIFI_VERSION=0; BL=101; APP=112; REV=360;
+    # Le dongle doit répondre avec GET_WIFI_VERSION=0; BL=101; APP=111; REV=360;
     tx_all, _ = bridge.tick(100)
     tx_list += tx_all
 
