@@ -169,7 +169,7 @@ Two ways to provision:
 ### Option A — Captive Portal (smartphone or PC, recommended)
 1. Connect your phone or laptop to the Wi-Fi network **`Open-Firenet-Setup`**.
 2. The captive portal opens automatically (or browse to `http://open-firenet.local` or `http://192.168.4.1`).
-3. Select your 2.4 GHz home Wi-Fi from the scanned networks list, enter your Wi-Fi password, and click **Enregistrer / Connect**.
+3. Select your 2.4 GHz home Wi-Fi from the scanned networks list, enter your Wi-Fi password, and click **Save / Connect**.
 4. The dongle reboots, connects to your LAN, and becomes available at **`http://open-firenet.local`**.
 
 ### Option B — Serial command (for lab / debugging)
@@ -186,40 +186,40 @@ The SSID ends at the first `:`; everything after it is the password (so a passwo
 Once connected, open **`http://open-firenet.local`** in any web browser (or use the device IP assigned by your router).
 
 <p align="center">
-  <img src="assets/ui-desktop-controls.png" alt="Open Firenet Web UI - Commandes directes & MultiAir" width="760">
+  <img src="assets/ui-desktop-controls.png" alt="Open Firenet Web UI - Direct Controls & MultiAir" width="760">
 </p>
 
 - **Modern glassmorphism UI**: mobile-first, responsive dark theme.
-- **Language selector with flags**: 🇫🇷 Français / 🇬🇧 English instant toggle.
+- **Language selector with flags**: 🇬🇧 English / 🇫🇷 Français / 🇩🇪 Deutsch instant toggle.
 - **Live stove status header**: operational state badges (Standby, Ignition, Start, Regulation, Cleaning, Burnoff, Splitlog), room temperature, flame temperature, Wi-Fi RSSI.
-- **Control Deck ("Pilotage du Poêle")** with segmented navigation:
-  - **🔥 Commandes directes**:
+- **Control Deck ("Stove Controls")** with segmented navigation:
+  - **🔥 Direct Controls**:
     - Power **ON / OFF** toggle
-    - **Operating Mode**: Manuel, Auto (Thermostat), Confort
-    - **Target Room Temperature**: slider & stepper 14.0°C – 28.0°C (in Confort mode)
-    - **Heating Power**: slider & stepper 30% – 100% (in Manuel / Auto modes)
+    - **Operating Mode**: Manual, Auto (Thermostat), Comfort
+    - **Target Room Temperature**: slider & stepper 14.0°C – 28.0°C (in Comfort mode)
+    - **Heating Power**: slider & stepper 30% – 100% (in Manual / Auto modes)
     - **MultiAir 1 & 2** (dynamically displayed for MultiAir-equipped models):
       - Fan On / Off toggle
       - Speed regulation: **Auto** mode vs **Manual** levels 1 to 5
       - Convection trim / correction slider: **-30% to +30%**
 
 <p align="center">
-  <img src="assets/ui-desktop-schedule.png" alt="Open Firenet Web UI - Programmation hebdomadaire" width="760">
+  <img src="assets/ui-desktop-schedule.png" alt="Open Firenet Web UI - Weekly Heating Schedule" width="760">
 </p>
 
-  - **📅 Programmation (Chauffage hebdomadaire)**:
-    - Independent schedule activation toggle (**Activer la programmation**) — works across all heating modes
-    - **Température de maintien (Éco)**: setback temperature applied outside scheduled heating slots (10.0°C – 25.0°C)
+  - **📅 Weekly Heating Schedule**:
+    - Independent schedule activation toggle (**Heating schedule active**) — works across all heating modes
+    - **Setback Temperature (Eco)**: setback temperature applied outside scheduled heating slots (10.0°C – 25.0°C)
     - **14 Weekly time slots** (2 slots per day, Monday to Sunday):
       - Native HTML5 time pickers (`HH:MM` start and end)
       - Quick copy actions (e.g. Monday $\rightarrow$ Weekdays or Full Week)
       - Per-day clear button (quick reset)
       - Single-click bulk apply with immediate CDC synchronization
 - **Supervision & Diagnostics Deck**:
-  - **Télémétrie**: live metrics table (temperatures, combustion chamber, pellet consumption, auger & exhaust fan RPM, runtime hours, service countdown, error and warning bitmasks)
-  - **Réseau & Wi-Fi**: IP, MAC address, signal strength, AP scan, Wi-Fi reconfiguration & reset
-  - **Liaison CDC**: USB CDC state, packet counters, protocol revision
-  - **Logs CDC**: collapsible real-time console streaming raw bidirectional USB packets with sanitized WiFi credentials
+  - **Full Telemetry**: live metrics table (temperatures, combustion chamber, pellet consumption, auger & exhaust fan RPM, runtime hours, service countdown, error and warning bitmasks)
+  - **Network & WiFi**: IP, MAC address, signal strength, AP scan, Wi-Fi reconfiguration & reset
+  - **USB CDC Link**: USB CDC state, packet counters, protocol revision
+  - **CDC Logs**: collapsible real-time console streaming raw bidirectional USB packets with sanitized WiFi credentials
 
 ### Mobile Interface
 
