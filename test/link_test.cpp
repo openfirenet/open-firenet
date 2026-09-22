@@ -12,31 +12,13 @@ int main(){
   auto drain=[&](){ for(int i=0;i<64 && !link.txIdle();i++){ clk+=DongleLink::TX_GAP_MS; link.poll(); } };
   // négociation
   link.poll(); drain();              // queue + emit the version (V1 profile by default)
-  CH("V1 version emitted", wire.find("GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; ")!=std::string::npos);
+  CH("V1 version emitted", wire.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ")!=std::string::npos);
   // le poêle répond FINISHED
   std::string fin="GET_CDCDEVICE_VERSION_FINISHED";
   for(char c:fin) link.onByte(c);
   clk+=60; link.poll();              // silence écoulé (>SILENCE_MS après le dernier octet)
   CH("version acquittée", link.model().version_ack && link.model().generation==1);
   CH("V1 profile locked after ACK", link.model().version_profile==1);
-  // automatic fallback: on a stove that does NOT acknowledge the V1 profile, the
-  // dongle must emit the V3 profile after PROFILE_SWITCH_AFTER attempts, then lock
-  // onto it once the stove replies with GET_WIFI_VERSION_FINISHED.
-  {
-    std::string w2; uint32_t c2=0;
-    DongleLink l2([&](const uint8_t*d,size_t n){ w2.append((const char*)d,n); },
-                  [&](){ return c2; });
-    auto drain2=[&](){ for(int i=0;i<64 && !l2.txIdle();i++){ c2+=DongleLink::TX_GAP_MS; l2.poll(); } };
-    // no ACK: force several version retransmission cycles
-    for(int r=0;r<5;r++){ l2.poll(); drain2(); c2+=DongleLink::VERSION_RETRY_MS; }
-    CH("fallback also emits the V3 frame", w2.find("GET_CDCDEVICE3_VERSION=0; ")!=std::string::npos);
-    CH("both V1 and V3 tried", w2.find("GET_WIFI_VERSION=0; ")!=std::string::npos);
-    // the stove finally acknowledges (whatever the current profile) -> lock
-    std::string fin2="GET_WIFI_VERSION_FINISHED";
-    for(char c:fin2) l2.onByte(c);
-    c2+=60; l2.poll();
-    CH("ACK stops the fallback", l2.model().version_ack && l2.model().version_profile>=0);
-  }
   // stove emits POST_CDCDEVICE_STATUS with plain text SSID (DT=1, 19 fields)
   wire.clear();
   std::string st="POST_CDCDEVICE_STATUS=0;\n0\n1\n0\n0\n5\n0\n0\n101\n112\n360\n0\n-52\n17800020\nfHTeLam2\n3\nMonSSID\nsecret\n192.168.1.5\nAA:BB\n";
@@ -174,8 +156,8 @@ int main(){
     l5.setCredentials("MonSSID", "MonPass", "192.168.1.50", "AA:BB:CC:DD:EE:FF");
     auto drain5=[&](){ for(int i=0;i<64 && !l5.txIdle();i++){ c5+=DongleLink::TX_GAP_MS; l5.poll(); } };
     l5.poll(); drain5();
-    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; ")!=std::string::npos);
-    CH("V1 version has NO DT", w5.find("DT=") == std::string::npos);
+    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=111; REV=360; DT=1; ")!=std::string::npos);
+    CH("V1 version has DT=1", w5.find("DT=1; ") != std::string::npos);
 
     // Poêle INDUO répond GET_WIFI_VERSION_FINISHED
     w5.clear();
@@ -219,7 +201,7 @@ int main(){
     c5+=60; l5.poll();
     CH("V1 STX 0 ETX clears version_ack immediately", !l5.model().version_ack);
     drain5();
-    CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION=0; ") != std::string::npos);
+    CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ") != std::string::npos);
   }
 
   std::cout << ok << " ok, " << ko << " failures\n";

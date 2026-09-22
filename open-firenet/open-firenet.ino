@@ -524,14 +524,31 @@ static void handleScan() {
 }
 
 // ------------------------------------------------ API compatibilité open-firenet & Home Assistant
-static const size_t LOG_MAX_BYTES = 24576;  // 24 KB (well within stable free heap margin)
-static const size_t LOG_TRIM_BYTES = 6144;  // 6 KB trimmed on overflow
+static const size_t LOG_MAX_BYTES  = 24576;  // 24 KB — zone circulante récente
+static const size_t LOG_TRIM_BYTES =  6144;  // 6 KB trimés à chaque débordement
+static const size_t LOG_BOOT_BYTES = 16384;  // 16 KB — zone boot figée (60 premières secondes)
+static const uint32_t LOG_BOOT_WINDOW_MS = 60000; // 60 s
 static String g_recentLogs = "";
+static String g_bootLogs   = "";          // jamais écrasé après la fenêtre de boot
+static bool   g_bootFrozen = false;       // true dès que la fenêtre est passée
 
 static void logEntry(const char* dir, const std::string& msg) {
   // Build the line with direct concatenation (no fixed-size buffer) so long frames
   // (e.g. GET_SENSORS/POST_SENSORS with many fields) are never silently truncated.
   String line = "[" + String((unsigned long)millis()) + "][" + dir + "] " + msg.c_str() + "\n";
+
+  // Zone boot : on capture les 60 premières secondes dans un buffer dédié qui ne
+  // sera jamais écrasé, même quand g_recentLogs déborde. Cela garantit que le
+  // premier handshake et l'init CDC sont toujours disponibles pour le diagnostic.
+  if (!g_bootFrozen) {
+    if (millis() < LOG_BOOT_WINDOW_MS && g_bootLogs.length() < LOG_BOOT_BYTES) {
+      g_bootLogs += line;
+    } else {
+      g_bootFrozen = true;  // fenêtre expirée ou buffer plein → on gèle
+    }
+  }
+
+  // Zone récente : buffer circulant normal
   if (g_recentLogs.length() > LOG_MAX_BYTES) {
     g_recentLogs = g_recentLogs.substring(LOG_TRIM_BYTES);
   }
@@ -873,7 +890,19 @@ static void handleApiControls() {
 // GET /log (compatibilité open-firenet)
 static void handleLog() {
   sendCors();
-  web.send(200, "text/plain", g_recentLogs.length() ? g_recentLogs : "Pas de logs recents.\n");
+  // On expose le boot log (60 premières secondes, jamais écrasé) puis le log récent.
+  // Un séparateur clair délimite les deux zones pour faciliter le diagnostic.
+  String out = "";
+  if (g_bootLogs.length()) {
+    out += "=== BOOT LOG (60s) ===\n";
+    out += g_bootLogs;
+    out += "=== END BOOT LOG ===\n\n";
+  }
+  if (g_recentLogs.length()) {
+    out += g_recentLogs;
+  }
+  if (out.length() == 0) out = "Pas de logs recents.\n";
+  web.send(200, "text/plain", out);
 }
 
 // --------------------------------------------------------------------- setup

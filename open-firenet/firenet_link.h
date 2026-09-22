@@ -45,10 +45,15 @@ public:
   // --- réception : appeler avec chaque octet reçu du poêle -------------------
   void onByte(uint8_t b) {
     if (b == 0x16) {
-      // Octet de sonde SYN : émis par le poêle au boot (VA 0x80039f74)
-      if (!model_.version_ack && txq_.empty()) {
+      // Octet de sonde SYN : émis par le poêle au boot (VA 0x80039f74).
+      // On répond IMMÉDIATEMENT, sans attendre que la file TX soit vide.
+      // Raison : si le dongle met > ~12s à répondre (init WiFi, etc.), le watchdog
+      // poêle (*0x1ac4) expire et le poêle bascule en unlinked (*0x1ac8=0), état
+      // depuis lequel il répond \x02 0 \x03 à TOUT sans jamais traiter la version.
+      if (!model_.version_ack) {
+        txq_.clear();          // abandonner toute trame en attente — la version prime
         sendVersion();
-        last_tx_ms_ = 0;
+        last_tx_ms_ = 0;       // émettre sans délai dès le prochain poll()
       }
       return;
     }
@@ -78,15 +83,14 @@ public:
 
   // --- émissions (rôle dongle) ----------------------------------------------
   // Sur cette branche test/v1-protocol, le profil est verrouillé sur V1 :
-  //   "GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; "
-  // Prouvé par décompilation du firmware INDUO V2.27 (VA 0x800375a0) : la chaîne
-  // "GET_CDCDEVICE" n'existe pas dans le binaire INDUO — seul GET_WIFI_VERSION est reconnu.
-  // Le fallback automatique V1↔V3 est désactivé ici : alterner les deux formats
-  // empêche le poêle de valider le handshake (log Cyril 22/09, alternance rapide
-  // visible dans [version fallback -> ...]).
+  //   "GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=111; REV=360; DT=1; "
+  // Prouvé par décompilation du firmware officiel clé FireNet V2.26 (STM32 VA 0x08012304) :
+  // le firmware officiel de la clé émet cette chaîne exacte et le poêle INDUO
+  // (confirmé le 16/09 par Cyril) y répond immédiatement GET_WIFI_VERSION_FINISHED.
+  // BL=101, APP=111 (version du .dat V2.26), REV=360, DT=1.
   struct VersionProfile { const char* prefix; int bl; int app; int rev; int dt; };
   static const VersionProfile& profileV1() { static const VersionProfile p =
-      {"GET_WIFI_VERSION=0; ", 101, 112, 360, 1}; return p; }
+      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 101, 111, 360, 1}; return p; }
   static const VersionProfile& profileV3() { static const VersionProfile p =
       {"GET_CDCDEVICE3_VERSION=0; ", 999, 201, 12201, 3}; return p; }
   const VersionProfile& profile() const { return profile_ ? profileV1() : profileV3(); }
@@ -94,15 +98,10 @@ public:
 
   void sendVersion() {
     // test/v1-protocol : pas de fallback V1↔V3 — on reste sur V1 fixe jusqu'à l'ACK.
-    // Le fallback automatique causait une alternance rapide GET_WIFI_VERSION /
-    // GET_CDCDEVICE3_VERSION que le poêle INDUO ignorait, expiration du watchdog 12s,
-    // puis \x02 0 \x03 en boucle sans jamais obtenir GET_WIFI_VERSION_FINISHED.
+    // Format textuel officiel FireNet V1 (STM32 VA 0x08012304) :
     char b[96];
-    // Firenet V1 (INDUO V2.26 / V2.27) : pas de champ DT, pas de GET_CDCDEVICE_VERSION.
-    // Format exact attendu par le parseur stove (VA 0x800375a0) :
-    // "GET_WIFI_VERSION=0; BL=%d; APP=%d; REV=%d; "  (espace terminal requis)
-    snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; ",
-             profileV1().prefix, profileV1().bl, profileV1().app, profileV1().rev);
+    snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; DT=%d; ",
+             profileV1().prefix, profileV1().bl, profileV1().app, profileV1().rev, profileV1().dt);
     send(b);
     profile_tries_++;
   }
