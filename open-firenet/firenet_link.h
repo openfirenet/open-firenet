@@ -77,11 +77,13 @@ public:
   size_t txPending() const { return txq_.size(); }
 
   // --- émissions (rôle dongle) ----------------------------------------------
-  // Two version replies exist; recent and older stoves accept different ones:
-  //   V3 (recent stoves): "GET_CDCDEVICE3_VERSION=0; ... DT=3; "
-  //   V1 (older stoves):  "GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ... DT=1; "
-  // The stove decides which it accepts, so we send one then the other in turn
-  // until it acknowledges with any *_FINISHED, then lock onto that frame (and its DT).
+  // Sur cette branche test/v1-protocol, le profil est verrouillé sur V1 :
+  //   "GET_WIFI_VERSION=0; BL=101; APP=112; REV=360; "
+  // Prouvé par décompilation du firmware INDUO V2.27 (VA 0x800375a0) : la chaîne
+  // "GET_CDCDEVICE" n'existe pas dans le binaire INDUO — seul GET_WIFI_VERSION est reconnu.
+  // Le fallback automatique V1↔V3 est désactivé ici : alterner les deux formats
+  // empêche le poêle de valider le handshake (log Cyril 22/09, alternance rapide
+  // visible dans [version fallback -> ...]).
   struct VersionProfile { const char* prefix; int bl; int app; int rev; int dt; };
   static const VersionProfile& profileV1() { static const VersionProfile p =
       {"GET_WIFI_VERSION=0; ", 101, 112, 360, 1}; return p; }
@@ -91,23 +93,16 @@ public:
   int dt() const { return profile().dt; }      // effective DT of the active profile
 
   void sendVersion() {
-    // fallback: after PROFILE_SWITCH_AFTER unacked attempts, try the other frame.
-    if (!model_.version_ack && profile_tries_ >= PROFILE_SWITCH_AFTER) {
-      profile_ = 1 - profile_;
-      profile_tries_ = 0;
-      if (dbg_) dbg_("tx", std::string("[version fallback -> ") + profile().prefix + "]");
-    }
+    // test/v1-protocol : pas de fallback V1↔V3 — on reste sur V1 fixe jusqu'à l'ACK.
+    // Le fallback automatique causait une alternance rapide GET_WIFI_VERSION /
+    // GET_CDCDEVICE3_VERSION que le poêle INDUO ignorait, expiration du watchdog 12s,
+    // puis \x02 0 \x03 en boucle sans jamais obtenir GET_WIFI_VERSION_FINISHED.
     char b[96];
-    if (profile().dt == 1) {
-      // Firenet V1 (INDUO V2.26 / V2.27) : NO DT field, NO GET_CDCDEVICE_VERSION
-      // Format validé par le parseur 0x800375a0 : "GET_WIFI_VERSION=0; BL=%d; APP=%d; REV=%d; "
-      snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; ",
-               profile().prefix, profile().bl, profile().app, profile().rev);
-    } else {
-      // Firenet V3 (DOMO V2.29+) : champ DT présent
-      snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; DT=%d; ",
-               profile().prefix, profile().bl, profile().app, profile().rev, profile().dt);
-    }
+    // Firenet V1 (INDUO V2.26 / V2.27) : pas de champ DT, pas de GET_CDCDEVICE_VERSION.
+    // Format exact attendu par le parseur stove (VA 0x800375a0) :
+    // "GET_WIFI_VERSION=0; BL=%d; APP=%d; REV=%d; "  (espace terminal requis)
+    snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; ",
+             profileV1().prefix, profileV1().bl, profileV1().app, profileV1().rev);
     send(b);
     profile_tries_++;
   }
@@ -352,6 +347,8 @@ private:
       model_.version_ack = false;
       model_.version_profile = -1;
       post_ack_probe_streak_ = 0;
+      profile_ = 1;          // rester sur V1 — le poêle INDUO ne comprend pas V3
+      profile_tries_ = 0;    // remettre le compteur à zéro pour ne pas déclencher de fallback
       txq_.clear();
       sendVersion();
       last_tx_ms_ = 0;
@@ -366,6 +363,8 @@ private:
         model_.version_ack = false;
         model_.version_profile = -1;
         post_ack_probe_streak_ = 0;
+        profile_ = 1;          // rester sur V1 au re-arm
+        profile_tries_ = 0;
         txq_.clear();
         sendVersion();
         last_tx_ms_ = 0;
