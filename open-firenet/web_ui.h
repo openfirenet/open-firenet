@@ -1156,7 +1156,8 @@ const I18N = {
       3: { title: "Démarrage flamme", desc: "Stabilisation de la combustion", icon: "🔥", active: true },
       4: { title: "En régulation (Chauffe)", desc: "Combustion active normale", icon: "🔥", active: true },
       5: { title: "Nettoyage grille", desc: "Cycle de décrassage automatique", icon: "🧹", active: true },
-      6: { title: "Extinction (Burn off)", desc: "Fin de combustion & ventilation", icon: "💨", active: true }
+      6: { title: "Extinction (Burn off)", desc: "Fin de combustion & ventilation", icon: "💨", active: true },
+      7: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manuel (%)", 1: "Automatique", 2: "Confort" },
     sensorDesc: {
@@ -1336,7 +1337,8 @@ const I18N = {
       3: { title: "Flame Start", desc: "Stabilizing flame combustion", icon: "🔥", active: true },
       4: { title: "Heating", desc: "Regulated active combustion", icon: "🔥", active: true },
       5: { title: "Grate Cleaning", desc: "Automatic de-ashing cycle", icon: "🧹", active: true },
-      6: { title: "Burn off", desc: "Cooling down & post-ventilation", icon: "💨", active: true }
+      6: { title: "Burn off", desc: "Cooling down & post-ventilation", icon: "💨", active: true },
+      7: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manual (%)", 1: "Automatic", 2: "Comfort" },
     sensorDesc: {
@@ -1516,7 +1518,8 @@ const I18N = {
       3: { title: "Flammenstart", desc: "Verbrennung wird stabilisiert", icon: "🔥", active: true },
       4: { title: "Heizen", desc: "Aktive geregelte Verbrennung", icon: "🔥", active: true },
       5: { title: "Rostreinigung", desc: "Automatischer Entaschungszyklus", icon: "🧹", active: true },
-      6: { title: "Abbrand (Burn off)", desc: "Abkühlung & Nachbelüftung", icon: "💨", active: true }
+      6: { title: "Abbrand (Burn off)", desc: "Abkühlung & Nachbelüftung", icon: "💨", active: true },
+      7: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manuell (%)", 1: "Automatisch", 2: "Komfort" },
     sensorDesc: {
