@@ -199,8 +199,8 @@ may lag what was just written.
 | 26 | convectionFan2Active | 0 / 1 | MultiAir fan 2 power state (`0` = Off, `1` = On) |
 | 27 | convectionFan2Level | 0–5 | MultiAir fan 2 speed (`0` = Auto, `1`–`5` = manual level) |
 | 28 | convectionFan2Area | -30 to +30 | MultiAir fan 2 convection trim/correction (%) |
-| 29 | frostProtectionActive | 0 / 1 | Frost protection enabled (`0` / `1`) |
-| 30 | frostProtectionTemp | — | Frost protection target temp ×10 |
+| 29 | frostProtectionActive | 0 / 1 | Frost protection enabled (`0` = Off, `1` = On) |
+| 30 | frostProtectionTemp | 40–100 | Frost protection target temp ×10 (40–100 = 4.0–10.0 °C, default 50 = 5.0 °C) |
 | 31 | roomTempOffset | -30 to +30 | Room temperature calibration offset ×10 |
 | 32 | roomSensorPower | — | Room sensor power mode |
 

@@ -167,8 +167,18 @@ public:
     if (itF2A != model_.controls.end()) fan2Area = itF2A->second;
     else if (model_.controls_pos.size() > 28) fan2Area = model_.controls_pos[28];
 
+    long frostActive = 0, frostTemp = 50;
+    auto itFA = model_.controls.find("frostProtectionActive");
+    if (itFA != model_.controls.end()) frostActive = itFA->second;
+    else if (model_.controls_pos.size() > 29) frostActive = model_.controls_pos[29];
+
+    auto itFT = model_.controls.find("frostProtectionTemp");
+    if (itFT != model_.controls.end()) frostTemp = itFT->second;
+    else if (model_.controls_pos.size() > 30 && model_.controls_pos[30] > 0) frostTemp = model_.controls_pos[30];
+
     bool hasMultiAirCmd = false;
     bool hasScheduleCmd = false;
+    bool hasFrostCmd = false;
 
     // Mettre à jour avec les valeurs passées dans `full`
     for (const auto& kv : full) {
@@ -211,6 +221,18 @@ public:
         model_.controls_pos[22] = sbt;
         hasScheduleCmd = true;
       }
+      else if (kv.first == "frostProtectionActive" || kv.first == "frost_protection_active" || kv.first == "frostActive" || kv.first == "frostOn") {
+        frostActive = kv.second ? 1 : 0;
+        hasFrostCmd = true;
+      }
+      else if (kv.first == "frostProtectionTemp" || kv.first == "frost_protection_temp" || kv.first == "frost_protection_temperature" || kv.first == "frostTemp" || kv.first == "tempFrost") {
+        long ft = kv.second;
+        if (ft > 0 && ft < 40) ft *= 10;
+        if (ft < 40) ft = 40;
+        if (ft > 100) ft = 100;
+        frostTemp = ft;
+        hasFrostCmd = true;
+      }
       else {
         for (int i = 7; i <= 20; i++) {
           if (kv.first == ctrlName(i)) {
@@ -249,6 +271,11 @@ public:
     if (fan2Area < -30) fan2Area = -30;
     if (fan2Area > 30) fan2Area = 30;
 
+    if (frostActive < 0) frostActive = 0;
+    if (frostActive > 1) frostActive = 1;
+    if (frostTemp < 40) frostTemp = 40;
+    if (frostTemp > 100) frostTemp = 100;
+
     // Mettre à jour immédiatement le modèle local car le poêle recopie value -> prev
     // et n'émettra pas de POST_CONTROLS pour les valeurs imposées (§13.2)
     model_.controls["onOff"] = onOff;
@@ -263,6 +290,8 @@ public:
     model_.controls["convectionFan2Active"] = fan2On;
     model_.controls["convectionFan2Level"] = fan2Level;
     model_.controls["convectionFan2Area"] = fan2Area;
+    model_.controls["frostProtectionActive"] = frostActive;
+    model_.controls["frostProtectionTemp"] = frostTemp;
 
     if (model_.controls_pos.size() < 5) model_.controls_pos.resize(5, 0);
     model_.controls_pos[0] = (long)model_.revision;
@@ -271,15 +300,21 @@ public:
     model_.controls_pos[3] = targetStage;
     model_.controls_pos[4] = roomTarget;
 
-    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd);
+    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd || hasFrostCmd);
     if (sendExtended) {
-      if (model_.controls_pos.size() < 29) model_.controls_pos.resize(29, 0);
+      bool sendFrost = (model_.controls_pos.size() >= 31 || hasFrostCmd);
+      size_t reqSize = sendFrost ? 31 : 29;
+      if (model_.controls_pos.size() < reqSize) model_.controls_pos.resize(reqSize, 0);
       model_.controls_pos[23] = fan1On;
       model_.controls_pos[24] = fan1Level;
       model_.controls_pos[25] = fan1Area;
       model_.controls_pos[26] = fan2On;
       model_.controls_pos[27] = fan2Level;
       model_.controls_pos[28] = fan2Area;
+      if (sendFrost) {
+        model_.controls_pos[29] = frostActive;
+        model_.controls_pos[30] = frostTemp;
+      }
 
       std::string b = "GET_CONTROLS=1; ";
       b += "revision=" + std::to_string(model_.revision) + "; ";
@@ -308,6 +343,11 @@ public:
       b += "convectionFan2Active=" + std::to_string(fan2On) + "; ";
       b += "convectionFan2Level=" + std::to_string(fan2Level) + "; ";
       b += "convectionFan2Area=" + std::to_string(fan2Area) + "; ";
+
+      if (sendFrost) {
+        b += "frostProtectionActive=" + std::to_string(frostActive) + "; ";
+        b += "frostProtectionTemp=" + std::to_string(frostTemp) + "; ";
+      }
 
       send(b);
     } else {

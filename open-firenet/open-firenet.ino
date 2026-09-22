@@ -104,6 +104,8 @@ static const Reading CONTROLS[] = {         // positions 0..28
   {"convectionFan2Active", "MultiAir 2 marche", 1},
   {"convectionFan2Level",  "MultiAir 2 vitesse", 1},
   {"convectionFan2Area",   "MultiAir 2 repartition", 1},
+  {"frostProtectionActive", "Protection hors-gel", 1},
+  {"frostProtectionTemp",   "Temperature hors-gel", 10},
 };
 static const int N_SENS = sizeof(SENSORS)/sizeof(SENSORS[0]);
 static const int N_CTRL = sizeof(CONTROLS)/sizeof(CONTROLS[0]);
@@ -354,13 +356,20 @@ static String jsonState() {
   auto itSBT = m.controls.find("setBackTemp"); if (itSBT != m.controls.end()) sbTemp = itSBT->second;
   else if (m.controls_pos.size() > 22) sbTemp = m.controls_pos[22];
 
+  long frostActive = 0, frostTemp = 50;
+  auto itFA = m.controls.find("frostProtectionActive"); if (itFA != m.controls.end()) frostActive = itFA->second;
+  else if (m.controls_pos.size() > 29) frostActive = m.controls_pos[29];
+  auto itFT = m.controls.find("frostProtectionTemp"); if (itFT != m.controls.end()) frostTemp = itFT->second;
+  else if (m.controls_pos.size() > 30 && m.controls_pos[30] > 0) frostTemp = m.controls_pos[30];
+
   float rTempF = rTemp / 10.0f;
   float rTargetF = curRoom / 10.0f;
   float sbTempF = sbTemp / 10.0f;
+  float frostTempF = frostTemp / 10.0f;
   float fTempF = (float)fTemp;
   float bTempF = (float)bTemp;
 
-  char buf[1600];
+  char buf[1800];
   snprintf(buf, sizeof(buf),
     "{"
     "\"device\":{"
@@ -413,7 +422,9 @@ static String jsonState() {
       "\"convection_fan1_area\":%ld,"
       "\"convection_fan2_active\":%s,"
       "\"convection_fan2_level\":%ld,"
-      "\"convection_fan2_area\":%ld"
+      "\"convection_fan2_area\":%ld,"
+      "\"frost_protection_active\":%s,"
+      "\"frost_protection_temperature\":%.1f"
     "},",
     (WiFi.getMode()==WIFI_AP?WiFi.softAPIP():WiFi.localIP()).toString().c_str(),
     WiFi.macAddress().c_str(),
@@ -432,7 +443,8 @@ static String jsonState() {
     modeName, curMode, rTargetF, curStage,
     (htActive == 1) ? "true" : "false", sbTempF,
     (fan1On == 1) ? "true" : "false", fan1Level, fan1Area,
-    (fan2On == 1) ? "true" : "false", fan2Level, fan2Area
+    (fan2On == 1) ? "true" : "false", fan2Level, fan2Area,
+    (frostActive == 1) ? "true" : "false", frostTempF
   );
 
   String j = String(buf);
@@ -835,11 +847,18 @@ static void handleApiControls() {
     auto itSBT = m.controls.find("setBackTemp"); if (itSBT != m.controls.end()) curSetBackTemp = itSBT->second;
     else if (m.controls_pos.size() > 22) curSetBackTemp = m.controls_pos[22];
 
+    long curFrostActive = 0, curFrostTemp = 50;
+    auto itFA = m.controls.find("frostProtectionActive"); if (itFA != m.controls.end()) curFrostActive = itFA->second;
+    else if (m.controls_pos.size() > 29) curFrostActive = m.controls_pos[29];
+    auto itFT = m.controls.find("frostProtectionTemp"); if (itFT != m.controls.end()) curFrostTemp = itFT->second;
+    else if (m.controls_pos.size() > 30 && m.controls_pos[30] > 0) curFrostTemp = m.controls_pos[30];
+
     const char* modeName = (curMode == 0) ? "manual" : ((curMode == 1) ? "auto" : "comfort");
     float rTargetF = curRoom / 10.0f;
     float sbTempF = curSetBackTemp / 10.0f;
+    float frostTempF = curFrostTemp / 10.0f;
 
-    char buf[768];
+    char buf[1024];
     snprintf(buf, sizeof(buf),
       "{"
       "\"on\":%s,"
@@ -860,7 +879,11 @@ static void handleApiControls() {
       "\"convectionFan1Area\":%ld,"
       "\"convectionFan2Active\":%ld,"
       "\"convectionFan2Level\":%ld,"
-      "\"convectionFan2Area\":%ld"
+      "\"convectionFan2Area\":%ld,"
+      "\"frostProtectionActive\":%ld,"
+      "\"frost_protection_active\":%s,"
+      "\"frostProtectionTemp\":%ld,"
+      "\"frost_protection_temperature\":%.1f"
       "}",
       (curOn == 1) ? "true" : "false",
       modeName, curMode, rTargetF, curStage,
@@ -868,7 +891,9 @@ static void handleApiControls() {
       curHeatingTimesActive, (curHeatingTimesActive == 1) ? "true" : "false",
       curSetBackTemp, sbTempF,
       fan1On, fan1Level, fan1Area,
-      fan2On, fan2Level, fan2Area
+      fan2On, fan2Level, fan2Area,
+      curFrostActive, (curFrostActive == 1) ? "true" : "false",
+      curFrostTemp, frostTempF
     );
     web.send(200, "application/json", buf);
     return;
@@ -880,6 +905,7 @@ static void handleApiControls() {
   long newFan1On = -1, newFan1Level = -1, newFan1Area = -999;
   long newFan2On = -1, newFan2Level = -1, newFan2Area = -999;
   long newHeatingTimesActive = -1, newSetBackTemp = -1;
+  long newFrostActive = -1, newFrostTemp = -1;
   long newHeatTimes[14];
   for (int i = 0; i < 14; i++) newHeatTimes[i] = -1;
 
@@ -933,6 +959,15 @@ static void handleApiControls() {
   }
   if (newFan1On < 0 && (findJsonFloat(raw, "convectionFan1Active", fVal) || findJsonFloat(raw, "fan1On", fVal) || findJsonFloat(raw, "fan1", fVal))) newFan1On = (long)fVal;
   if (newFan2On < 0 && (findJsonFloat(raw, "convectionFan2Active", fVal) || findJsonFloat(raw, "fan2On", fVal) || findJsonFloat(raw, "fan2", fVal))) newFan2On = (long)fVal;
+
+  if (findJsonBool(raw, "frostProtectionActive", bVal) || findJsonBool(raw, "frost_protection_active", bVal) ||
+      findJsonBool(raw, "frostActive", bVal) || findJsonBool(raw, "frostOn", bVal)) {
+    newFrostActive = bVal ? 1 : 0;
+  }
+  if (findJsonFloat(raw, "frostProtectionTemp", fVal) || findJsonFloat(raw, "frost_protection_temperature", fVal) ||
+      findJsonFloat(raw, "frost_protection_temp", fVal) || findJsonFloat(raw, "frostTemp", fVal) || findJsonFloat(raw, "tempFrost", fVal)) {
+    newFrostTemp = (fVal < 40.0f && fVal > 0.0f) ? (long)round(fVal * 10.0f) : (long)fVal;
+  }
 
   if (findJsonBool(raw, "heatingTimesActive", bVal) || findJsonBool(raw, "heating_times_active", bVal) || findJsonBool(raw, "scheduleActive", bVal)) {
     newHeatingTimesActive = bVal ? 1 : 0;
@@ -991,6 +1026,21 @@ static void handleApiControls() {
   if (web.hasArg("convectionFan2Level") || web.hasArg("fan2Level")) newFan2Level = (web.hasArg("convectionFan2Level") ? web.arg("convectionFan2Level") : web.arg("fan2Level")).toInt();
   if (web.hasArg("convectionFan2Area") || web.hasArg("fan2Area")) newFan2Area = (web.hasArg("convectionFan2Area") ? web.arg("convectionFan2Area") : web.arg("fan2Area")).toInt();
 
+  if (web.hasArg("frostProtectionActive") || web.hasArg("frost_protection_active") || web.hasArg("frostActive") || web.hasArg("frostOn")) {
+    String s = web.hasArg("frostProtectionActive") ? web.arg("frostProtectionActive") :
+               (web.hasArg("frost_protection_active") ? web.arg("frost_protection_active") :
+               (web.hasArg("frostActive") ? web.arg("frostActive") : web.arg("frostOn")));
+    newFrostActive = (s == "true" || s == "1") ? 1 : 0;
+  }
+  if (web.hasArg("frostProtectionTemp") || web.hasArg("frost_protection_temperature") || web.hasArg("frost_protection_temp") || web.hasArg("frostTemp") || web.hasArg("tempFrost")) {
+    String s = web.hasArg("frostProtectionTemp") ? web.arg("frostProtectionTemp") :
+               (web.hasArg("frost_protection_temperature") ? web.arg("frost_protection_temperature") :
+               (web.hasArg("frost_protection_temp") ? web.arg("frost_protection_temp") :
+               (web.hasArg("frostTemp") ? web.arg("frostTemp") : web.arg("tempFrost"))));
+    float f = s.toFloat();
+    newFrostTemp = (f < 40.0f && f > 0.0f) ? (long)round(f * 10.0f) : (long)f;
+  }
+
   if (web.hasArg("heatingTimesActive") || web.hasArg("scheduleActive")) {
     String s = web.hasArg("heatingTimesActive") ? web.arg("heatingTimesActive") : web.arg("scheduleActive");
     newHeatingTimesActive = (s == "true" || s == "1") ? 1 : 0;
@@ -1032,6 +1082,11 @@ static void handleApiControls() {
       newFan2Level = v.toInt();
     } else if (n == "convectionFan2Area" || n == "fan2Area") {
       newFan2Area = v.toInt();
+    } else if (n == "frostProtectionActive" || n == "frost_protection_active" || n == "frostActive" || n == "frostOn") {
+      newFrostActive = (v == "true" || v == "1") ? 1 : 0;
+    } else if (n == "frostProtectionTemp" || n == "frost_protection_temperature" || n == "frost_protection_temp" || n == "frostTemp" || n == "tempFrost") {
+      float f = v.toFloat();
+      newFrostTemp = (f < 40.0f && f > 0.0f) ? (long)round(f * 10.0f) : (long)f;
     } else if (n == "heatingTimesActive" || n == "scheduleActive") {
       newHeatingTimesActive = (v == "true" || v == "1") ? 1 : 0;
     } else if (n == "setBackTemp" || n == "setback_temperature" || n == "setbackTemp" || n == "tempEco") {
@@ -1093,6 +1148,12 @@ static void handleApiControls() {
   auto itF2A = m.controls.find("convectionFan2Area"); if (itF2A != m.controls.end()) curFan2Area = itF2A->second;
   else if (m.controls_pos.size() > 28) curFan2Area = m.controls_pos[28];
 
+  long curFrostActive = 0, curFrostTemp = 50;
+  auto itFA = m.controls.find("frostProtectionActive"); if (itFA != m.controls.end()) curFrostActive = itFA->second;
+  else if (m.controls_pos.size() > 29) curFrostActive = m.controls_pos[29];
+  auto itFT = m.controls.find("frostProtectionTemp"); if (itFT != m.controls.end()) curFrostTemp = itFT->second;
+  else if (m.controls_pos.size() > 30 && m.controls_pos[30] > 0) curFrostTemp = m.controls_pos[30];
+
   long finalOn = (newOn >= 0) ? newOn : curOn;
   long finalMode = (newMode >= 0) ? newMode : curMode;
   long finalStage = (newStage >= 0) ? newStage : curStage;
@@ -1103,6 +1164,9 @@ static void handleApiControls() {
   long finalFan2On = (newFan2On >= 0) ? newFan2On : curFan2On;
   long finalFan2Level = (newFan2Level >= 0) ? newFan2Level : curFan2Level;
   long finalFan2Area = (newFan2Area >= -30 && newFan2Area <= 30) ? newFan2Area : curFan2Area;
+  long finalFrostActive = (newFrostActive >= 0) ? newFrostActive : curFrostActive;
+  long finalFrostTemp = (newFrostTemp >= 0) ? newFrostTemp : curFrostTemp;
+  float fFrostTempF = finalFrostTemp / 10.0f;
 
   std::vector<std::pair<std::string,long>> full;
   full.push_back({"revision", (long)m.revision});
@@ -1119,6 +1183,8 @@ static void handleApiControls() {
 
   if (newHeatingTimesActive >= 0) full.push_back({"heatingTimesActive", newHeatingTimesActive});
   if (newSetBackTemp >= 0) full.push_back({"setBackTemp", newSetBackTemp});
+  if (newFrostActive >= 0) full.push_back({"frostProtectionActive", newFrostActive});
+  if (newFrostTemp >= 0) full.push_back({"frostProtectionTemp", newFrostTemp});
   for (int i = 0; i < 14; i++) {
     if (newHeatTimes[i] >= 0) full.push_back({firenet::ctrlName(7 + i), newHeatTimes[i]});
   }
@@ -1128,7 +1194,7 @@ static void handleApiControls() {
 
   const char* modeName = (finalMode == 0) ? "manual" : ((finalMode == 1) ? "auto" : "comfort");
   float rTargetF = finalRoom / 10.0f;
-  char resBuf[512];
+  char resBuf[768];
   snprintf(resBuf, sizeof(resBuf),
     "{"
     "\"ok\":true,"
@@ -1142,12 +1208,18 @@ static void handleApiControls() {
     "\"convectionFan1Area\":%ld,"
     "\"convectionFan2Active\":%ld,"
     "\"convectionFan2Level\":%ld,"
-    "\"convectionFan2Area\":%ld"
+    "\"convectionFan2Area\":%ld,"
+    "\"frostProtectionActive\":%ld,"
+    "\"frost_protection_active\":%s,"
+    "\"frostProtectionTemp\":%ld,"
+    "\"frost_protection_temperature\":%.1f"
     "}",
     (finalOn == 1) ? "true" : "false",
     modeName, finalMode, rTargetF, finalStage,
     finalFan1On, finalFan1Level, finalFan1Area,
-    finalFan2On, finalFan2Level, finalFan2Area
+    finalFan2On, finalFan2Level, finalFan2Area,
+    finalFrostActive, (finalFrostActive == 1) ? "true" : "false",
+    finalFrostTemp, fFrostTempF
   );
   web.send(200, "application/json", resBuf);
 }
