@@ -351,9 +351,11 @@ Supported fields:
   - `convectionFan1Area` / `convectionFan2Area`: integer (`-30` to `+30`%)
 - **Frost Protection (Hors-Gel)**:
   - `frostProtectionActive` (or `frost_protection_active`): boolean or `0`/`1`
-  - `frostProtectionTemp` (or `frost_protection_temperature`, `frost_protection_temp`): float or integer in °C (`4.0` – `10.0` °C, or ×10 `40` – `100`)
+  - `frostProtectionTemp` (or `frost_protection_temperature`, `frost_protection_temp`): integer in °C (`4` – `10` °C, step 1, or ×10 `40` – `100`)
 - **Baking Oven (DOMO BACK)**:
   - `bakeTarget` (or `bake_target_temperature`, `bake_target`, `bakeTemp`, `bake`): integer in °C (`130` – `340` °C, DOMO BACK model 23)
+- **Room Temperature Offset Calibration**:
+  - `roomTempOffset` (or `room_temperature_offset`, `room_temp_offset`, `tempOffset`): float in °C (`-4.0` – `+4.0` °C, step 0.1) or integer in tenths (`-40` – `+40`)
 
 ---
 

@@ -201,7 +201,7 @@ may lag what was just written.
 | 28 | convectionFan2Area | -30 to +30 | MultiAir fan 2 convection trim/correction (%) |
 | 29 | frostProtectionActive | 0 / 1 | Frost protection enabled (`0` = Off, `1` = On) |
 | 30 | frostProtectionTemp | 40–100 | Frost protection target temp ×10 (40–100 = 4.0–10.0 °C, default 50 = 5.0 °C) |
-| 31 | roomTempOffset | -30 to +30 | Room temperature calibration offset ×10 |
+| 31 | roomTempOffset | -40 to +40 | Room temperature sensor calibration offset ×10 (-4.0 °C to +4.0 °C) |
 | 32 | roomSensorPower | — | Room sensor power mode |
 
 ### Heating Schedule Slot Encoding
