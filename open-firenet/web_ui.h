@@ -671,6 +671,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <div style="display:flex;gap:6px;background:#10141e;padding:4px;border-radius:10px;border:1px solid var(--border)">
         <button type="button" class="subtab-btn active" id="subtabBtnDirect" onclick="showCtrlTab('ctrl-direct')">🔥 <span id="lblSubtabDirect">Commandes directes</span></button>
         <button type="button" class="subtab-btn" id="subtabBtnSched" onclick="showCtrlTab('ctrl-sched')">📅 <span id="lblSubtabSched">Programmation</span></button>
+        <button type="button" class="subtab-btn" id="subtabBtnParams" onclick="showCtrlTab('ctrl-params')">⚙️ <span id="lblSubtabParams">Paramètres</span></button>
       </div>
     </div>
 
@@ -803,32 +804,6 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         </div>
       </div>
 
-      <!-- Frost Protection (Hors-Gel) -->
-      <div id="frostDeck" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;display:flex;flex-direction:column;gap:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <label id="lblFrostTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">PROTECTION HORS-GEL</label>
-        </div>
-        <div class="fan-card" style="padding:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-              <span style="font-size:1.2rem">❄️</span> <span id="lblFrostToggle">Hors-gel</span>
-            </div>
-            <button class="fan-toggle" id="frostToggleBtn" onclick="toggleFrost()">
-              <span class="dot" style="display:inline-block"></span>
-              <span id="frostToggleText">Arrêt</span>
-            </button>
-          </div>
-          <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span id="lblFrostTemp" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Température de consigne</span>
-              <span class="val" style="font-size:1.2rem;font-weight:700"><span id="frostTempVal">5.0</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
-            </div>
-            <input type="range" id="frostTempRange" min="4.0" max="10.0" step="0.5" value="5.0" oninput="onFrostTempInput(this.value)">
-            <button class="btn-apply" id="btnApplyFrostTemp" onclick="applyFrostTemp()">Appliquer hors-gel</button>
-          </div>
-        </div>
-      </div>
-
       <!-- Baking Oven (DOMO BACK) -->
       <div id="bakeDeck" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;display:none;flex-direction:column;gap:14px">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -890,6 +865,53 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <button class="power-btn" id="btnSaveSchedule" onclick="saveSchedule()" style="width:100%;justify-content:center">
           💾 Enregistrer la programmation
         </button>
+      </div>
+    </div>
+
+    <!-- Sub-tab 3: Paramètres -->
+    <div id="ctrl-params" class="ctrl-content" style="display:none;flex-direction:column;gap:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <label id="lblParamsSectionTitle" style="font-size:0.85rem;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">PARAMÈTRES AVANCÉS DU POÊLE</label>
+      </div>
+
+      <div class="multiair-grid">
+        <!-- Frost Protection (Hors-Gel) -->
+        <div class="fan-card" id="frostCard" style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+              <span style="font-size:1.2rem">❄️</span> <span id="lblFrostToggle">Protection hors-gel</span>
+            </div>
+            <button class="fan-toggle" id="frostToggleBtn" onclick="toggleFrost()">
+              <span class="dot" style="display:inline-block"></span>
+              <span id="frostToggleText">Arrêt</span>
+            </button>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span id="lblFrostTemp" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Température de consigne</span>
+              <span class="val" style="font-size:1.2rem;font-weight:700"><span id="frostTempVal">5</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
+            </div>
+            <input type="range" id="frostTempRange" min="4" max="10" step="1" value="5" oninput="onFrostTempInput(this.value)">
+            <button class="btn-apply" id="btnApplyFrostTemp" onclick="applyFrostTemp()">Appliquer hors-gel</button>
+          </div>
+        </div>
+
+        <!-- Room Temperature Offset Calibration -->
+        <div class="fan-card" id="offsetCard" style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700">
+              <span style="font-size:1.2rem">🌡️</span> <span id="lblOffsetSubTitle">Calibrage sonde ambiance</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span id="lblOffsetDesc" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Décalage appliqué</span>
+              <span class="val" style="font-size:1.2rem;font-weight:700"><span id="roomOffsetVal">0.0</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
+            </div>
+            <input type="range" id="roomOffsetRange" min="-4.0" max="4.0" step="0.1" value="0.0" oninput="onRoomOffsetInput(this.value)">
+            <button class="btn-apply" id="btnApplyRoomOffset" onclick="applyRoomOffset()">Appliquer calibrage</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1028,6 +1050,8 @@ const I18N = {
     deckTitle: "Pilotage du Poêle",
     subtabDirect: "Commandes directes",
     subtabSched: "Programmation",
+    subtabParams: "Paramètres",
+    paramsSectionTitle: "PARAMÈTRES AVANCÉS DU POÊLE",
     schedSectionTitle: "PLANNING HEBDOMADAIRE",
     regulationMode: "MODE DE RÉGULATION",
     modeTitle2: "Confort",
@@ -1059,6 +1083,10 @@ const I18N = {
     bakeSubTitle: "Consigne de cuisson",
     bakeTemp: "Température du four",
     btnApplyBakeTemp: "Appliquer consigne four",
+    offsetTitle: "CALIBRAGE SONDE D'AMBIANCE",
+    offsetSubTitle: "Correction température ambiante",
+    offsetDesc: "Décalage appliqué",
+    btnApplyRoomOffset: "Appliquer calibrage",
     tabTelemetry: "📊 Télémétrie complète",
     tabNetwork: "📶 Réseau & WiFi",
     tabLink: "⚙️ Liaison CDC",
@@ -1128,7 +1156,8 @@ const I18N = {
       3: { title: "Démarrage flamme", desc: "Stabilisation de la combustion", icon: "🔥", active: true },
       4: { title: "En régulation (Chauffe)", desc: "Combustion active normale", icon: "🔥", active: true },
       5: { title: "Nettoyage grille", desc: "Cycle de décrassage automatique", icon: "🧹", active: true },
-      6: { title: "Extinction (Burn off)", desc: "Fin de combustion & ventilation", icon: "💨", active: true }
+      6: { title: "Extinction (Burn off)", desc: "Fin de combustion & ventilation", icon: "💨", active: true },
+      7: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manuel (%)", 1: "Automatique", 2: "Confort" },
     sensorDesc: {
@@ -1169,7 +1198,8 @@ const I18N = {
       convectionFan2Area: "MultiAir 2 correction (%)",
       frostProtectionActive: "Protection hors-gel active",
       frostProtectionTemp: "Température hors-gel (°C ×10)",
-      bakeTarget: "Consigne température four (°C)"
+      bakeTarget: "Consigne température four (°C)",
+      roomTempOffset: "Calibrage sonde ambiance (°C ×10)"
     }
   },
   en: {
@@ -1201,6 +1231,8 @@ const I18N = {
     deckTitle: "Stove Controls",
     subtabDirect: "Direct Controls",
     subtabSched: "Schedule",
+    subtabParams: "Settings",
+    paramsSectionTitle: "ADVANCED STOVE SETTINGS",
     schedSectionTitle: "WEEKLY SCHEDULE",
     regulationMode: "REGULATION MODE",
     modeTitle2: "Comfort",
@@ -1232,6 +1264,10 @@ const I18N = {
     bakeSubTitle: "Baking setpoint",
     bakeTemp: "Oven temperature",
     btnApplyBakeTemp: "Apply oven target",
+    offsetTitle: "ROOM SENSOR CALIBRATION",
+    offsetSubTitle: "Room temperature offset",
+    offsetDesc: "Applied calibration offset",
+    btnApplyRoomOffset: "Apply calibration",
     tabTelemetry: "📊 Full Telemetry",
     tabNetwork: "📶 Network & WiFi",
     tabLink: "⚙️ USB CDC Link",
@@ -1301,7 +1337,8 @@ const I18N = {
       3: { title: "Flame Start", desc: "Stabilizing flame combustion", icon: "🔥", active: true },
       4: { title: "Heating", desc: "Regulated active combustion", icon: "🔥", active: true },
       5: { title: "Grate Cleaning", desc: "Automatic de-ashing cycle", icon: "🧹", active: true },
-      6: { title: "Burn off", desc: "Cooling down & post-ventilation", icon: "💨", active: true }
+      6: { title: "Burn off", desc: "Cooling down & post-ventilation", icon: "💨", active: true },
+      7: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manual (%)", 1: "Automatic", 2: "Comfort" },
     sensorDesc: {
@@ -1342,7 +1379,8 @@ const I18N = {
       convectionFan2Area: "MultiAir 2 correction (%)",
       frostProtectionActive: "Frost protection active",
       frostProtectionTemp: "Frost protection temperature (°C ×10)",
-      bakeTarget: "Bake target temperature (°C)"
+      bakeTarget: "Bake target temperature (°C)",
+      roomTempOffset: "Room sensor offset (°C ×10)"
     }
   },
   de: {
@@ -1374,6 +1412,8 @@ const I18N = {
     deckTitle: "Ofensteuerung",
     subtabDirect: "Direktsteuerung",
     subtabSched: "Heizzeiten",
+    subtabParams: "Einstellungen",
+    paramsSectionTitle: "ERWEITERTE OFEN-EINSTELLUNGEN",
     schedSectionTitle: "WÖCHENTLICHER ZEITPLAN",
     regulationMode: "REGELUNGSMODUS",
     modeTitle2: "Komfort",
@@ -1405,6 +1445,10 @@ const I18N = {
     bakeSubTitle: "Backtemperatur-Sollwert",
     bakeTemp: "Backofentemperatur",
     btnApplyBakeTemp: "Backtemperatur übernehmen",
+    offsetTitle: "RAUMFÜHLER-KALIBRIERUNG",
+    offsetSubTitle: "Raumtemperatur-Korrektur",
+    offsetDesc: "Angewendeter Offset",
+    btnApplyRoomOffset: "Kalibrierung übernehmen",
     tabTelemetry: "📊 Vollständige Telemetrie",
     tabNetwork: "📶 Netzwerk & WLAN",
     tabLink: "⚙️ USB CDC Verbindung",
@@ -1474,7 +1518,8 @@ const I18N = {
       3: { title: "Flammenstart", desc: "Verbrennung wird stabilisiert", icon: "🔥", active: true },
       4: { title: "Heizen", desc: "Aktive geregelte Verbrennung", icon: "🔥", active: true },
       5: { title: "Rostreinigung", desc: "Automatischer Entaschungszyklus", icon: "🧹", active: true },
-      6: { title: "Abbrand (Burn off)", desc: "Abkühlung & Nachbelüftung", icon: "💨", active: true }
+      6: { title: "Abbrand (Burn off)", desc: "Abkühlung & Nachbelüftung", icon: "💨", active: true },
+      7: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manuell (%)", 1: "Automatisch", 2: "Komfort" },
     sensorDesc: {
@@ -1515,7 +1560,8 @@ const I18N = {
       convectionFan2Area: "MultiAir 2 Korrektur (%)",
       frostProtectionActive: "Frostschutz aktiv",
       frostProtectionTemp: "Frostschutz-Temperatur (°C ×10)",
-      bakeTarget: "Backofen-Solltemperatur (°C)"
+      bakeTarget: "Backofen-Solltemperatur (°C)",
+      roomTempOffset: "Raumfühler-Offset (°C ×10)"
     }
   }
 };
@@ -1538,7 +1584,9 @@ function applyLang() {
   if (document.getElementById('lblDeckTitle')) document.getElementById('lblDeckTitle').textContent = t.deckTitle;
   if (document.getElementById('lblSubtabDirect')) document.getElementById('lblSubtabDirect').textContent = t.subtabDirect;
   if (document.getElementById('lblSubtabSched')) document.getElementById('lblSubtabSched').textContent = t.subtabSched;
+  if (document.getElementById('lblSubtabParams')) document.getElementById('lblSubtabParams').textContent = t.subtabParams;
   if (document.getElementById('lblSchedSectionTitle')) document.getElementById('lblSchedSectionTitle').textContent = t.schedSectionTitle;
+  if (document.getElementById('lblParamsSectionTitle')) document.getElementById('lblParamsSectionTitle').textContent = t.paramsSectionTitle;
   document.getElementById('lblRegulationMode').textContent = t.regulationMode;
   document.getElementById('lblModeTitle2').textContent = t.modeTitle2;
   document.getElementById('lblModeDesc2').textContent = t.modeDesc2;
@@ -1569,6 +1617,10 @@ function applyLang() {
   if (document.getElementById('lblBakeSubTitle')) document.getElementById('lblBakeSubTitle').textContent = t.bakeSubTitle;
   if (document.getElementById('lblBakeTemp')) document.getElementById('lblBakeTemp').textContent = t.bakeTemp;
   if (document.getElementById('btnApplyBakeTemp')) document.getElementById('btnApplyBakeTemp').textContent = t.btnApplyBakeTemp;
+  if (document.getElementById('lblOffsetTitle')) document.getElementById('lblOffsetTitle').textContent = t.offsetTitle;
+  if (document.getElementById('lblOffsetSubTitle')) document.getElementById('lblOffsetSubTitle').textContent = t.offsetSubTitle;
+  if (document.getElementById('lblOffsetDesc')) document.getElementById('lblOffsetDesc').textContent = t.offsetDesc;
+  if (document.getElementById('btnApplyRoomOffset')) document.getElementById('btnApplyRoomOffset').textContent = t.btnApplyRoomOffset;
   document.getElementById('tabBtnTelemetry').textContent = t.tabTelemetry;
   document.getElementById('tabBtnNetwork').textContent = t.tabNetwork;
   document.getElementById('tabBtnLink').textContent = t.tabLink;
@@ -1646,6 +1698,11 @@ function showCtrlTab(id) {
     if (panel) panel.style.display = 'flex';
     initScheduleUI();
     loadSchedule();
+  } else if (id === 'ctrl-params') {
+    const btn = document.getElementById('subtabBtnParams');
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('ctrl-params');
+    if (panel) panel.style.display = 'flex';
   } else {
     const btn = document.getElementById('subtabBtnDirect');
     if (btn) btn.classList.add('active');
@@ -1838,15 +1895,15 @@ function toggleFrost() {
 
 function onFrostTempInput(val) {
   const el = document.getElementById('frostTempVal');
-  if (el) el.textContent = parseFloat(val).toFixed(1);
+  if (el) el.textContent = parseInt(val, 10);
   setInteracting();
 }
 
 function applyFrostTemp() {
   const r = document.getElementById('frostTempRange');
   if (!r) return;
-  const val = parseFloat(r.value);
-  sendControl("frostProtectionTemp", Math.round(val * 10));
+  const val = parseInt(r.value, 10);
+  sendControl("frostProtectionTemp", val * 10);
 }
 
 function onBakeTempInput(val) {
@@ -1860,6 +1917,20 @@ function applyBakeTemp() {
   if (!r) return;
   const val = parseInt(r.value, 10);
   sendControl("bakeTarget", val);
+}
+
+function onRoomOffsetInput(val) {
+  const el = document.getElementById('roomOffsetVal');
+  const num = parseFloat(val);
+  if (el) el.textContent = (num > 0 ? '+' : '') + num.toFixed(1);
+  setInteracting();
+}
+
+function applyRoomOffset() {
+  const r = document.getElementById('roomOffsetRange');
+  if (!r) return;
+  const val = parseFloat(r.value);
+  sendControl("roomTempOffset", Math.round(val * 10));
 }
 
 // --- Programmation hebdomadaire (Heating Schedule) -------------------------
@@ -2389,9 +2460,9 @@ async function tick() {
     const frostActive = (ctrl.frost_protection_active !== undefined) ? (ctrl.frost_protection_active ? 1 : 0) :
                         ((ctrl.frostProtectionActive !== undefined) ? (ctrl.frostProtectionActive ? 1 : 0) :
                         (s.controls_pos && s.controls_pos.length > 29 ? s.controls_pos[29] : 0));
-    const frostTemp = (ctrl.frost_protection_temperature !== undefined) ? ctrl.frost_protection_temperature :
-                      ((ctrl.frostProtectionTemp !== undefined) ? (ctrl.frostProtectionTemp / 10.0) :
-                      (s.controls_pos && s.controls_pos.length > 30 && s.controls_pos[30] > 0 ? (s.controls_pos[30] / 10.0) : 5.0));
+    const frostTemp = (ctrl.frost_protection_temperature !== undefined) ? Math.round(ctrl.frost_protection_temperature) :
+                      ((ctrl.frostProtectionTemp !== undefined) ? Math.round(ctrl.frostProtectionTemp / 10.0) :
+                      (s.controls_pos && s.controls_pos.length > 30 && s.controls_pos[30] > 0 ? Math.round(s.controls_pos[30] / 10.0) : 5));
 
     const btnFrost = document.getElementById('frostToggleBtn');
     const txtFrost = document.getElementById('frostToggleText');
@@ -2407,8 +2478,8 @@ async function tick() {
     if (!userInteracting) {
       const rf = document.getElementById('frostTempRange');
       const vf = document.getElementById('frostTempVal');
-      if (rf) rf.value = frostTemp.toFixed(1);
-      if (vf) vf.textContent = frostTemp.toFixed(1);
+      if (rf) rf.value = frostTemp;
+      if (vf) vf.textContent = frostTemp;
     }
 
     // Baking Oven (DOMO BACK model 23)
@@ -2427,6 +2498,17 @@ async function tick() {
           if (vb) vb.textContent = bakeTarget;
         }
       }
+    }
+
+    // Room Temp Offset Calibration (Slot 31)
+    const tempOffset = (ctrl.room_temperature_offset !== undefined) ? ctrl.room_temperature_offset :
+                       ((ctrl.roomTempOffset !== undefined) ? (ctrl.roomTempOffset / 10.0) :
+                       (s.controls_pos && s.controls_pos.length > 31 ? (s.controls_pos[31] / 10.0) : 0.0));
+    if (!userInteracting) {
+      const ro = document.getElementById('roomOffsetRange');
+      const vo = document.getElementById('roomOffsetVal');
+      if (ro) ro.value = tempOffset.toFixed(1);
+      if (vo) vo.textContent = (tempOffset > 0 ? '+' : '') + tempOffset.toFixed(1);
     }
 
     document.getElementById('netMode').textContent = s.wifi_mode;

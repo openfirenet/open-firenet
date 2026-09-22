@@ -221,6 +221,57 @@ int main(){
     c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
     CH("bakeTarget clamped high to 340", sent.find("bakeTarget=340;")!=std::string::npos);
     CH("controls_pos[5] clamped to 340", l3.model().controls_pos[5]==340);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // Room temperature offset control test
+    sent.clear();
+    l3.applyControls({{"roomTempOffset", 15}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("roomTempOffset=15 emitted", sent.find("roomTempOffset=15;")!=std::string::npos);
+    CH("controls_pos has at least 32 elements", l3.model().controls_pos.size()>=32);
+    CH("controls_pos[31] is roomTempOffset 15", l3.model().controls_pos[31]==15);
+    CH("model controls roomTempOffset is 15", l3.model().controls.at("roomTempOffset")==15);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // Room temperature offset negative values
+    sent.clear();
+    l3.applyControls({{"roomTempOffset", -25}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("roomTempOffset=-25 emitted", sent.find("roomTempOffset=-25;")!=std::string::npos);
+    CH("controls_pos[31] is -25", l3.model().controls_pos[31]==-25);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // Room temperature offset clamping (-40..+40)
+    sent.clear();
+    l3.applyControls({{"roomTempOffset", -55}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("roomTempOffset clamped low to -40", sent.find("roomTempOffset=-40;")!=std::string::npos);
+    CH("controls_pos[31] clamped to -40", l3.model().controls_pos[31]==-40);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    sent.clear();
+    l3.applyControls({{"roomTempOffset", 55}});
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("roomTempOffset clamped high to 40", sent.find("roomTempOffset=40;")!=std::string::npos);
+    CH("controls_pos[31] clamped to 40", l3.model().controls_pos[31]==40);
+    while (!l3.txIdle()) { c3 += DongleLink::TX_GAP_MS; l3.poll(); }
+
+    // Room temperature offset alias & scaling
+    sent.clear();
+    l3.applyControls({{"room_temperature_offset", -2}}); // Scaled to -20
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 1
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // drain 2
+    c3+=DongleLink::TX_GAP_MS; l3.poll(); // GET_CONTROLS=1
+    CH("room_temperature_offset scaled to -20", sent.find("roomTempOffset=-20;")!=std::string::npos);
+    CH("controls_pos[31] is -20", l3.model().controls_pos[31]==-20);
   }
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;

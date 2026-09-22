@@ -181,10 +181,16 @@ public:
     if (itBT != model_.controls.end()) bakeTarget = itBT->second;
     else if (model_.controls_pos.size() > 5 && model_.controls_pos[5] > 0) bakeTarget = model_.controls_pos[5];
 
+    long tempOffset = 0;
+    auto itTO = model_.controls.find("roomTempOffset");
+    if (itTO != model_.controls.end()) tempOffset = itTO->second;
+    else if (model_.controls_pos.size() > 31) tempOffset = model_.controls_pos[31];
+
     bool hasMultiAirCmd = false;
     bool hasScheduleCmd = false;
     bool hasFrostCmd = false;
     bool hasBakeCmd = false;
+    bool hasTempOffsetCmd = false;
 
     // Mettre à jour avec les valeurs passées dans `full`
     for (const auto& kv : full) {
@@ -243,6 +249,16 @@ public:
         bakeTarget = kv.second;
         hasBakeCmd = true;
       }
+      else if (kv.first == "room_temperature_offset" || kv.first == "room_temp_offset") {
+        long ro = kv.second;
+        if (ro >= -4 && ro <= 4 && ro != 0) ro *= 10;
+        tempOffset = ro;
+        hasTempOffsetCmd = true;
+      }
+      else if (kv.first == "roomTempOffset" || kv.first == "tempOffset" || kv.first == "roomOffset" || kv.first == "offset") {
+        tempOffset = kv.second;
+        hasTempOffsetCmd = true;
+      }
       else {
         for (int i = 7; i <= 20; i++) {
           if (kv.first == ctrlName(i)) {
@@ -289,6 +305,9 @@ public:
     if (bakeTarget < 130) bakeTarget = 130;
     if (bakeTarget > 340) bakeTarget = 340;
 
+    if (tempOffset < -40) tempOffset = -40;
+    if (tempOffset > 40) tempOffset = 40;
+
     // Mettre à jour immédiatement le modèle local car le poêle recopie value -> prev
     // et n'émettra pas de POST_CONTROLS pour les valeurs imposées (§13.2)
     model_.controls["onOff"] = onOff;
@@ -306,6 +325,7 @@ public:
     model_.controls["frostProtectionActive"] = frostActive;
     model_.controls["frostProtectionTemp"] = frostTemp;
     model_.controls["bakeTarget"] = bakeTarget;
+    model_.controls["roomTempOffset"] = tempOffset;
 
     if (model_.controls_pos.size() < 5) model_.controls_pos.resize(5, 0);
     model_.controls_pos[0] = (long)model_.revision;
@@ -314,10 +334,11 @@ public:
     model_.controls_pos[3] = targetStage;
     model_.controls_pos[4] = roomTarget;
 
-    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd || hasFrostCmd || hasBakeCmd);
+    bool sendExtended = (model_.controls_pos.size() >= 29 || hasMultiAirCmd || hasScheduleCmd || hasFrostCmd || hasBakeCmd || hasTempOffsetCmd);
     if (sendExtended) {
-      bool sendFrost = (model_.controls_pos.size() >= 31 || hasFrostCmd);
-      size_t reqSize = sendFrost ? 31 : 29;
+      bool sendOffset = (model_.controls_pos.size() >= 32 || hasTempOffsetCmd);
+      bool sendFrost = (model_.controls_pos.size() >= 31 || hasFrostCmd || sendOffset);
+      size_t reqSize = sendOffset ? 32 : (sendFrost ? 31 : 29);
       if (model_.controls_pos.size() < reqSize) model_.controls_pos.resize(reqSize, 0);
       model_.controls_pos[5] = bakeTarget;
       model_.controls_pos[23] = fan1On;
@@ -329,6 +350,9 @@ public:
       if (sendFrost) {
         model_.controls_pos[29] = frostActive;
         model_.controls_pos[30] = frostTemp;
+      }
+      if (sendOffset) {
+        model_.controls_pos[31] = tempOffset;
       }
 
       std::string b = "GET_CONTROLS=1; ";
@@ -361,6 +385,10 @@ public:
       if (sendFrost) {
         b += "frostProtectionActive=" + std::to_string(frostActive) + "; ";
         b += "frostProtectionTemp=" + std::to_string(frostTemp) + "; ";
+      }
+
+      if (sendOffset) {
+        b += "roomTempOffset=" + std::to_string(tempOffset) + "; ";
       }
 
       send(b);
