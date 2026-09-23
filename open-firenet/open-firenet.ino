@@ -11,6 +11,7 @@
 //
 // USB : VID 0x303A / PID 0x819A.
 
+#include <mutex>
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
@@ -524,35 +525,46 @@ static void handleScan() {
 }
 
 // ------------------------------------------------ API compatibilité open-firenet & Home Assistant
-static const size_t LOG_MAX_BYTES  = 24576;  // 24 KB — zone circulante récente
-static const size_t LOG_TRIM_BYTES =  6144;  // 6 KB trimés à chaque débordement
-static const size_t LOG_BOOT_BYTES = 16384;  // 16 KB — zone boot figée (60 premières secondes)
-static const uint32_t LOG_BOOT_WINDOW_MS = 60000; // 60 s
-static String g_recentLogs = "";
-static String g_bootLogs   = "";          // jamais écrasé après la fenêtre de boot
-static bool   g_bootFrozen = false;       // true dès que la fenêtre est passée
+// Journal : tampon circulaire statique (aucune allocation, aucune copie → pas de
+// fragmentation du tas). Les lignes identiques consécutives sont regroupées en une seule
+// ligne « xN » pour qu'une rafale ne chasse pas le reste du journal.
+static const size_t LOG_RING_BYTES = 96 * 1024;
+static char     g_logRing[LOG_RING_BYTES];
+static uint64_t g_logTotal = 0;             // octets écrits depuis le boot (position absolue)
+static std::mutex g_logMx;                  // logEntry() est aussi appelé depuis des callbacks USB
+static String   g_pendKey;                  // "dir\x01msg" de la ligne en attente de regroupement
+static String   g_pendLine;                 // "[ms][dir] msg" de sa première occurrence
+static uint32_t g_pendCount = 0, g_pendLastMs = 0;
+
+static void logRingWrite(const char* p, size_t n) {
+  for (size_t i = 0; i < n; ) {
+    size_t at = (size_t)(g_logTotal % LOG_RING_BYTES);
+    size_t k = LOG_RING_BYTES - at; if (k > n - i) k = n - i;
+    memcpy(g_logRing + at, p + i, k);
+    g_logTotal += k; i += k;
+  }
+}
+static void logFlushPendingLocked() {
+  if (!g_pendCount) return;
+  logRingWrite(g_pendLine.c_str(), g_pendLine.length());
+  if (g_pendCount > 1) {
+    char t[48]; int n = snprintf(t, sizeof t, "  x%u (last=%u)", (unsigned)g_pendCount, (unsigned)g_pendLastMs);
+    logRingWrite(t, (size_t)n);
+  }
+  logRingWrite("\n", 1);
+  g_pendCount = 0;
+}
 
 static void logEntry(const char* dir, const std::string& msg) {
-  // Build the line with direct concatenation (no fixed-size buffer) so long frames
-  // (e.g. GET_SENSORS/POST_SENSORS with many fields) are never silently truncated.
-  String line = "[" + String((unsigned long)millis()) + "][" + dir + "] " + msg.c_str() + "\n";
-
-  // Zone boot : on capture les 60 premières secondes dans un buffer dédié qui ne
-  // sera jamais écrasé, même quand g_recentLogs déborde. Cela garantit que le
-  // premier handshake et l'init CDC sont toujours disponibles pour le diagnostic.
-  if (!g_bootFrozen) {
-    if (millis() < LOG_BOOT_WINDOW_MS && g_bootLogs.length() < LOG_BOOT_BYTES) {
-      g_bootLogs += line;
-    } else {
-      g_bootFrozen = true;  // fenêtre expirée ou buffer plein → on gèle
-    }
-  }
-
-  // Zone récente : buffer circulant normal
-  if (g_recentLogs.length() > LOG_MAX_BYTES) {
-    g_recentLogs = g_recentLogs.substring(LOG_TRIM_BYTES);
-  }
-  g_recentLogs += line;
+  // Concaténation directe (pas de tampon fixe) : une longue trame n'est jamais tronquée.
+  uint32_t ms = (uint32_t)millis();
+  String key = String(dir) + "\x01" + msg.c_str();
+  std::lock_guard<std::mutex> lk(g_logMx);
+  if (g_pendCount && key == g_pendKey) { g_pendCount++; g_pendLastMs = ms; return; }
+  logFlushPendingLocked();
+  g_pendKey = key;
+  g_pendLine = "[" + String((unsigned long)ms) + "][" + dir + "] " + msg.c_str();
+  g_pendCount = 1; g_pendLastMs = ms;
 }
 
 // ── USB control-channel diagnostics (DTR/RTS, line coding) ────────────────
@@ -887,22 +899,44 @@ static void handleApiControls() {
   web.send(200, "application/json", resBuf);
 }
 
-// GET /log (compatibilité open-firenet)
+// GET /log (compatibilité open-firenet) — envoyé par morceaux depuis le tampon circulaire.
 static void handleLog() {
   sendCors();
-  // On expose le boot log (60 premières secondes, jamais écrasé) puis le log récent.
-  // Un séparateur clair délimite les deux zones pour faciliter le diagnostic.
-  String out = "";
-  if (g_bootLogs.length()) {
-    out += "=== BOOT LOG (60s) ===\n";
-    out += g_bootLogs;
-    out += "=== END BOOT LOG ===\n\n";
+  uint64_t total, pos;
+  {
+    std::lock_guard<std::mutex> lk(g_logMx);
+    logFlushPendingLocked();
+    total = g_logTotal;
+    pos = total > LOG_RING_BYTES ? total - LOG_RING_BYTES : 0;
   }
-  if (g_recentLogs.length()) {
-    out += g_recentLogs;
+  char hdr[160];
+  int hn = snprintf(hdr, sizeof hdr,
+      "=== journal: uptime=%lus, %llu octets ecrits, %s, tas libre=%u (min %u) ===\n",
+      (unsigned long)(millis() / 1000), (unsigned long long)total,
+      pos ? "ANCIEN CONTENU ECRASE" : "complet depuis le boot",
+      (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMinFreeHeap());
+  web.setContentLength(CONTENT_LENGTH_UNKNOWN);
+  web.send(200, "text/plain", "");
+  web.sendContent(hdr, (size_t)hn);
+  char chunk[1024];
+  bool first = (pos != 0);       // on peut démarrer au milieu d'une ligne : la sauter
+  while (pos < total) {
+    size_t n;
+    {
+      std::lock_guard<std::mutex> lk(g_logMx);
+      if (g_logTotal > LOG_RING_BYTES && pos < g_logTotal - LOG_RING_BYTES) pos = g_logTotal - LOG_RING_BYTES;
+      n = (size_t)(total - pos); if (n > sizeof chunk) n = sizeof chunk;
+      size_t at = (size_t)(pos % LOG_RING_BYTES);
+      if (n > LOG_RING_BYTES - at) n = LOG_RING_BYTES - at;
+      memcpy(chunk, g_logRing + at, n);
+    }
+    pos += n;
+    size_t off = 0;
+    if (first) { const char* nl = (const char*)memchr(chunk, '\n', n); off = nl ? (size_t)(nl - chunk) + 1 : n; if (nl) first = false; }
+    if (n > off) web.sendContent(chunk + off, n - off);
   }
-  if (out.length() == 0) out = "Pas de logs recents.\n";
-  web.send(200, "text/plain", out);
+  if (total == 0) web.sendContent("Pas de logs recents.\n");
+  web.sendContent("");
 }
 
 // --------------------------------------------------------------------- setup

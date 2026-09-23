@@ -41,19 +41,25 @@ public:
   using DbgFn = std::function<void(const char*, const std::string&)>;
   void onDebug(DbgFn f) { dbg_ = f; }        // (sens, contenu) : "rx"/"tx"/"drop"
   uint32_t dropped() const { return dropped_; }
+  uint32_t synCount() const { return syn_count_; }
 
   // --- réception : appeler avec chaque octet reçu du poêle -------------------
   void onByte(uint8_t b) {
     if (b == 0x16) {
       // Octet de sonde SYN : émis par le poêle au boot (VA 0x80039f74).
-      // On répond IMMÉDIATEMENT, sans attendre que la file TX soit vide.
-      // Raison : si le dongle met > ~12s à répondre (init WiFi, etc.), le watchdog
-      // poêle (*0x1ac4) expire et le poêle bascule en unlinked (*0x1ac8=0), état
-      // depuis lequel il répond \x02 0 \x03 à TOUT sans jamais traiter la version.
-      if (!model_.version_ack) {
+      // On répond sans attendre que la file TX soit vide (le watchdog poêle *0x1ac4
+      // expire après ~12 s), mais au plus une fois par TX_GAP_MS : sans plafond,
+      // chaque octet 0x16 déclenchait une trame complète (rafale ~8 ms, 23/09).
+      uint32_t now = now_();
+      if (syn_count_ == 0) first_syn_ms_ = now;
+      syn_count_++;
+      last_syn_ms_ = now;
+      if (!model_.version_ack && (!syn_replied_ || (now - last_syn_reply_ms_) >= TX_GAP_MS)) {
         txq_.clear();          // abandonner toute trame en attente — la version prime
         sendVersion();
         last_tx_ms_ = 0;       // émettre sans délai dès le prochain poll()
+        syn_replied_ = true;
+        last_syn_reply_ms_ = now;
       }
       return;
     }
@@ -65,6 +71,17 @@ public:
 
   // --- à appeler dans loop() : traite la trame après un silence -------------
   void poll() {
+    if (syn_count_ != syn_reported_ && (now_() - last_syn_report_ms_) >= SYN_REPORT_MS) {
+      if (dbg_) {
+        char h[96];
+        snprintf(h, sizeof h, "0x16 x%u (+%u) first=%u last=%u",
+                 (unsigned)syn_count_, (unsigned)(syn_count_ - syn_reported_),
+                 (unsigned)first_syn_ms_, (unsigned)last_syn_ms_);
+        dbg_("syn", h);
+      }
+      syn_reported_ = syn_count_;
+      last_syn_report_ms_ = now_();
+    }
     if (silence_pending_ && (now_() - model_.last_rx_ms) >= SILENCE_MS) {
       silence_pending_ = false;
       if (!rx_.empty()) { dispatch(rx_); rx_.clear(); }
@@ -87,10 +104,10 @@ public:
   // Prouvé par décompilation du firmware officiel clé FireNet V2.26 (STM32 VA 0x08012304) :
   // le firmware officiel de la clé émet cette chaîne exacte et le poêle INDUO
   // (confirmé le 16/09 par Cyril) y répond immédiatement GET_WIFI_VERSION_FINISHED.
-  // BL=101, APP=111 (version du .dat V2.26), REV=360, DT=1.
+  // BL=101, APP=112 (valeur acquittée sur matériel ; le .dat V2.26 annonce 111), REV=360, DT=1.
   struct VersionProfile { const char* prefix; int bl; int app; int rev; int dt; };
   static const VersionProfile& profileV1() { static const VersionProfile p =
-      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 101, 111, 360, 1}; return p; }
+      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 101, 112, 360, 1}; return p; }
   static const VersionProfile& profileV3() { static const VersionProfile p =
       {"GET_CDCDEVICE3_VERSION=0; ", 999, 201, 12201, 3}; return p; }
   const VersionProfile& profile() const { return profile_ ? profileV1() : profileV3(); }
@@ -98,19 +115,12 @@ public:
 
   void sendVersion() {
     // test/v1-protocol : pas de fallback V1↔V3 — on reste sur V1 fixe jusqu'à l'ACK.
-    //
-    // DIAGNOSTIC ISOLÉ (issue #4) : on a deux changements candidats pour expliquer
-    // pourquoi Cyril n'a jamais reçu GET_WIFI_VERSION_FINISHED le 22/09 :
-    //   (a) le contenu de la trame (forme "pure" vs forme officielle concaténée+DT=1)
-    //   (b) le timing de réponse au SYN 0x16 (répondre immédiatement, cf onByte())
-    // Les deux ont été committés ensemble dans af34508, ce qui empêche de savoir
-    // lequel compte. On teste ICI (b) seul, avec la forme "pure" (celle qui avait déjà
-    // été testée sans le fix de timing le 22/09) — si Cyril obtient FINISHED, c'est le
-    // timing qui manquait, pas le format de trame ; sinon on retente avec la forme
-    // officielle concaténée (profileV1() ci-dessus) en gardant le fix de timing.
+    // Trame officielle de la clé FireNet V2.26 (STM32 VA 0x08012304). Le poêle l'a
+    // acquittée (GET_WIFI_VERSION_FINISHED) les 16, 20 et 21/09 ; la forme « pure »
+    // sans DT= n'a jamais été acquittée (22/09, 23/09).
     char b[96];
-    snprintf(b, sizeof b, "GET_WIFI_VERSION=0; BL=%d; APP=%d; REV=%d; ",
-             profileV1().bl, profileV1().app, profileV1().rev);
+    snprintf(b, sizeof b, "%sBL=%d; APP=%d; REV=%d; DT=%d; ",
+             profileV1().prefix, profileV1().bl, profileV1().app, profileV1().rev, profileV1().dt);
     send(b);
     profile_tries_++;
   }
@@ -300,6 +310,10 @@ public:
 
   static const uint32_t SILENCE_MS = 40;       // choix d'implémentation (§4.3 : silence, durée non prouvée)
   static const uint32_t VERSION_RETRY_MS = 1000;
+  static const uint32_t SYN_REPORT_MS = 1000;   // résumé des 0x16 reçus, au plus 1 ligne/s
+  uint32_t syn_count_ = 0, syn_reported_ = 0, first_syn_ms_ = 0, last_syn_ms_ = 0;
+  uint32_t last_syn_reply_ms_ = 0, last_syn_report_ms_ = 0;
+  bool syn_replied_ = false;
   static const uint32_t TX_GAP_MS = 600;  // silence entre trames (garantit >100 ticks poêle)
 
 private:

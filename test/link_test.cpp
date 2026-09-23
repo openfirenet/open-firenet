@@ -12,7 +12,7 @@ int main(){
   auto drain=[&](){ for(int i=0;i<64 && !link.txIdle();i++){ clk+=DongleLink::TX_GAP_MS; link.poll(); } };
   // négociation
   link.poll(); drain();              // queue + emit the version (V1 profile by default)
-  CH("V1 version emitted", wire.find("GET_WIFI_VERSION=0; BL=101; APP=111; REV=360; ")!=std::string::npos);
+  CH("V1 version emitted", wire.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ")!=std::string::npos);
   // le poêle répond FINISHED
   std::string fin="GET_CDCDEVICE_VERSION_FINISHED";
   for(char c:fin) link.onByte(c);
@@ -156,8 +156,8 @@ int main(){
     l5.setCredentials("MonSSID", "MonPass", "192.168.1.50", "AA:BB:CC:DD:EE:FF");
     auto drain5=[&](){ for(int i=0;i<64 && !l5.txIdle();i++){ c5+=DongleLink::TX_GAP_MS; l5.poll(); } };
     l5.poll(); drain5();
-    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION=0; BL=101; APP=111; REV=360; ")!=std::string::npos);
-    CH("V1 version has NO DT (isolated diagnostic, see sendVersion())", w5.find("DT=") == std::string::npos);
+    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1; ")!=std::string::npos);
+    CH("V1 version has DT=1", w5.find("DT=1; ") != std::string::npos);
 
     // Poêle INDUO répond GET_WIFI_VERSION_FINISHED
     w5.clear();
@@ -201,7 +201,22 @@ int main(){
     c5+=60; l5.poll();
     CH("V1 STX 0 ETX clears version_ack immediately", !l5.model().version_ack);
     drain5();
-    CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION=0; ") != std::string::npos);
+    CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ") != std::string::npos);
+  }
+
+  // 4) Rafale de 0x16 : réponse immédiate au premier, puis plafonnée (issue #4, log du 23/09)
+  {
+    std::string w6; uint32_t c6=1000; int syn_lines=0;
+    DongleLink l6([&](const uint8_t*d,size_t n){ w6.append((const char*)d,n); },
+                  [&](){ return c6; });
+    l6.onDebug([&](const char* dir, const std::string&){ if (std::string(dir)=="syn") syn_lines++; });
+    l6.onByte(0x16); l6.poll();
+    CH("SYN: first 0x16 answered immediately", w6.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ") != std::string::npos);
+    for (int i=0;i<250;i++) { c6+=8; l6.onByte(0x16); l6.poll(); }   // ~2 s de 0x16 toutes les 8 ms
+    size_t frames=0; for (size_t p=0; (p=w6.find("GET_WIFI_VERSION", p)) != std::string::npos; p++) frames++;
+    CH("SYN: reply rate capped (<= 1 per TX_GAP_MS)", frames <= 2000/DongleLink::TX_GAP_MS + 3);
+    CH("SYN: every 0x16 counted", l6.synCount() == 251);
+    CH("SYN: summarised, not logged per byte", syn_lines >= 1 && syn_lines <= 4);
   }
 
   std::cout << ok << " ok, " << ko << " failures\n";

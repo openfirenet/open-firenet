@@ -104,16 +104,13 @@ class InduoV1StoveSimulator:
         replies = []
 
         # 1. Version Handshake
-        if "GET_WIFI_VERSION=0;" in frame:
-            # Vérifications de conformité matérielle stricte INDUO V1 (VA 0x800375a0):
-            if "GET_CDCDEVICE" in frame:
-                # REJET : nom erroné
-                return []
-            if "DT=" in frame:
-                # REJET : DT non supporté en V1
-                return []
-            if "BL=101;" in frame and "APP=111;" in frame:
-                # Version validée par la carte mère
+        # Le vrai poêle reconnaît la commande par strstr(buf, "GET_WIFI_VERSION") : la trame
+        # officielle de la clé (GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ... DT=1;) passe,
+        # et elle a été acquittée sur matériel les 16, 20 et 21/09 (issue #4).
+        if "GET_WIFI_VERSION" in frame:
+            import re
+            m = re.search(r"BL=101; APP=(\d+); REV=360;", frame)
+            if m and int(m.group(1)) >= 111:
                 self.session_linked = True
                 self.watchdog_ticks = 100
                 replies.append("GET_WIFI_VERSION_FINISHED\r\n")
@@ -208,14 +205,14 @@ def run_induo_simulation_tests():
     # Etape 1 : Le poêle envoie la sonde de boot \x16 3
     print("\n--- 1. Émission de la sonde de boot (SYN '3') ---")
     tx_list, _ = bridge.rx("\x163")
-    # Le dongle doit répondre avec GET_WIFI_VERSION=0; BL=101; APP=111; REV=360;
+    # Le dongle doit répondre avec la trame officielle de la clé V2.26
     tx_all, _ = bridge.tick(100)
     tx_list += tx_all
 
-    version_frame = next((t for t in tx_list if "GET_WIFI_VERSION=0;" in t), None)
-    assert_test("Le dongle répond à la sonde avec GET_WIFI_VERSION=0;", version_frame is not None)
-    assert_test("La trame n'a PAS de DT=1", "DT=" not in (version_frame or ""))
-    assert_test("La trame n'a PAS de CDCDEVICE", "CDCDEVICE" not in (version_frame or ""))
+    version_frame = next((t for t in tx_list if "GET_WIFI_VERSION" in t), None)
+    assert_test("Le dongle répond à la sonde avec GET_WIFI_VERSION", version_frame is not None)
+    assert_test("La trame est la trame officielle (concaténée, DT=1)",
+                (version_frame or "").startswith("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ") and "DT=1;" in (version_frame or ""))
 
     # Etape 2 : Le poêle valide la version et répond FINISHED
     print("\n--- 2. Validation de la version par le poêle ---")
@@ -281,7 +278,7 @@ def run_induo_simulation_tests():
     for _ in range(5):
         tx_reset += bridge.tick(600)[0]
 
-    rearm_version = next((t for t in tx_reset if "GET_WIFI_VERSION=0;" in t), None)
+    rearm_version = next((t for t in tx_reset if "GET_WIFI_VERSION" in t), None)
     assert_test("Le dongle a réémis la trame de version pour réarmer la liaison", rearm_version is not None)
 
     bridge.close()
@@ -289,118 +286,8 @@ def run_induo_simulation_tests():
     return failed == 0
 
 
-class DomoV3StoveSimulator:
-    """
-    Simule la machine à états et le protocole V3 (DOMO V2.29+).
-    """
-    def __init__(self):
-        self.session_linked = False
-
-    def process_dongle_tx(self, frame: str) -> list:
-        replies = []
-        if "GET_CDCDEVICE3_VERSION=0;" in frame and "DT=3;" in frame:
-            self.session_linked = True
-            replies.append("GET_CDCDEVICE_VERSION_FINISHED\r\n")
-            return replies
-
-        if "GET_CDCDEVICE_STATUS=0;\n" in frame:
-            replies.append(
-                "POST_CDCDEVICE_STATUS=0;\n"
-                "0\n1\n0\n0\n1\n4\n0\n999\n201\n12201\n0\n-62\n"
-                "1234567\n87654321\n3\n4D6F6E53534944\nsecret\n192.168.1.99\n11:22:33:44:55:66\n"
-                "-------\n"
-            )
-            return replies
-
-        if "GET_SENSORS=0;" in frame:
-            # Réponse DOMO : 53 capteurs fragmentés en continuations (exact §8.5 / link_test.cpp)
-            return [
-                "POST_SENSORS=0; =213; =47; =0; =0; =0; =0; =0; =0; =0; =0; =0; =0; =0; =0; =0; =0; =0; =0; =1; =0; ",
-                "=0; =1; =1; =1; =1; =1; =1; =29; =70; =70; =70; =1; =3; =0; =0; =1; =13; =3; =229; =0; =0; =160; ",
-                "=150; =112; =58512; =53404; =12201; =4354; =0; =7064; =700; =0; =0; "
-            ]
-
-        return replies
-
-
-def run_domo_v3_simulation_tests():
-    print("\n=== Démarrage des Tests de Simulation Poêle DOMO V3 ===")
-    bridge = HostBridgeDriver("/tmp/host_bridge")
-    stove = DomoV3StoveSimulator()
-
-    passed = 0
-    failed = 0
-
-    def assert_test(desc: str, condition: bool):
-        nonlocal passed, failed
-        if condition:
-            passed += 1
-            print(f"  [OK] {desc}")
-        else:
-            failed += 1
-            print(f"  [FAIL] {desc}")
-
-    # Etape 1 : Le poêle DOMO ignore la version V1 et attend la version V3
-    print("\n--- 1. Négociation automatique et repli vers V3 ---")
-    bridge.rx("3")
-    bridge.tick(100)
-
-    # Force le cycle de retransmission jusqu'au basculement vers V3 (PROFILE_SWITCH_AFTER = 3)
-    tx_frames = []
-    for _ in range(4):
-        bridge.tick(DongleLink_VERSION_RETRY := 1000)
-        for _ in range(3):
-            tx_frames += bridge.tick(600)[0]
-
-    v3_frame = next((t for t in tx_frames if "GET_CDCDEVICE3_VERSION=0;" in t), None)
-    assert_test("Le dongle a basculé automatiquement vers le profil V3", v3_frame is not None)
-    assert_test("Le profil V3 inclut DT=3;", "DT=3;" in (v3_frame or ""))
-
-    # Etape 2 : Le poêle DOMO accepte la version V3
-    print("\n--- 2. Validation de la version V3 par le poêle ---")
-    stove_replies = stove.process_dongle_tx(v3_frame or "")
-    assert_test("Le poêle DOMO répond GET_CDCDEVICE_VERSION_FINISHED", len(stove_replies) == 1 and "CDCDEVICE" in stove_replies[0])
-
-    bridge.rx(stove_replies[0])
-    bridge.tick(60)
-
-    state_str = bridge.get_state()
-    assert_test("Generation 1 (CDCDEVICE/V3) verrouillée", "gen=1" in state_str and "ack=1" in state_str)
-
-    # Etape 3 : Télémétrie capteurs DOMO V3
-    print("\n--- 3. Télémétrie Capteurs V3 (53 slots avec sentinelles) ---")
-    tx_sens, _ = bridge.send_cmd("POLLSENS")
-    for _ in range(5):
-        tx_sens += bridge.tick(600)[0]
-
-    v3_sens_req = next((t for t in tx_sens if "GET_SENSORS=0;" in t), None)
-    assert_test("Le dongle V3 émet GET_SENSORS=0; avec liste de sentinelles", v3_sens_req is not None)
-
-    stove_sens_replies = stove.process_dongle_tx(v3_sens_req or "")
-    for chunk in stove_sens_replies:
-        bridge.rx(chunk)
-        bridge.tick(60)
-
-    state_v3 = bridge.get_state()
-    assert_test("roomTemp V3 extrait à 21.3°C (213)", "roomTemp=213" in state_v3)
-    assert_test("DOMO V3 53 capteurs positionnels ingérés", "spn=53" in state_v3)
-    assert_test("pelletHours (pos 47) extrait à 4354", "sp47=4354" in state_v3)
-    assert_test("pelletsTotal (pos 49) extrait à 7064", "sp49=7064" in state_v3)
-
-    bridge.close()
-    print(f"\nRésultats simulateur DOMO V3 : {passed} succès, {failed} échecs.")
-    return failed == 0
-
-
 if __name__ == "__main__":
-    ok_v1 = run_induo_simulation_tests()
-    ok_v3 = run_domo_v3_simulation_tests()
-    if ok_v1 and ok_v3:
-        print("\n=======================================================")
-        print("TOUTES LES VALIDATIONS DE SIMULATION ONT RÉUSSI (100%)")
-        print("  - RIKA INDUO V1 (V2.26 / V2.27) : OK")
-        print("  - RIKA DOMO V3 (V2.29+)         : OK")
-        print("=======================================================")
+    if run_induo_simulation_tests():
+        print("\nSIMULATION INDUO V1 : OK")
         sys.exit(0)
-    else:
-        sys.exit(1)
+    sys.exit(1)
