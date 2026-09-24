@@ -104,10 +104,13 @@ public:
   // Prouvé par décompilation du firmware officiel clé FireNet V2.26 (STM32 VA 0x08012304) :
   // le firmware officiel de la clé émet cette chaîne exacte et le poêle INDUO
   // (confirmé le 16/09 par Cyril) y répond immédiatement GET_WIFI_VERSION_FINISHED.
-  // BL=101, APP=112 (valeur acquittée sur matériel ; le .dat V2.26 annonce 111), REV=360, DT=1.
+  // BL=101, APP=111, REV=360, DT=1. Le poêle INDUO 2.27 exige APP == 111 exactement (fn 0x8001d7ec du
+  // désassemblage, `MOV R8,0x6f`) ; il répond FINISHED AVANT de valider la version, donc un FINISHED reçu
+  // ne prouve pas que APP est accepté. Un INDUO II 2.28 exige 112 (fn 0x800431f0). Autre valeur => le poêle
+  // passe en « OFFLINE UPDATE INIT » et répond \x02 0 \x03 à tout.
   struct VersionProfile { const char* prefix; int bl; int app; int rev; int dt; };
   static const VersionProfile& profileV1() { static const VersionProfile p =
-      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 101, 112, 360, 1}; return p; }
+      {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 101, 111, 360, 1}; return p; }
   static const VersionProfile& profileV3() { static const VersionProfile p =
       {"GET_CDCDEVICE3_VERSION=0; ", 999, 201, 12201, 3}; return p; }
   const VersionProfile& profile() const { return profile_ ? profileV1() : profileV3(); }
@@ -139,7 +142,7 @@ public:
   }
 
   // Firenet V1 status: EXACTLY 19 fields (0 to 18, ending with mac, no OTA fields).
-  // bl=101, app=112, rev=360, spwf=0, symbol=4, initialised=1.
+  // bl=101, app=111, rev=360, spwf=0, symbol=4, initialised=1.
   void pushStatus(const std::string& ssidClear = "", const std::string& wpa2 = "",
                   const std::string& ip = "", const std::string& mac = "",
                   int rssi = -55, const std::string& idArg = "",

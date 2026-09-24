@@ -156,7 +156,7 @@ int main(){
     l5.setCredentials("MonSSID", "MonPass", "192.168.1.50", "AA:BB:CC:DD:EE:FF");
     auto drain5=[&](){ for(int i=0;i<64 && !l5.txIdle();i++){ c5+=DongleLink::TX_GAP_MS; l5.poll(); } };
     l5.poll(); drain5();
-    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=360; DT=1; ")!=std::string::npos);
+    CH("V1 initial version emitted", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; BL=101; APP=111; REV=360; DT=1; ")!=std::string::npos);
     CH("V1 version has DT=1", w5.find("DT=1; ") != std::string::npos);
 
     // Poêle INDUO répond GET_WIFI_VERSION_FINISHED
@@ -183,7 +183,7 @@ int main(){
     }
 
     // Poêle INDUO répond POST_FIRENET_STATUS=0;
-    std::string st_v1="POST_FIRENET_STATUS=0;\n0\n1\n0\n0\n1\n4\n0\n101\n112\n360\n0\n-55\n00000000\n00000000\n1\nMonSSID\nMonPass\n192.168.1.50\nAA:BB:CC:DD:EE:FF\n-------\n";
+    std::string st_v1="POST_FIRENET_STATUS=0;\n0\n1\n0\n0\n1\n4\n0\n101\n111\n360\n0\n-55\n00000000\n00000000\n1\nMonSSID\nMonPass\n192.168.1.50\nAA:BB:CC:DD:EE:FF\n-------\n";
     for(char c:st_v1) l5.onByte(c);
     c5+=60; l5.poll();
     CH("V1 status parsed", l5.model().status.at("ssid") == "MonSSID" && l5.model().status.at("symbol") == "4");
