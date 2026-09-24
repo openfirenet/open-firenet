@@ -375,6 +375,7 @@ The stove reports its hardware model identifier in sensor index 36. This ID matc
 | **`24`** | `0x18` | `024` / `PKE` | **RIKA PK E** | Central heating pellet boiler (*Pelletkessel*) |
 | **`25`** | `0x19` | `025` / `SUMA` | **RIKA SUMO MULTIAIR** | Pellet stove with MultiAir |
 | **`26`** | `0x1A` | `026` / `CNECT` | **RIKA CONNECT** | Modular pellet stove (*CONNECT Pellet*) |
+| **`29`** | `0x1D` | — | **RIKA PRIMO** | Pellet stove, MultiAir optional (reported by a user with a dongle plugged in, issue #34; abbreviation not verified) |
 
 #### Sibling Brand: ANIMO Models (Brand ID `0x02`)
 
