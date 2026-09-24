@@ -996,6 +996,15 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   <!-- Tab 4: CDC Logs -->
   <div class="tab-content" id="tab-logs">
     <div class="card" style="padding:14px;gap:10px">
+      <div style="font-size:0.85rem" id="lblTxGap">Délai entre trames vers le poêle</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <input type="range" id="txGap" min="50" max="600" step="50" value="600" style="flex:1;min-width:160px">
+        <span><b id="txGapVal">600</b> ms</span>
+        <button class="btn-lang" id="btnTxGapDefault" style="padding:4px 10px;font-size:0.8rem" onclick="setTxGap(600)">Défaut (600)</button>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-dim)" id="lblTxGapHelp">Appliqué immédiatement et conservé après redémarrage. Trop bas : le poêle peut ne traiter qu'une trame sur deux.</div>
+    </div>
+    <div class="card" style="padding:14px;gap:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <div style="font-size:0.85rem">
           <span style="color:var(--blue)">■</span> <span id="lblLogRx">Poêle → Clef (RX)</span>
@@ -1104,6 +1113,9 @@ const I18N = {
     days: { Mon: "Lundi", Tue: "Mardi", Wed: "Mercredi", Thu: "Jeudi", Fri: "Vendredi", Sat: "Samedi", Sun: "Dimanche" },
     logRx: "Poêle → Clef (RX)",
     logTx: "Clef → Poêle (TX)",
+    txGapTitle: "Délai entre trames vers le poêle",
+    txGapDefault: "Défaut (600)",
+    txGapHelp: "Appliqué immédiatement et conservé après redémarrage. Trop bas : le poêle peut ne traiter qu'une trame sur deux.",
     logAuto: "Auto",
     logDownload: "⬇ Télécharger",
     logClear: "Effacer",
@@ -1285,6 +1297,9 @@ const I18N = {
     days: { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" },
     logRx: "Stove → Dongle (RX)",
     logTx: "Dongle → Stove (TX)",
+    txGapTitle: "Delay between frames sent to the stove",
+    txGapDefault: "Default (600)",
+    txGapHelp: "Applied immediately and kept after a reboot. Too low: the stove may only process one frame out of two.",
     logAuto: "Auto",
     logDownload: "⬇ Download",
     logClear: "Clear",
@@ -1466,6 +1481,9 @@ const I18N = {
     days: { Mon: "Montag", Tue: "Dienstag", Wed: "Mittwoch", Thu: "Donnerstag", Fri: "Freitag", Sat: "Samstag", Sun: "Sonntag" },
     logRx: "Ofen → Dongle (RX)",
     logTx: "Dongle → Ofen (TX)",
+    txGapTitle: "Abstand zwischen Frames zum Ofen",
+    txGapDefault: "Standard (600)",
+    txGapHelp: "Sofort wirksam und nach einem Neustart erhalten. Zu niedrig: Der Ofen verarbeitet eventuell nur jeden zweiten Frame.",
     logAuto: "Auto",
     logDownload: "⬇ Herunterladen",
     logClear: "Löschen",
@@ -1641,6 +1659,9 @@ function applyLang() {
   document.getElementById('lblLogRx').textContent = t.logRx;
   document.getElementById('lblLogTx').textContent = t.logTx;
   document.getElementById('lblLogAuto').textContent = t.logAuto;
+  document.getElementById('lblTxGap').textContent = t.txGapTitle;
+  document.getElementById('btnTxGapDefault').textContent = t.txGapDefault;
+  document.getElementById('lblTxGapHelp').textContent = t.txGapHelp;
   document.getElementById('btnLogDownload').textContent = t.logDownload;
   document.getElementById('btnLogClear').textContent = t.logClear;
   document.getElementById('btnRestart').textContent = t.btnRestart;
@@ -1764,6 +1785,28 @@ async function restartDongle() {
   try { await fetch('/api/restart', {method: 'POST'}); } catch (e) { /* la carte redémarre */ }
   toast(I18N[curLang].restartToast);
 }
+let _txGapTimer = null;
+async function setTxGap(ms) {
+  document.getElementById('txGap').value = ms;
+  document.getElementById('txGapVal').textContent = ms;
+  clearTimeout(_txGapTimer);
+  _txGapTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/txgap', { method: 'POST', body: JSON.stringify({ ms: Number(ms) }) });
+      const j = await r.json();
+      document.getElementById('txGap').value = j.ms;
+      document.getElementById('txGapVal').textContent = j.ms;
+    } catch (e) { /* ignoré : réglage de diagnostic */ }
+  }, 120);
+}
+(async function initTxGap() {
+  try {
+    const j = await (await fetch('/api/txgap')).json();
+    document.getElementById('txGap').value = j.ms;
+    document.getElementById('txGapVal').textContent = j.ms;
+    document.getElementById('txGap').addEventListener('input', e => setTxGap(e.target.value));
+  } catch (e) { /* ignoré */ }
+})();
 async function downloadLog() {
   try {
     const txt = await (await fetch('/log')).text();

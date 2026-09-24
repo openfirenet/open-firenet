@@ -273,6 +273,22 @@ int main(){
     CH("room_temperature_offset scaled to -20", sent.find("roomTempOffset=-20;")!=std::string::npos);
     CH("controls_pos[31] is -20", l3.model().controls_pos[31]==-20);
   }
+  // Délai d'émission réglable à chaud (diagnostic) : pris en compte immédiatement par la file
+  {
+    std::string w; uint32_t c=1000;
+    DongleLink l([&](const uint8_t*d,size_t n){ w.append((const char*)d,n); }, [&](){ return c; });
+    CH("tx gap default", l.txGapMs() == DongleLink::TX_GAP_MS);
+    l.setTxGapMs(0);    CH("tx gap clamped low", l.txGapMs() == 50);
+    l.setTxGapMs(99999); CH("tx gap clamped high", l.txGapMs() == DongleLink::TX_GAP_MS);
+    l.transferCompleted(); l.transferCompleted();
+    l.setTxGapMs(1000); c += 100; l.poll();                 // 1re trame : last_tx_ms_ = 0 au départ
+    size_t n1 = l.txPending();
+    c += 500; l.poll();                                      // 500 ms < 1000 : rien ne part
+    CH("tx gap honoured (long)", l.txPending() == n1);
+    l.setTxGapMs(100); l.poll();                             // baissé à chaud : part tout de suite
+    CH("tx gap lowered takes effect immediately", l.txPending() == n1 - 1);
+  }
+
   std::cout << ok << " ok, " << ko << " failures\n";
   return ko ? 1 : 0;
 }

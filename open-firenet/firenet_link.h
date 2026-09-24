@@ -62,7 +62,7 @@ public:
       last_version_ms_ = now_();
     }
     // émission cadencée : une trame par TX_GAP_MS
-    if (!txq_.empty() && (now_() - last_tx_ms_) >= TX_GAP_MS) emitOne();
+    if (!txq_.empty() && (now_() - last_tx_ms_) >= tx_gap_ms_) emitOne();
   }
   bool txIdle() const { return txq_.empty(); }
   size_t txPending() const { return txq_.size(); }
@@ -441,6 +441,10 @@ public:
 
   static const uint32_t SILENCE_MS = 40;       // choix d'implémentation (§4.3 : silence, durée non prouvée)
   static const uint32_t VERSION_RETRY_MS = 1000;
+  // Délai entre trames vers le poêle, réglable à chaud (UI, /api/txgap), borné à [TX_GAP_MIN_MS, TX_GAP_MS].
+  uint32_t txGapMs() const { return tx_gap_ms_; }
+  void setTxGapMs(uint32_t ms) { tx_gap_ms_ = ms < TX_GAP_MIN_MS ? TX_GAP_MIN_MS : (ms > TX_GAP_MS ? TX_GAP_MS : ms); }
+  static const uint32_t TX_GAP_MIN_MS = 50;
   static const uint32_t TX_GAP_MS = 600;  // silence entre trames (garantit >100 ticks poêle)
 
 private:
@@ -576,6 +580,7 @@ private:
   TxFn tx_; NowFn now_;
   StoveModel model_;
   std::string rx_;
+  uint32_t tx_gap_ms_ = TX_GAP_MS;
   bool silence_pending_ = false;
   uint32_t last_version_ms_ = 0;
   bool version_sent_ = false;
