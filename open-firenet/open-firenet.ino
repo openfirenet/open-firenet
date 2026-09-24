@@ -517,6 +517,24 @@ static void handleVersion() {
 static void handleRoot()    { web.send_P(200, "text/html", INDEX_HTML); }
 static void handleArm()    { sendCors(); web.send(200, "application/json", "{\"write\":true}"); }
 
+// DIAGNOSTIC TEMPORAIRE — GET/POST /api/txgap : délai entre trames envoyées au poêle (ms).
+// Pris en compte dès la prochaine évaluation de la file d'émission ; remis à 600 au reboot.
+static void handleTxGap() {
+  sendCors();
+  if (web.method() == HTTP_OPTIONS) { web.send(204); return; }
+  if (web.method() == HTTP_POST) {
+    long ms = 0;
+    String raw = web.hasArg("plain") ? web.arg("plain") : "";
+    if (findJsonLong(raw, "ms", ms) || (web.hasArg("ms") && (ms = web.arg("ms").toInt()) > 0)) {
+      g_link->setTxGapMs((uint32_t)(ms < 0 ? 0 : ms));
+    }
+  }
+  char buf[64];
+  snprintf(buf, sizeof buf, "{\"ms\":%u,\"default\":%u}",
+           (unsigned)g_link->txGapMs(), (unsigned)firenet::DongleLink::TX_GAP_MS);
+  web.send(200, "application/json", buf);
+}
+
 static void handleRestart() {
   sendCors();
   web.send(200, "application/json", "{\"ok\":true,\"reboot\":true}");
@@ -1441,6 +1459,7 @@ void setup() {
   web.on("/api/controls", handleApiControls);
   web.on("/api/schedule", handleApiSchedule);
   web.on("/api/restart", handleRestart);
+  web.on("/api/txgap", handleTxGap);
   web.on("/restart", handleRestart);
   web.on("/api/arm", handleArm);
   web.on("/api/wifi", HTTP_POST, handleWifi);
