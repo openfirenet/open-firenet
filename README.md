@@ -19,7 +19,7 @@ RIKA stoves use a USB CDC dongle (the "Firenet 2.0" stick) to connect to RIKA's 
 - Speaks the same USB CDC protocol as the original dongle
 - Connects to your home WiFi
 - Exposes a responsive local web interface at `http://open-firenet.local` with direct controls, weekly heating schedule, and live diagnostics
-- Controls **MultiAir 1 & 2** forced-air convection fans on supported stove models (DOMO, PARO, ROCO MULTIAIR, SUMO MULTIAIR, DOMO BACK)
+- Controls **MultiAir 1 & 2** forced-air convection fans on supported stove models (DOMO, PARO, PRIMO MULTIAIR, ROCO MULTIAIR, SUMO MULTIAIR, DOMO BACK)
 - Manages the **7-day heating schedule** (14 time slots) and setback / maintenance temperature locally
 - Exposes a comprehensive REST API for home automation (Home Assistant, Node-RED, etc.)
 - Stores all state locally — no cloud account, no internet dependency, 100% private
@@ -240,6 +240,7 @@ MultiAir forced convection fans are automatically detected and displayed in the 
 | **`17`** | **RIKA PARO** | MultiAir 1 & 2 |
 | **`23`** | **RIKA DOMO BACK** | MultiAir 1 & 2 |
 | **`25`** | **RIKA SUMO MULTIAIR** | MultiAir 1 & 2 |
+| **`29`** | **RIKA PRIMO MULTIAIR** | MultiAir 1 & 2 |
 
 *Stoves with natural convection only (e.g. FILO, COMO, REVO, CORSO) automatically hide the MultiAir control card in the Web UI to keep the interface simple and clutter-free.*
 
