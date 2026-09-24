@@ -2295,7 +2295,7 @@ function renderSensors(sObj, filterText) {
         6: 'KAPO (6)', 7: 'MIRO (7)', 8: 'COMO (8)', 9: 'REVO (9)', 10: 'INTERNO (10)', 11: 'FILO (11)',
         12: 'SUMO (12)', 13: 'DOMO (13)', 14: 'CORSO (14)', 15: 'INDUO II (15)', 16: 'REVIVO (16)', 17: 'PARO (17)',
         18: 'LIVO (18)', 19: 'COMO II (19)', 20: 'REVO II (20)', 21: 'COSMO (21)', 22: 'SONO (22)',
-        23: 'DOMO BACK (23)', 24: 'PK E (24)', 25: 'SUMO MULTIAIR (25)', 26: 'CONNECT (26)', 29: 'PRIMO (29)'
+        23: 'DOMO BACK (23)', 24: 'PK E (24)', 25: 'SUMO MULTIAIR (25)', 26: 'CONNECT (26)', 29: 'PRIMO MULTIAIR (29)'
       };
       const mFallback = (curLang === 'fr' ? 'Modèle ' : 'Model ') + v;
       v = mNames[v] || mFallback;
@@ -2410,7 +2410,7 @@ async function tick() {
       6: 'KAPO', 7: 'MIRO', 8: 'COMO', 9: 'REVO', 10: 'INTERNO', 11: 'FILO',
       12: 'SUMO', 13: 'DOMO', 14: 'CORSO', 15: 'INDUO II', 16: 'REVIVO', 17: 'PARO',
       18: 'LIVO', 19: 'COMO II', 20: 'REVO II', 21: 'COSMO', 22: 'SONO',
-      23: 'DOMO BACK', 24: 'PK E', 25: 'SUMO MULTIAIR', 26: 'CONNECT', 29: 'PRIMO'
+      23: 'DOMO BACK', 24: 'PK E', 25: 'SUMO MULTIAIR', 26: 'CONNECT', 29: 'PRIMO MULTIAIR'
     };
     const mId = stObj.model !== undefined ? stObj.model : (rawS.model !== undefined ? rawS.model : 13);
     const mFallback = (curLang === 'fr' ? 'Modèle ' : 'Model ') + mId;
@@ -2418,7 +2418,7 @@ async function tick() {
     const vStr = stObj.mainboard_version ? (' V' + stObj.mainboard_version) : '';
     document.getElementById('modelBadge').textContent = mName + vStr;
 
-    // MultiAir (modèles RIKA équipés : 4=ROCO MA, 13=DOMO, 17=PARO, 23=DOMO BACK, 25=SUMO MA, 29=PRIMO)
+    // MultiAir (modèles RIKA équipés : 4=ROCO MA, 13=DOMO, 17=PARO, 23=DOMO BACK, 25=SUMO MA, 29=PRIMO MA)
     const deck = document.getElementById('multiairDeck');
     const MULTIAIR_MODELS = [4, 13, 17, 23, 25, 29];
     const hasMultiAir = MULTIAIR_MODELS.includes(mId);

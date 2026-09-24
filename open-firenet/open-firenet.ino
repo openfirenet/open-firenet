@@ -247,7 +247,7 @@ static const char* getStoveModelName(long modelId) {
     case 24: return "PK E";
     case 25: return "SUMO MULTIAIR";
     case 26: return "CONNECT";
-    case 29: return "PRIMO";
+    case 29: return "PRIMO MULTIAIR";
     default: return "RIKA";
   }
 }
