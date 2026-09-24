@@ -441,9 +441,10 @@ public:
 
   static const uint32_t SILENCE_MS = 40;       // choix d'implémentation (§4.3 : silence, durée non prouvée)
   static const uint32_t VERSION_RETRY_MS = 1000;
-  // DIAGNOSTIC TEMPORAIRE : le délai est réglable à chaud (UI), non persistant.
+  // Délai entre trames vers le poêle, réglable à chaud (UI, /api/txgap), borné à [TX_GAP_MIN_MS, TX_GAP_MS].
   uint32_t txGapMs() const { return tx_gap_ms_; }
-  void setTxGapMs(uint32_t ms) { tx_gap_ms_ = ms < 50 ? 50 : (ms > 5000 ? 5000 : ms); }
+  void setTxGapMs(uint32_t ms) { tx_gap_ms_ = ms < TX_GAP_MIN_MS ? TX_GAP_MIN_MS : (ms > TX_GAP_MS ? TX_GAP_MS : ms); }
+  static const uint32_t TX_GAP_MIN_MS = 50;
   static const uint32_t TX_GAP_MS = 600;  // silence entre trames (garantit >100 ticks poêle)
 
 private:

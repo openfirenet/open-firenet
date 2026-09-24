@@ -279,7 +279,7 @@ int main(){
     DongleLink l([&](const uint8_t*d,size_t n){ w.append((const char*)d,n); }, [&](){ return c; });
     CH("tx gap default", l.txGapMs() == DongleLink::TX_GAP_MS);
     l.setTxGapMs(0);    CH("tx gap clamped low", l.txGapMs() == 50);
-    l.setTxGapMs(99999); CH("tx gap clamped high", l.txGapMs() == 5000);
+    l.setTxGapMs(99999); CH("tx gap clamped high", l.txGapMs() == DongleLink::TX_GAP_MS);
     l.transferCompleted(); l.transferCompleted();
     l.setTxGapMs(1000); c += 100; l.poll();                 // 1re trame : last_tx_ms_ = 0 au départ
     size_t n1 = l.txPending();
