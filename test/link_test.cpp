@@ -193,6 +193,13 @@ int main(){
     l5.pollSensors(); drain5();
     CH("V1 pollSensors sends GET_SENSORS=1;", w5.find("GET_SENSORS=1; ") != std::string::npos);
     CH("V1 does NOT send sentinels", w5.find("s00=0") == std::string::npos);
+    {
+      // Le poêle ne prépare/émet des données qu'avec GET_REVISION puis TRANSFER_COMPLETED (désassemblage 2.27).
+      size_t gs = w5.find("GET_SENSORS=1; "), gr = w5.find("GET_REVISION="), t1 = w5.find("TRANSFER_COMPLETED");
+      size_t t2 = t1 == std::string::npos ? t1 : w5.find("TRANSFER_COMPLETED", t1 + 1);
+      CH("V1 pollSensors sends GET_REVISION after GET_SENSORS", gs != std::string::npos && gr != std::string::npos && gr > gs);
+      CH("V1 pollSensors sends two TRANSFER_COMPLETED after GET_REVISION", t1 != std::string::npos && t2 != std::string::npos && t1 > gr);
+    }
 
     // Réponse poêle INDUO V1 (PRIO 1) : 13 valeurs positionnelles
     std::string sens_v1 = "POST_SENSORS=0; =215; =450; =0; =0; =650; =0; =75; =1450; =50; =3600; =1200; =4200; =1; ";

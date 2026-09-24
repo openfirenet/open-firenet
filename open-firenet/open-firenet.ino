@@ -1145,7 +1145,9 @@ void loop() {
       static uint32_t v1Cycle = 0;
       v1Cycle++;
       if (v1Cycle % 10 == 0) {
-        // Périodiquement (~toutes les 20s) : PRIO 2 et rafraîchissement statut
+        // Périodiquement (~toutes les 20s) : rafraîchissement du statut. (GET_SENSORS=2 n'a pas de
+        // signification particulière côté poêle 2.27 : le drapeau n'est comparé qu'à 0. PRIO 2 arrive
+        // toute seule, à chaque 30e GET_REVISION.)
         g_link->pollPrio2Sensors();
         g_link->requestStatus();
       } else {

@@ -180,7 +180,12 @@ public:
   // Lit les capteurs : en V1, requêtes par priorité 1 ou 2. En V3, déclare les sentinelles.
   void pollSensors(const std::vector<std::string>& names = {}) {
     if (model_.generation == 2) {
+      // Désassemblage INDUO 2.27 : le poêle ne prépare ses données (rafraîchissement + sélection des capteurs
+      // modifiés) que dans le gestionnaire de GET_REVISION, et ne les émet que dans celui de TRANSFER_COMPLETED
+      // (un POST par TRANSFER_COMPLETED, contrôles d'abord). D'où GET_REVISION puis deux TRANSFER_COMPLETED.
       send("GET_SENSORS=1; \n");
+      sendRevision();
+      transferCompleted();
       transferCompleted();
     } else {
       sendTable("GET_SENSORS", names, 0);
