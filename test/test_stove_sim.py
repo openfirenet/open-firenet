@@ -70,6 +70,7 @@ class InduoV1StoveSimulator:
     (firmware RIKA_a_001_227_Application_INDUO_V2.27.445.01.bin).
     """
     def __init__(self):
+        self.error_code = 0          # "UW<code>" affiché par le poêle
         self.session_linked = False  # *0x1ac8
         self.watchdog_ticks = 100    # *0x1ac4 (~12s)
         self.state_get = 0           # *0x57e5 (bloque GET_* si 0)
@@ -120,6 +121,15 @@ class InduoV1StoveSimulator:
         if "GET_FIRENET_STATUS=0;\n" in frame:
             lines = frame.split("\n")
             if len(lines) >= 20:  # En-tête + 19 paramètres
+                # Validation de l'ID / du token par le poêle (désassemblage INDUO 2.27, fn 0x8001d324,
+                # code 0x1b = "UW27") : ID = exactement 8 chiffres, token = exactement 8 caractères 0x21..0x7E.
+                dev_id, token = lines[13], lines[14]
+                id_ok = len(dev_id) == 8 and all("0" <= c <= "9" for c in dev_id)
+                token_ok = len(token) == 8 and all("!" <= c <= "~" for c in token)
+                if not (id_ok and token_ok):
+                    self.session_linked = False
+                    self.error_code = 27
+                    return ["\x020\x03"]
                 self.state_get = 1
                 self.state_post = 1
                 self.state_transfer = 1
@@ -128,7 +138,7 @@ class InduoV1StoveSimulator:
                 st_reply = (
                     "POST_FIRENET_STATUS=0;\n"
                     "0\n1\n0\n0\n1\n4\n0\n101\n112\n360\n0\n-55\n"
-                    "0000000\n00000000\n1\nMonSSID\nMonPass\n192.168.1.50\nAA:BB:CC:DD:EE:FF\n"
+                    "00000000\n00000000\n1\nMonSSID\nMonPass\n192.168.1.50\nAA:BB:CC:DD:EE:FF\n"
                     "-------\n"
                 )
                 replies.append(st_reply)
@@ -280,6 +290,16 @@ def run_induo_simulation_tests():
 
     rearm_version = next((t for t in tx_reset if "GET_WIFI_VERSION" in t), None)
     assert_test("Le dongle a réémis la trame de version pour réarmer la liaison", rearm_version is not None)
+
+    # Étape 6 : le poêle rejette un ID de 7 chiffres (UW27) — régression du log de Cyril du 24/09
+    print("\n--- 6. Validation ID/token par le poêle (UW27) ---")
+    bad = InduoV1StoveSimulator()
+    good_frame = "GET_FIRENET_STATUS=0;\n" + "\n".join(
+        ["0","1","0","0","1","4","0","101","112","360","0","-55","00000000","00000000","1","ssid","pass","192.168.1.50","AA:BB:CC:DD:EE:FF"]) + "\n"
+    assert_test("Un ID de 8 chiffres est accepté", bad.process_dongle_tx(good_frame)[0].startswith("POST_FIRENET_STATUS"))
+    bad7 = InduoV1StoveSimulator()
+    r7 = bad7.process_dongle_tx(good_frame.replace("00000000\n00000000", "0000000\n00000000", 1))
+    assert_test("Un ID de 7 chiffres déclenche UW27 (STX 0 ETX)", r7 == ["\x020\x03"] and bad7.error_code == 27)
 
     bridge.close()
     print(f"\nRésultats simulateur INDUO V1 : {passed} succès, {failed} échecs.")

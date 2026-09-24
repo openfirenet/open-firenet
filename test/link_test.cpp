@@ -170,9 +170,20 @@ int main(){
     CH("V1 plain text SSID pushed", w5.find("MonSSID\n") != std::string::npos);
     CH("V1 plain text pass pushed", w5.find("MonPass\n") != std::string::npos);
     CH("V1 protocol is 1", w5.find("\n1\nMonSSID") != std::string::npos);
+    {
+      // Règle de validation du poêle INDUO (fn 0x8001d324) : ID = 8 chiffres, token = 8 caractères 0x21..0x7E.
+      std::vector<std::string> ln; size_t p0 = w5.find("GET_FIRENET_STATUS=0;\n");
+      size_t pos = p0 + std::string("GET_FIRENET_STATUS=0;\n").size();
+      for (size_t q; (q = w5.find('\n', pos)) != std::string::npos && ln.size() < 19; pos = q + 1) ln.push_back(w5.substr(pos, q - pos));
+      bool idOk = ln.size() >= 14 && ln[12].size() == 8, tokOk = ln.size() >= 14 && ln[13].size() == 8;
+      if (idOk) for (char c : ln[12]) idOk = idOk && c >= '0' && c <= '9';
+      if (tokOk) for (char c : ln[13]) tokOk = tokOk && c >= 0x21 && c <= 0x7e;
+      CH("V1 status ID is exactly 8 digits (else stove raises UW27)", idOk);
+      CH("V1 status token is exactly 8 printable chars", tokOk);
+    }
 
     // Poêle INDUO répond POST_FIRENET_STATUS=0;
-    std::string st_v1="POST_FIRENET_STATUS=0;\n0\n1\n0\n0\n1\n4\n0\n101\n112\n360\n0\n-55\n0000000\n00000000\n1\nMonSSID\nMonPass\n192.168.1.50\nAA:BB:CC:DD:EE:FF\n-------\n";
+    std::string st_v1="POST_FIRENET_STATUS=0;\n0\n1\n0\n0\n1\n4\n0\n101\n112\n360\n0\n-55\n00000000\n00000000\n1\nMonSSID\nMonPass\n192.168.1.50\nAA:BB:CC:DD:EE:FF\n-------\n";
     for(char c:st_v1) l5.onByte(c);
     c5+=60; l5.poll();
     CH("V1 status parsed", l5.model().status.at("ssid") == "MonSSID" && l5.model().status.at("symbol") == "4");

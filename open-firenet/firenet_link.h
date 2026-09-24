@@ -142,8 +142,12 @@ public:
   // bl=101, app=112, rev=360, spwf=0, symbol=4, initialised=1.
   void pushStatus(const std::string& ssidClear = "", const std::string& wpa2 = "",
                   const std::string& ip = "", const std::string& mac = "",
-                  int rssi = -55, const std::string& id = "0000000",
+                  int rssi = -55, const std::string& idArg = "",
                   const std::string& token = "00000000") {
+    // Le poêle INDUO valide l'ID et le token de la trame de statut (désassemblage 2.27,
+    // fn 0x8001d324, code d'erreur 0x1b = "UW27") : ID = exactement 8 chiffres,
+    // token = exactement 8 caractères imprimables (0x21..0x7E). "0000000" (7) => UW27.
+    const std::string id = !idArg.empty() ? idArg : (model_.generation == 2 ? "00000000" : "0000000");
     std::string s_ssid = ssidClear.empty() ? ssid_ : ssidClear;
     std::string s_pass = wpa2.empty() ? pass_ : wpa2;
     std::string s_ip   = ip.empty() ? ip_ : ip;
