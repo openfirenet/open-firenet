@@ -34,8 +34,9 @@ struct StoveModel {
 
 class DongleLink {
 public:
-  // V1 positions registered in GET_SENSORS: 0..53 covers every labelled record of the table (54 = onOffCycles on the DOMO).
-  static constexpr int V1_SENSOR_COUNT = 54;
+  // V1 positions registered in GET_SENSORS: 0..86 = every record the stove's PRIO2 fill writes (2.27 fn 0x8004b390: records 0..86);
+  // the DOMO table has 88 positions (record 2 of the 2.28 is never written). Only the first 55 DOMO positions have a label, the rest are sNN.
+  static constexpr int V1_SENSOR_COUNT = 87;
   using TxFn  = std::function<void(const uint8_t*, size_t)>;
   using NowFn = std::function<uint32_t()>;
 

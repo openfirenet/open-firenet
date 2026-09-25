@@ -198,7 +198,12 @@ int main(){
          w5.find("GET_SENSORS=0; roomTemp=0; flame=0; errMask32=0; errSub=0; stateMask=0; s06=0; augerSet=0; ") != std::string::npos);
       CH("V1 registration has V1 position 30 = mainState (DOMO 31) and 45 = appRevision (DOMO 46)",
          w5.find("stageCur=0; mainState=0; subState=0; rssi=0; ") != std::string::npos && w5.find("appRevision=0; pelletHours=0; ") != std::string::npos);
-      CH("V1 registration ends with onOffCycles", w5.find("ignitionCount=0; onOffCycles=0; ") != std::string::npos);
+      CH("V1 registration contains onOffCycles then the unlabelled DOMO 55.. as sNN", w5.find("ignitionCount=0; onOffCycles=0; s55=0; s56=0; ") != std::string::npos);
+      {
+        size_t end = w5.find("s86=0; s87=0; ");
+        CH("V1 registration ends with DOMO 87 (V1 position 86, the last record the stove fills)",
+           end != std::string::npos && end + 14 <= w5.size() && w5.compare(end + 14, 13, "GET_REVISION=") == 0);
+      }
       size_t gr = w5.find("GET_REVISION="), t1 = w5.find("TRANSFER_COMPLETED");
       size_t t2 = t1 == std::string::npos ? t1 : w5.find("TRANSFER_COMPLETED", t1 + 1);
       CH("V1 pollSensors sends GET_REVISION after the registration", gs != std::string::npos && gr != std::string::npos && gr > gs);
