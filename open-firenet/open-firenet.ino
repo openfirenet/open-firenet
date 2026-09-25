@@ -1145,9 +1145,8 @@ void loop() {
       static uint32_t v1Cycle = 0;
       v1Cycle++;
       if (v1Cycle % 10 == 0) {
-        // Périodiquement (~toutes les 20s) : rafraîchissement du statut. (GET_SENSORS=2 n'a pas de
-        // signification particulière côté poêle 2.27 : le drapeau n'est comparé qu'à 0. PRIO 2 arrive
-        // toute seule, à chaque 30e GET_REVISION.)
+        // About every 20 s: refresh the status. The PRIO 2 records arrive by themselves at every 30th
+        // GET_REVISION; pollPrio2Sensors() sends nothing (a GET_SENSORS frame would empty the registered names).
         g_link->pollPrio2Sensors();
         g_link->requestStatus();
       } else {

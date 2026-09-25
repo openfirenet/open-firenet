@@ -34,6 +34,8 @@ struct StoveModel {
 
 class DongleLink {
 public:
+  // V1 positions registered in GET_SENSORS: 0..53 covers every labelled record of the table (54 = onOffCycles on the DOMO).
+  static constexpr int V1_SENSOR_COUNT = 54;
   using TxFn  = std::function<void(const uint8_t*, size_t)>;
   using NowFn = std::function<uint32_t()>;
 
@@ -117,6 +119,7 @@ public:
   int dt() const { return profile().dt; }      // effective DT of the active profile
 
   void sendVersion() {
+    v1_sensors_registered_ = false;         // the stove forgets nothing on its side, but the link restarted: register again
     // test/v1-protocol : pas de fallback V1↔V3 — on reste sur V1 fixe jusqu'à l'ACK.
     // Trame officielle de la clé FireNet V2.26 (STM32 VA 0x08012304). Le poêle l'a
     // acquittée (GET_WIFI_VERSION_FINISHED) les 16, 20 et 21/09 ; la forme « pure »
@@ -177,13 +180,15 @@ public:
     send(f);
   }
 
-  // Lit les capteurs : en V1, requêtes par priorité 1 ou 2. En V3, déclare les sentinelles.
+  // Reads the sensors. V1 (INDUO 2.27): the stove keeps the names of the last GET_SENSORS frame as the labels of
+  // its records 0..N-1 and echoes them in POST_SENSORS ("name=value; "); a GET_SENSORS frame WITHOUT names resets
+  // that list to empty (disassembly of the 2.27 handler, 0x8004ccfc). So the list is registered once (flag 0 =
+  // "refresh all": every registered record is sent) and afterwards only GET_REVISION + TRANSFER_COMPLETED are
+  // sent: the stove prepares its data in the GET_REVISION handler and emits it in the TRANSFER_COMPLETED one
+  // (one POST per TRANSFER_COMPLETED, controls first); it re-sends a record only when its value changed.
   void pollSensors(const std::vector<std::string>& names = {}) {
     if (model_.generation == 2) {
-      // Désassemblage INDUO 2.27 : le poêle ne prépare ses données (rafraîchissement + sélection des capteurs
-      // modifiés) que dans le gestionnaire de GET_REVISION, et ne les émet que dans celui de TRANSFER_COMPLETED
-      // (un POST par TRANSFER_COMPLETED, contrôles d'abord). D'où GET_REVISION puis deux TRANSFER_COMPLETED.
-      send("GET_SENSORS=1; \n");
+      if (!v1_sensors_registered_) registerV1Sensors();
       sendRevision();
       transferCompleted();
       transferCompleted();
@@ -194,11 +199,15 @@ public:
       transferCompleted();                  // -> POST_SENSORS
     }
   }
-  void pollPrio2Sensors() {
-    if (model_.generation == 2) {
-      send("GET_SENSORS=2; \n");
-      transferCompleted();
-    }
+  // V1: the PRIO 2 records arrive by themselves at every 30th GET_REVISION (all registered records are then
+  // refreshed). Sending "GET_SENSORS=2;" would only empty the registered list, so nothing is sent here.
+  void pollPrio2Sensors() {}
+  // Registers V1 positions 0..V1_SENSOR_COUNT-1 under the labels of the DOMO table (sensName(p, 2)).
+  void registerV1Sensors() {
+    std::string f = "GET_SENSORS=0; ";
+    for (int p = 0; p < V1_SENSOR_COUNT; p++) { f += sensName(p, 2); f += "=0; "; }
+    send(f);
+    v1_sensors_registered_ = true;
   }
   void pollControls(const std::vector<std::string>& names = {}) {
     if (model_.generation == 2) {
@@ -432,6 +441,11 @@ private:
       return;
     }
     if (buf.find("POST_SENSORS")  != std::string::npos) {
+      if (model_.generation == 2 && v1_sensors_registered_) {
+        // V1: named records, only the changed ones are sent: update the DOMO-indexed vector in place.
+        pending_pos_ = nullptr;
+        parseV1Sensors(afterHeader(buf)); postSensors(); return;
+      }
       model_.sensors_pos.clear(); pending_pos_ = &model_.sensors_pos;
       parseBody(afterHeader(buf), &model_.sensors, model_.sensors_pos); postSensors(); return; }
     // Trame de continuation d'un dump positionnel (§8.5) : le poêle peut étaler
@@ -488,6 +502,28 @@ private:
       i = sc + 1;
     }
   }
+  // POST_SENSORS of a V1 stove after registration: "name=value; " pairs of the changed records (all of them after
+  // the registration frame). The name gives the record, so the position does not depend on the frame content.
+  // sensors_pos is indexed like the DOMO table (sensIndexByName), the stove's V1 position + 1 from position 2.
+  void parseV1Sensors(const std::string& body) {
+    size_t i = 0;
+    while (i < body.size()) {
+      size_t sc = body.find(';', i); if (sc == std::string::npos) sc = body.size();
+      std::string item = body.substr(i, sc - i);
+      size_t eq = item.find('=');
+      if (eq != std::string::npos && !trim(item).empty()) {
+        std::string name = trim(item.substr(0, eq));
+        long v = strtol(trim(item.substr(eq + 1)).c_str(), nullptr, 10);
+        int idx = sensIndexByName(name);
+        if (idx >= 0 && idx < 128) {
+          if ((int)model_.sensors_pos.size() <= idx) model_.sensors_pos.resize(idx + 1, 0);
+          model_.sensors_pos[idx] = v;
+          model_.sensors[name] = v;
+        }
+      }
+      i = sc + 1;
+    }
+  }
   void postSensors() { /* hook : le firmware relit model().sensors après un cycle */ }
   static std::string trim(const std::string& s) {
     size_t a = s.find_first_not_of(" \r\n\t\x02\x03");
@@ -496,6 +532,7 @@ private:
   }
 
   TxFn tx_; NowFn now_;
+  bool v1_sensors_registered_ = false;      // names of GET_SENSORS sent since the last version handshake
   StoveModel model_;
   std::string rx_;
   bool silence_pending_ = false;

@@ -188,30 +188,45 @@ int main(){
     c5+=60; l5.poll();
     CH("V1 status parsed", l5.model().status.at("ssid") == "MonSSID" && l5.model().status.at("symbol") == "4");
 
-    // 2) Télémétrie positionnelle V1 : GET_SENSORS=1; -> POST_SENSORS=0; =val0; =val1; ...
+    // 2) V1 telemetry: the names are registered once (GET_SENSORS=0; name=0; ...), the stove echoes them
     w5.clear();
     l5.pollSensors(); drain5();
-    CH("V1 pollSensors sends GET_SENSORS=1;", w5.find("GET_SENSORS=1; ") != std::string::npos);
-    CH("V1 does NOT send sentinels", w5.find("s00=0") == std::string::npos);
     {
-      // Le poêle ne prépare/émet des données qu'avec GET_REVISION puis TRANSFER_COMPLETED (désassemblage 2.27).
-      size_t gs = w5.find("GET_SENSORS=1; "), gr = w5.find("GET_REVISION="), t1 = w5.find("TRANSFER_COMPLETED");
+      size_t gs = w5.find("GET_SENSORS=0; ");
+      CH("V1 pollSensors registers the names (GET_SENSORS=0; ...)", gs != std::string::npos);
+      CH("V1 registration starts with the labels of V1 positions 0..4",
+         w5.find("GET_SENSORS=0; roomTemp=0; flame=0; errMask32=0; errSub=0; stateMask=0; s06=0; augerSet=0; ") != std::string::npos);
+      CH("V1 registration has V1 position 30 = mainState (DOMO 31) and 45 = appRevision (DOMO 46)",
+         w5.find("stageCur=0; mainState=0; subState=0; rssi=0; ") != std::string::npos && w5.find("appRevision=0; pelletHours=0; ") != std::string::npos);
+      CH("V1 registration ends with onOffCycles", w5.find("ignitionCount=0; onOffCycles=0; ") != std::string::npos);
+      size_t gr = w5.find("GET_REVISION="), t1 = w5.find("TRANSFER_COMPLETED");
       size_t t2 = t1 == std::string::npos ? t1 : w5.find("TRANSFER_COMPLETED", t1 + 1);
-      CH("V1 pollSensors sends GET_REVISION after GET_SENSORS", gs != std::string::npos && gr != std::string::npos && gr > gs);
+      CH("V1 pollSensors sends GET_REVISION after the registration", gs != std::string::npos && gr != std::string::npos && gr > gs);
       CH("V1 pollSensors sends two TRANSFER_COMPLETED after GET_REVISION", t1 != std::string::npos && t2 != std::string::npos && t1 > gr);
     }
+    // registered once: the next polls must not send GET_SENSORS (it would empty the registered list)
+    w5.clear();
+    l5.pollSensors(); l5.pollPrio2Sensors(); drain5();
+    CH("V1 second poll does not re-send GET_SENSORS", w5.find("GET_SENSORS") == std::string::npos);
+    CH("V1 second poll still sends GET_REVISION and TRANSFER_COMPLETED", w5.find("GET_REVISION=") != std::string::npos && w5.find("TRANSFER_COMPLETED") != std::string::npos);
 
-    // Réponse poêle INDUO V1 (PRIO 1) : 13 valeurs positionnelles
-    std::string sens_v1 = "POST_SENSORS=0; =215; =450; =0; =0; =650; =0; =75; =1450; =50; =3600; =1200; =4200; =1; ";
+    // POST_SENSORS of the stove: named records (2.27 positions shifted by one from position 2 in the DOMO index space)
+    std::string sens_v1 = "POST_SENSORS=0; roomTemp=236; flame=18; errMask32=0; mainState=1; subState=0; rssi=-41; pelletHours=4354; onOffCycles=122; ";
     for(char c:sens_v1) l5.onByte(c);
     c5+=60; l5.poll();
-    CH("V1 sensors_pos size 13", l5.model().sensors_pos.size() == 13);
-    CH("V1 roomTemp mapped", l5.model().sensors.at("roomTemp") == 215);
-    CH("V1 flame mapped", l5.model().sensors.at("flame") == 450);
-    CH("V1 augerSet mapped", l5.model().sensors.at("augerSet") == 75);
-    CH("V1 idFanMeas mapped", l5.model().sensors.at("idFanMeas") == 1450);
-    CH("V1 pelletHours mapped", l5.model().sensors.at("pelletHours") == 3600);
-    CH("V1 pelletsTotal mapped", l5.model().sensors.at("pelletsTotal") == 4200);
+    CH("V1 named roomTemp", l5.model().sensors.at("roomTemp") == 236);
+    CH("V1 sensors_pos[0] = roomTemp", l5.model().sensors_pos.size() > 0 && l5.model().sensors_pos[0] == 236);
+    CH("V1 sensors_pos[1] = flame", l5.model().sensors_pos[1] == 18);
+    CH("V1 sensors_pos[31] = mainState (DOMO index)", l5.model().sensors_pos.size() > 31 && l5.model().sensors_pos[31] == 1);
+    CH("V1 sensors_pos[33] = rssi", l5.model().sensors_pos[33] == -41);
+    CH("V1 sensors_pos[47] = pelletHours", l5.model().sensors_pos.size() > 47 && l5.model().sensors_pos[47] == 4354);
+    CH("V1 sensors_pos[54] = onOffCycles", l5.model().sensors_pos.size() > 54 && l5.model().sensors_pos[54] == 122);
+    // delta frame: only the changed record is sent, the others keep their value
+    std::string sens_d = "POST_SENSORS=0; roomTemp=237; ";
+    for(char c:sens_d) l5.onByte(c);
+    c5+=60; l5.poll();
+    CH("V1 delta frame updates roomTemp", l5.model().sensors_pos[0] == 237);
+    CH("V1 delta frame keeps the other records", l5.model().sensors_pos[47] == 4354 && l5.model().sensors_pos[31] == 1);
 
     // 3) Réinitialisation par STX '0' ETX (\x02 0 \x03)
     w5.clear();
@@ -220,6 +235,15 @@ int main(){
     CH("V1 STX 0 ETX clears version_ack immediately", !l5.model().version_ack);
     drain5();
     CH("V1 handshake re-armed after session reset", w5.find("GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ") != std::string::npos);
+    {
+      // after a link reset the names are registered again on the next poll
+      w5.clear();
+      std::string fin2="GET_WIFI_VERSION_FINISHED";
+      for(char c:fin2) l5.onByte(c);
+      c5+=60; l5.poll();
+      l5.pollSensors(); drain5();
+      CH("V1 names registered again after a new handshake", w5.find("GET_SENSORS=0; roomTemp=0; ") != std::string::npos);
+    }
   }
 
   // 4) Rafale de 0x16 : réponse immédiate au premier, puis plafonnée (issue #4, log du 23/09)

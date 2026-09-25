@@ -93,11 +93,25 @@ class InduoV1StoveSimulator:
         self.pellets_total = 4520    # kg
         self.stove_on = 1
 
+        # Sensor records by 2.27 position (disassembly: position p of the 2.27 = DOMO position p + 1 from p = 2)
+        self.sens_names = []           # names registered by the last GET_SENSORS frame (record k <- name k)
+        self.sens_sent = {}            # last value sent per record, the stove re-sends only the changed ones
+        self.sens_refresh_all = False  # flag 0 of GET_SENSORS = "refresh all"
+        self.sens_pending = False
+
         # Contrôles
         self.ctrl_on = 1
         self.ctrl_mode = 2
         self.ctrl_stage = 75
         self.ctrl_room = 210
+
+    def record_values(self) -> dict:
+        """Value of each sensor record by 2.27 position (positions with a known meaning only, others read 0)."""
+        return {
+            0: self.room_temp, 1: self.flame_temp, 2: self.error_code, 30: 1, 31: 0, 32: -55,
+            34: 1, 35: 1, 36: 0, 39: 111, 42: 101, 45: 360,
+            46: self.pellet_hours, 48: self.pellets_total, 49: self.service_countdown,
+        }
 
     def process_dongle_tx(self, frame: str) -> list:
         """
@@ -155,17 +169,38 @@ class InduoV1StoveSimulator:
         if self.state_get == 0:
             return []
 
-        # 3. Requête capteurs PRIO 1 (GET_SENSORS=1;)
-        if "GET_SENSORS=1;" in frame:
+        # 3. Sensor registration (GET_SENSORS=<flag>; name=0; name=0; ...): record k takes the name k. A frame
+        # without names empties the list (0x8004ccfc). Flag 0 = "refresh all".
+        if "GET_SENSORS=" in frame:
+            import re
             self.watchdog_ticks = 100
-            # Réponse positionnelle sans clés
-            sens_frame = (
-                f"POST_SENSORS=0; ={self.room_temp}; ={self.flame_temp}; ={self.error_code}; "
-                f"={self.warning_code}; ={self.service_countdown}; ={self.discharge_rpm}; "
-                f"={self.auger_set}; ={self.id_fan_rpm}; ={self.air_flaps}; ={self.pellet_hours}; "
-                f"={self.log_hours}; ={self.pellets_total}; ={self.stove_on}; "
-            )
-            replies.append(sens_frame)
+            m = re.match(r"GET_SENSORS=(\d+);\s*(.*)", frame.strip(), re.S)
+            self.sens_names = re.findall(r"([A-Za-z0-9_]+)=0;", m.group(2)) if m else []
+            if m and int(m.group(1)) == 0:
+                self.sens_refresh_all = True
+                self.sens_sent = {}
+            self.sens_pending = True
+            return replies
+
+        # The data is prepared by GET_REVISION and emitted by TRANSFER_COMPLETED, only the changed records
+        if frame.startswith("GET_REVISION="):
+            self.watchdog_ticks = 100
+            return replies
+        if frame.startswith("TRANSFER_COMPLETED"):
+            self.watchdog_ticks = 100
+            if not (self.sens_names and self.sens_pending):
+                return replies
+            self.sens_pending = False
+            vals = self.record_values()
+            out = []
+            for k, name in enumerate(self.sens_names):
+                v = vals.get(k, 0)
+                if self.sens_refresh_all or self.sens_sent.get(k) != v:
+                    out.append(f"{name}={v}; ")
+                    self.sens_sent[k] = v
+            self.sens_refresh_all = False
+            if out:
+                replies.append("POST_SENSORS=0; " + "".join(out))
             return replies
 
         # 4. Requête lecture contrôles (GET_CONTROLS=0;)
@@ -265,22 +300,28 @@ def run_induo_simulation_tests():
     for _ in range(5):
         tx_poll += bridge.tick(600)[0]
 
-    sens_req = next((t for t in tx_poll if "GET_SENSORS=1;" in t), None)
-    assert_test("Le dongle interroge les capteurs avec GET_SENSORS=1; (sans sentinelles)", sens_req is not None)
+    sens_req = next((t for t in tx_poll if t.startswith("GET_SENSORS=0; ")), None)
+    assert_test("Le dongle enregistre les noms de capteurs (GET_SENSORS=0; name=0; ...)", sens_req is not None)
+    assert_test("L'enregistrement commence par roomTemp, flame, errMask32 (labels DOMO, position 2 sautée)",
+                bool(sens_req) and sens_req.startswith("GET_SENSORS=0; roomTemp=0; flame=0; errMask32=0; errSub=0; "))
 
-    stove_sens_replies = stove.process_dongle_tx(sens_req or "")
-    assert_test("Le poêle répond avec les valeurs positionnelles", len(stove_sens_replies) == 1 and "=215;" in stove_sens_replies[0])
+    stove_sens_replies = []
+    for t in tx_poll:
+        stove_sens_replies += stove.process_dongle_tx(t)
+    post = next((r for r in stove_sens_replies if r.startswith("POST_SENSORS=0; ")), "")
+    assert_test("Le poêle répond avec les enregistrements nommés (roomTemp=215;)", "roomTemp=215; " in post)
+    assert_test("Le poêle renvoie aussi les états et l'identité (mainState=1; model=1;)", "mainState=1; " in post and "model=1; " in post)
 
-    # Le dongle ingère la télémétrie positionnelle
-    bridge.rx(stove_sens_replies[0])
+    # Le dongle ingère la télémétrie nommée
+    bridge.rx(post)
     bridge.tick(60)
 
     # Vérification du modèle de données interne du firmware
     state_str = bridge.get_state()
     assert_test("roomTemp extrait à 21.5°C (215)", "roomTemp=215" in state_str)
-    assert_test("sensors_pos correctement alimenté (13 positions)", "spn=13" in state_str)
-    assert_test("pelletHours (pos 9) extrait", "sp9=3850" in state_str)
-    assert_test("pelletsTotal (pos 11) extrait", "sp11=4520" in state_str)
+    assert_test("sensors_pos indexé comme la table DOMO (mainState en 31)", "sp31=1" in state_str)
+    assert_test("pelletHours en position DOMO 47 (position 2.27 46)", "sp47=3850" in state_str)
+    assert_test("pelletsTotal en position DOMO 49 (position 2.27 48)", "sp49=4520" in state_str)
 
     # Etape 5 : Réinitialisation de session poêle (STX '0' ETX)
     print("\n--- 5. Simulation Watchdog / Déconnexion du poêle (STX '0' ETX) ---")

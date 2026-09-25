@@ -163,46 +163,57 @@ static const char* CONTROL_LABELS[] = {
 };
 static const int NUM_CONTROL_LABELS = 5;
 
-// index = position du capteur ; couvre les positions prouvées jusqu'à 52 (53 au total).
+// index = position du capteur ; couvre les positions prouvées jusqu'à 54 (55 au total).
 static const char* SENSOR_LABELS[] = {
   /*0*/"roomTemp",      /*1*/"flame",       /*2*/"",           /*3*/"errMask32",
   /*4*/"errSub",        /*5*/"stateMask",   /*6*/"",           /*7*/"augerSet",
   /*8*/"",              /*9*/"idFanMeas",   /*10*/"idFanSet",  /*11*/"",
   /*12*/"",             /*13*/"",           /*14*/"",          /*15*/"",
   /*16*/"",             /*17*/"",           /*18*/"",          /*19*/"",
-  /*20*/"",             /*21*/"",           /*22*/"",          /*23*/"",
+  /*20*/"",             /*21*/"",           /*22*/"",          /*23*/"hopperLidClosed",
   /*24*/"",             /*25*/"",           /*26*/"",          /*27*/"boardSensor",
   /*28*/"stageCur1",    /*29*/"stageTgt2",  /*30*/"stageCur",  /*31*/"mainState",
   /*32*/"subState",     /*33*/"rssi",       /*34*/"",          /*35*/"fabNumber",
   /*36*/"model",        /*37*/"language",   /*38*/"appVerBoard",
-  /*39*/"",             /*40*/"",           /*41*/"",          /*42*/"",
-  /*43*/"",             /*44*/"firmwareBuild",/*45*/"subVersion",/*46*/"",
+  /*39*/"",             /*40*/"appVersion", /*41*/"",          /*42*/"",
+  /*43*/"blVersion",    /*44*/"firmwareBuild",/*45*/"subVersion",/*46*/"appRevision",
   /*47*/"pelletHours",  /*48*/"",           /*49*/"pelletsTotal",/*50*/"serviceCountdown",
   /*51*/"serviceOffset",/*52*/"serviceMinutes",
+  // 53-54 confirmed 2026-09-18 by direct comparison against the stove's own
+  // Info > Paramètres screen (real hardware match, not binary-only inference).
+  /*53*/"ignitionCount",/*54*/"onOffCycles",
 };
-static const int NUM_SENSOR_LABELS = 53;
-
-// Libellés positionnels pour Firenet V1 (INDUO V2.26 / V2.27 PRIO 1, VA 0x800366bc)
-static const char* V1_SENSOR_LABELS[] = {
-  /*0*/"roomTemp",          /*1*/"flame",             /*2*/"errMask32",        /*3*/"errSub",
-  /*4*/"serviceCountdown",  /*5*/"dischargeMotor",    /*6*/"augerSet",         /*7*/"idFanMeas",
-  /*8*/"airFlaps",          /*9*/"pelletHours",       /*10*/"logHours",        /*11*/"pelletsTotal",
-  /*12*/"onOff",
-};
-static const int NUM_V1_SENSOR_LABELS = 13;
+static const int NUM_SENSOR_LABELS = 55;
 
 // nom émis pour une position (libellé prouvé, sinon "sNN"/"cNN")
 inline std::string ctrlName(int i) {
   if (i < NUM_CONTROL_LABELS && CONTROL_LABELS[i][0]) return CONTROL_LABELS[i];
   char b[8]; snprintf(b, sizeof b, "c%02d", i); return b;
 }
+// INDUO V2.26 / V2.27 (generation 2): the stove's sensor table is the DOMO / INDUO II one without the record
+// at index 2 (disassembly of the three firmwares, joined through the TFT display numbers: 2.27 position p is
+// position p for p < 2 and p + 1 for p >= 2 of the DOMO table above; confirmed against a live DOMO for the
+// positions with a label). The labels of the DOMO table are therefore reused for V1.
+inline int v1ToDomoIndex(int p) { return p < 2 ? p : p + 1; }
+inline int domoToV1Index(int d) { return d < 2 ? d : (d == 2 ? -1 : d - 1); }
+
 inline std::string sensName(int i, int generation = 0) {
-  if (generation == 2) {
-    if (i < NUM_V1_SENSOR_LABELS && V1_SENSOR_LABELS[i][0]) return V1_SENSOR_LABELS[i];
-  } else {
-    if (i < NUM_SENSOR_LABELS && SENSOR_LABELS[i][0]) return SENSOR_LABELS[i];
-  }
+  if (generation == 2) i = v1ToDomoIndex(i);   // i is then a V1 (2.27) position
+  if (i < NUM_SENSOR_LABELS && SENSOR_LABELS[i][0]) return SENSOR_LABELS[i];
   char b[8]; snprintf(b, sizeof b, "s%02d", i); return b;
+}
+
+// Position (DOMO index space) of a sensor name echoed by the stove, or -1: a label of the table or "sNN".
+inline int sensIndexByName(const std::string& n) {
+  if (n.empty()) return -1;
+  for (int i = 0; i < NUM_SENSOR_LABELS; i++)
+    if (SENSOR_LABELS[i][0] && n == SENSOR_LABELS[i]) return i;
+  if (n.size() >= 2 && n.size() <= 4 && n[0] == 's') {
+    int v = 0;
+    for (size_t k = 1; k < n.size(); k++) { if (n[k] < '0' || n[k] > '9') return -1; v = v * 10 + (n[k] - '0'); }
+    return v;
+  }
+  return -1;
 }
 
 } // namespace firenet
