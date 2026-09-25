@@ -143,7 +143,7 @@ int main(){
     for (int i=0;i<6;i++){ l4.onByte('0'); c4+=60; l4.poll(); }
     CH("version_ack cleared after sustained post-ack probing", !l4.model().version_ack);
     w4.clear();
-    c4+=DongleLink::TX_GAP_MS; l4.poll();
+    c4+=DongleLink::VERSION_RETRY_MS; l4.poll();
     CH("handshake re-sent after recovery", w4.find("GET_WIFI_VERSION")!=std::string::npos || w4.find("GET_CDCDEVICE")!=std::string::npos);
   }
 

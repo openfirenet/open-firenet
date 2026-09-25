@@ -336,7 +336,7 @@ public:
   uint32_t syn_count_ = 0, syn_reported_ = 0, first_syn_ms_ = 0, last_syn_ms_ = 0;
   uint32_t last_syn_reply_ms_ = 0, last_syn_report_ms_ = 0;
   bool syn_replied_ = false;
-  static const uint32_t TX_GAP_MS = 600;  // silence entre trames (garantit >100 ticks poêle)
+  static const uint32_t TX_GAP_MS = 150;  // silence entre trames ; 150 ms a été vu fonctionner sur un INDUO 2.27 réel (issue #4), main garde 600 ms par défaut
 
 private:
   // Les trames sont mises en file et émises UNE par UNE, espacées de TX_GAP_MS,
