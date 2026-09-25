@@ -375,8 +375,10 @@ private:
       last_tx_ms_ = 0;
       return;
     }
-    // Réinitialisation de session poêle V1 (VA 0x8003be74 émet \x02 0 \x03 quand *0x1ac8=0) :
-    // Le poêle signale explicitement que la session est perdue ou expirée.
+    // V1 stove session reset. On the INDUO 2.27 the `02 30 03` reply comes from the silence responder
+    // (fn 0x8004be38 in the disassembly), which only runs in states 2/4/9 of the offline-update machine:
+    // after ~99 loop passes without any received byte it sends 02, 30, 03 once (three one-byte transfers)
+    // and discards whatever it receives meanwhile. So seeing it means the stove is in that update state.
     if (clean == "0" || (buf.find('\x02') != std::string::npos && buf.find('0') != std::string::npos)) {
       model_.version_ack = false;
       model_.version_profile = -1;
