@@ -594,7 +594,7 @@ static void handleScan() {
 // ligne « xN » pour qu'une rafale ne chasse pas le reste du journal.
 // 48 KB: the ring is reserved in RAM at boot; 96 KB left a DOMO 2.29 with only ~25 KB of free heap at its lowest
 // (repeated lines are merged, so 48 KB still holds several minutes of traffic).
-static const size_t LOG_RING_BYTES = 48 * 1024;
+static const size_t LOG_RING_BYTES = 96 * 1024;  // TEMPORARY for the 2.28 test (issue #4): keep the start of the link attempt; back to 48 KB before merging
 static char     g_logRing[LOG_RING_BYTES];
 static uint64_t g_logTotal = 0;             // octets écrits depuis le boot (position absolue)
 static std::mutex g_logMx;                  // logEntry() est aussi appelé depuis des callbacks USB
