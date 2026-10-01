@@ -481,8 +481,8 @@ int main(){
     CH("detect: DOMO/V3 probed first", w7.find("GET_CDCDEVICE3_VERSION=0; BL=999; APP=201; REV=12201; DT=3; ") != std::string::npos);
     w7.clear();
     c7 += DongleLink::STAGE_TIMEOUT_MS; l7.poll(); drain7();
-    CH("detect: after STAGE_TIMEOUT_MS, INDUO II 2.28 is probed next (bare CDCDEVICE dialect, APP=112)",
-       w7.find("GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=13301; DT=1; ") != std::string::npos &&
+    CH("detect: after STAGE_TIMEOUT_MS, INDUO II 2.28 is probed next (bare CDCDEVICE header, APP=112, DT=0 = FIRENET status dialect)",
+       w7.find("GET_CDCDEVICE_VERSION=0; BL=101; APP=112; REV=13301; DT=0; ") != std::string::npos &&
        w7.find("GET_WIFI_VERSION") == std::string::npos);
     w7.clear();
     c7 += DongleLink::STAGE_TIMEOUT_MS; l7.poll(); drain7();

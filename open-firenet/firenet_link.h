@@ -127,17 +127,21 @@ public:
   // hardware, DOMO firmware not disassembled): the probe's inertness on a mismatched family and its APP=112
   // validation on a real 2.28 rest on the 2.27 proof plus reading the 2.28 chain (`GET_WIFI_VERSION=0` first,
   // else `GET_CDCDEVICE_VERSION`, then fn 0x800431f0 checks APP==112), not on a live test.
-  // A detected 2.28 is mapped to generation 1 (the DOMO/V3 protocol), not a new generation value: the 2.28
-  // sensor/control table is DOMO-identical position for position (no shift; only the 2.27 table is shifted,
-  // see v1ToDomoIndex/v1ToDomoCtrlIndex), and its command chain also accepts GET_CDCDEVICE_STATUS, the dialect
-  // DOMO uses -- so once acked, a 2.28 is indistinguishable from a DOMO for everything that follows. Which
-  // probe actually answered is kept in model_.version_profile (0=DOMO/V3, 1=INDUO II 2.28, 2=INDUO V1) for
-  // logging only.
+  // A detected 2.28 has generation 1 because its sensor/control table is DOMO-identical position for position
+  // (no shift; only the 2.27 table is shifted, see v1ToDomoIndex/v1ToDomoCtrlIndex), but it speaks the FIRENET
+  // dialect of the 2.26/2.27 for everything else (induoDialect()). Which probe answered is kept in
+  // model_.version_profile (0=DOMO/V3, 1=INDUO II 2.28, 2=INDUO V1).
+  // DT=0 in the 2.28 probe, read in the 2.28 firmware: the GET_CDCDEVICE_VERSION branch stores atoi(DT) in the
+  // byte *(0x5bcc+0xc9) (0x8001b714), and that byte only selects the status dialect -- 0: GET_FIRENET_STATUS /
+  // POST_FIRENET_STATUS (0x8001b73c, 0x8001b816, 0x8001b954), otherwise the GET/POST_CDCDEVICE_STATUS ones -- plus
+  // a special case for DT == 2 (version check APP == 1 instead of 112, 0x8004321c). With DT=1 the stove ignored our
+  // FIRENET status and ping and never linked (RIKA SONO 2.28, issue #4); DT=0 makes it use the FIRENET dialect,
+  // whose status parse table is the 2.27 one.
   enum { DETECT_V3 = 0, DETECT_V28 = 1, DETECT_V1 = 2, DETECT_STAGE_COUNT = 3 };
   struct VersionProfile { const char* prefix; int bl; int app; int rev; int dt; };
   static const VersionProfile& stageProfile(int stage) {
     static const VersionProfile v3  = {"GET_CDCDEVICE3_VERSION=0; ", 999, 201, 12201, 3};
-    static const VersionProfile v28 = {"GET_CDCDEVICE_VERSION=0; ", 101, 112, 13301, 1};
+    static const VersionProfile v28 = {"GET_CDCDEVICE_VERSION=0; ", 101, 112, 13301, 0};
     static const VersionProfile v1  = {"GET_WIFI_VERSION_GET_CDCDEVICE_VERSION=0; ", 101, 111, 360, 1};
     return stage == DETECT_V3 ? v3 : (stage == DETECT_V28 ? v28 : v1);
   }

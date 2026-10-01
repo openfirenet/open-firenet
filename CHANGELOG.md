@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Fixes
+- Stoves on firmware 2.28 (e.g. INDUO II, SONO): the bridge now announces itself the way these stoves expect, so they can complete the link (to be confirmed on a real stove).
+
 ## v3.0.0 (2026-10-01)
 
 ### Features
