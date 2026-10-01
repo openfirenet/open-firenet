@@ -551,6 +551,11 @@ int main(){
     // was still never answered even with status sent right away -- so a 2.28 now gets the FIRENET dialect (same
     // as V1) instead, not just an earlier CDC-dialect status push.
     CH("2.28: status uses the FIRENET dialect (same as V1), not DOMO's CDC one", w11.find("GET_FIRENET_STATUS=0;\n") != std::string::npos);
+    {
+      size_t pf = w11.find("POST_FIRENET_STATUS"), pc = w11.find("POST_CDCDEVICE_STATUS"), st = w11.find("GET_FIRENET_STATUS=0;\n");
+      CH("2.28 diagnostic: both bare status requests go out before our status",
+         pf != std::string::npos && pc != std::string::npos && st != std::string::npos && pf < st && pc < st);
+    }
     CH("2.28: status carries an 8-digit ID, not DOMO/V3's 7-digit default",
        w11.find("\n00000000\n") != std::string::npos && w11.find("\n0000000\n") == std::string::npos);
     CH("2.28: ssid sent in plain text, not hex-encoded like DOMO's", w11.find("\nMonSSID\n") != std::string::npos);

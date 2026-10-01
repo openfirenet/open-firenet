@@ -202,6 +202,7 @@ public:
       // decoder, branch 0x8004c2d4..0x8004c470, FINDINGS run #20; the official key sends it too). Not yet
       // confirmed on hardware; if the stove did not answer, behaviour would be the same as before.
       send("POST_FIRENET_STATUS");
+      if (model_.version_profile == DETECT_V28) send("POST_CDCDEVICE_STATUS");  // TEMPORARY 2.28 diagnostic, see the ack
     } else {
       send("POST_CDCDEVICE_STATUS");
     }
@@ -721,7 +722,16 @@ private:
         // only requests status AFTER sensor+control registration finishes, which never happens if the 2.28
         // needs that unlock first -- a deadlock. Left untouched for a real DOMO (detect_stage_==DETECT_V3),
         // since that flow is the one already proven in production.
-        if (detect_stage_ == DETECT_V28) pushStatus();
+        if (detect_stage_ == DETECT_V28) {
+          // TEMPORARY 2.28 diagnostic (issue #4): ask for the stove's status in both dialects before pushing ours,
+          // like the official key asks first (FINDINGS run #59). The stove only answers the request that matches
+          // its current DT byte (0: POST_FIRENET_STATUS, else POST_CDCDEVICE_STATUS, 0x8001b738..0x8001b770);
+          // with DT=0 sent, our FIRENET status and ping were ignored on a real SONO, so DT may be rewritten after
+          // the probe (display command @22, 0x80027516). A bare request triggers no ID/token check on the stove.
+          send("POST_FIRENET_STATUS");
+          send("POST_CDCDEVICE_STATUS");
+          pushStatus();
+        }
       }
       return;
     }
