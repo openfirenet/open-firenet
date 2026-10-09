@@ -266,10 +266,10 @@ What matters is the **mainboard firmware version** of the stove (menu Info on th
 
 | Mainboard firmware | Status | Notes |
 |:---:|:---|:---|
-| **2.29** (e.g. DOMO, DOMO BACK, PRIMO MULTIAIR) | ✅ Supported | All values and settings |
-| **2.26 / 2.27** (e.g. INDUO) | ✅ Supported | All values and settings (no MultiAir / baking oven on these stoves) |
-| **2.28** (e.g. LIVO, INDUO II, SONO) | ✅ Supported | All values and settings, MultiAir included (no baking oven on these stoves) |
 | **2.30** (e.g. INDUO) | 🚧 In progress | One report: the link comes up and pellet operation is read correctly; the states of wood operation are not named yet ([#89](https://github.com/openfirenet/open-firenet/issues/89)) |
+| **2.29** (e.g. DOMO, DOMO BACK, PRIMO MULTIAIR) | ✅ Supported | All values and settings |
+| **2.28** (e.g. LIVO, INDUO II, SONO) | ✅ Supported | All values and settings, MultiAir included (no baking oven on these stoves) |
+| **2.26 / 2.27** (e.g. INDUO) | ✅ Supported | All values and settings (no MultiAir / baking oven on these stoves) |
 | **2.25 and older** | ❓ Untested | Feedback welcome |
 
 ---
