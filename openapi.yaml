@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Open Firenet bridge API
-  version: 4.0.0
+  version: 4.1.0
   description: |
     Local REST API of the Open Firenet bridge, the ESP32-S3 that replaces the RIKA Firenet stick. It is served on your
     network at `http://open-firenet.local` (or the bridge's IP address), without key or account.

@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.1.0 (2026-10-10)
 
 ### Breaking changes
 - The stove is reported as "Off" (state `off`) when it is switched off, and as "Standby" only when it is switched on and waits for a heat demand. Both used to be reported as "Standby": **an automation or a script that tests the state `standby` to know that the stove is off must now test `off`.** (#89)
