@@ -192,18 +192,44 @@ static const char* getStoveModelName(long modelId) {
 }
 
 // ------------------------------------------------------------------- API web V2
-// Name, label and "is burning" of a main state code.
-static void mainStateNames(long mainSt, const char*& stName, const char*& stLabel, bool& isBurning) {
+// Name, label and "is burning" of a main state code (with its sub-state, which tells "off" from "standby").
+//
+// Wood operation of a combined stove (issue #89), read on an INDUO on firmware 2.30: log check = 11 (after the door
+// was opened in standby), 13 (after ignition), 14 (after control mode); split log mode = 20 and 21; 21 with
+// sub-state 12 is shown by the stove as "put on split logs" or as "do not put log", which these two codes do not
+// tell apart. Codes 16, 17 and 50 are log checks too in the table of the community integration for RIKA's cloud
+// (Fockaert/rika-firenet-custom-component); nobody reported them from a stove yet.
+// "Put on split logs" against "do not put logs": the mainboard does not tell them apart, the touch display does. Read
+// in the touch application (2.28.500.02 fn 0x9d04f078, same constants in 2.29.534.04): it compares a value with 351
+// and 300 -- 351 and above "split log mode", 300 to 350 "put on split logs", below 300 "do not put logs". That
+// value is taken here to be the combustion chamber temperature, which the two files of issue #89 fit (559 in split
+// log mode, 213 at "do not put log") without proving it. Not reproduced: the display's eco thresholds (331 / 280)
+// and a flag that keeps "split log mode" between 300 and 350.
+// Off against standby, read on a DOMO on firmware 2.29: main state 1 with sub-state 0 while the stove is switched
+// off, sub-state 3 once it is switched on and waits for a heat demand.
+static void mainStateNames(long mainSt, long subState, long flameTemp, const char*& stName, const char*& stLabel, bool& isBurning) {
   stName = "unknown"; stLabel = "Unknown"; isBurning = false;
   switch (mainSt) {
     case 0: stName = "off"; stLabel = "Off"; break;
-    case 1: stName = "standby"; stLabel = "Standby"; break;
+    case 1:
+      if (subState == 0) { stName = "off"; stLabel = "Off"; }
+      else               { stName = "standby"; stLabel = "Standby"; }
+      break;
     case 2: stName = "ignition"; stLabel = "Ignition"; isBurning = true; break;
     case 3: stName = "flame_start"; stLabel = "Flame Start"; isBurning = true; break;
     case 4: stName = "heating"; stLabel = "Heating"; isBurning = true; break;
     case 5: stName = "cleaning"; stLabel = "Grate Cleaning"; isBurning = true; break;
     case 6: stName = "burn_off"; stLabel = "Burn Off"; isBurning = true; break;
     case 7: stName = "splitlog"; stLabel = "Split Log"; isBurning = true; break;
+    case 11: case 13: case 14: case 16: case 17: case 50:
+      stName = "splitlog_check"; stLabel = "Split Log Check"; break;
+    case 20: case 21:
+      stName = "splitlog"; stLabel = "Split Log"; isBurning = true;
+      if (mainSt == 21 && subState == 12) {
+        if (flameTemp < 300)       { stName = "splitlog_no_refuel"; stLabel = "Do Not Put Logs"; }
+        else if (flameTemp <= 350) { stName = "splitlog_refuel";    stLabel = "Put On Split Logs"; }
+      }
+      break;
   }
 }
 
@@ -262,7 +288,7 @@ static String jsonStoveSections() {
   long fan2Area  = controlValue(m, "convectionFan2Area", 0);
 
   const char* stName; const char* stLabel; bool isBurning;
-  mainStateNames(mainSt, stName, stLabel, isBurning);
+  mainStateNames(mainSt, sState, fTemp, stName, stLabel, isBurning);
 
   const char* modeName = "comfort";
   switch (curMode) {
@@ -367,7 +393,7 @@ static String jsonStoveSections() {
 static String jsonState() {
   const auto& m = g_link->model();
   const char* stName; const char* stLabel; bool isBurning;
-  mainStateNames(sensorValue(m, "mainState", 1), stName, stLabel, isBurning);
+  mainStateNames(sensorValue(m, "mainState", 1), sensorValue(m, "subState", 0), sensorValue(m, "flame", 0), stName, stLabel, isBurning);
 
   char buf[600];
   snprintf(buf, sizeof(buf),
