@@ -473,7 +473,7 @@ components:
       properties:
         state:
           type: string
-          enum: ["off", standby, ignition, flame_start, heating, cleaning, burn_off, splitlog, unknown]
+          enum: ["off", standby, ignition, flame_start, heating, cleaning, burn_off, splitlog, splitlog_check, splitlog_refuel, splitlog_no_refuel, unknown]
         state_code: { type: integer }
         state_label: { type: string }
         sub_state: { type: integer }

@@ -2,7 +2,11 @@
 
 ## Non publié
 
+### Breaking changes
+- The stove is reported as "Off" (state `off`) when it is switched off, and as "Standby" only when it is switched on and waits for a heat demand. Both used to be reported as "Standby": **an automation or a script that tests the state `standby` to know that the stove is off must now test `off`.** (#89)
+
 ### Fixes
+- Combined wood and pellet stoves: the states of wood operation are now named instead of "Unknown": "Split Log Check" (state `splitlog_check`), "Split Log" (`splitlog`), "Put On Split Logs" (`splitlog_refuel`) and "Do Not Put Logs" (`splitlog_no_refuel`), which an automation can use, and the stove is reported as burning in split log mode. The last two follow the combustion chamber temperature as the stove's own screen does (300 to 350 °C, and below 300 °C). Read on an INDUO on firmware 2.30. (#89)
 - Web page: the MultiAir settings are now shown for a CONNECT too, a model RIKA sells with one or two MultiAir outlets.
 
 ## v4.0.0 (2026-10-08)

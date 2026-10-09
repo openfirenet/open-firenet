@@ -131,7 +131,7 @@ static const Entity ENTITIES[] = {
    "\"unit_of_measurement\":\"%\",\"state_class\":\"measurement\"," OF_DIAG},
   {"sensor", "stove_state", "Stove State",
    "\"state_topic\":\"~/stove/state\",\"device_class\":\"enum\","
-   "\"options\":[\"off\",\"standby\",\"ignition\",\"flame_start\",\"heating\",\"cleaning\",\"burn_off\",\"splitlog\",\"unknown\"],"
+   "\"options\":[\"off\",\"standby\",\"ignition\",\"flame_start\",\"heating\",\"cleaning\",\"burn_off\",\"splitlog\",\"splitlog_check\",\"splitlog_refuel\",\"splitlog_no_refuel\",\"unknown\"],"
    "\"icon\":\"mdi:fireplace\","},
   {"sensor", "error_code", "Error Code", "\"state_topic\":\"~/stove/error_code\"," OF_DIAG},
   {"sensor", "error_sub", "Error Sub-code", "\"state_topic\":\"~/stove/error_sub\"," OF_DIAG},

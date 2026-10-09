@@ -1408,7 +1408,17 @@ const I18N = {
       4: { title: "En régulation (Chauffe)", desc: "Combustion active normale", icon: "🔥", active: true },
       5: { title: "Nettoyage grille", desc: "Cycle de décrassage automatique", icon: "🧹", active: true },
       6: { title: "Extinction (Burn off)", desc: "Fin de combustion & ventilation", icon: "💨", active: true },
-      7: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true }
+      7: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true },
+      11: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
+      13: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
+      14: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
+      16: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
+      17: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
+      50: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
+      20: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true },
+      21: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true },
+      splitlog_refuel: { title: "Recharger en bûches", desc: "Le poêle demande de remettre des bûches", icon: "🪵", active: true },
+      splitlog_no_refuel: { title: "Ne pas recharger", desc: "Le foyer est trop froid pour remettre des bûches", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manuel (%)", 1: "Automatique", 2: "Confort" },
     sensorDesc: {
@@ -1681,7 +1691,17 @@ const I18N = {
       4: { title: "Heating", desc: "Regulated active combustion", icon: "🔥", active: true },
       5: { title: "Grate Cleaning", desc: "Automatic de-ashing cycle", icon: "🧹", active: true },
       6: { title: "Burn off", desc: "Cooling down & post-ventilation", icon: "💨", active: true },
-      7: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true }
+      7: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true },
+      11: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
+      13: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
+      14: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
+      16: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
+      17: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
+      50: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
+      20: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true },
+      21: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true },
+      splitlog_refuel: { title: "Put on split logs", desc: "The stove asks for more logs", icon: "🪵", active: true },
+      splitlog_no_refuel: { title: "DO NOT put logs", desc: "The fire is too low to add logs", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manual (%)", 1: "Automatic", 2: "Comfort" },
     sensorDesc: {
@@ -2014,7 +2034,17 @@ const I18N = {
         "desc": "Combustione a legna attiva",
         "icon": "🪵",
         "active": true
-      }
+      },
+      "11": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
+      "13": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
+      "14": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
+      "16": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
+      "17": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
+      "50": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
+      "20": { "title": "Legna", "desc": "Combustione a legna attiva", "icon": "🪵", "active": true },
+      "21": { "title": "Legna", "desc": "Combustione a legna attiva", "icon": "🪵", "active": true },
+      "splitlog_refuel": { "title": "Aggiungere legna", "desc": "La stufa chiede altra legna", "icon": "🪵", "active": true },
+      "splitlog_no_refuel": { "title": "NON aggiungere legna", "desc": "Il fuoco è troppo basso per aggiungere legna", "icon": "🪵", "active": true }
     },
     "modeMap": {
       "0": "Manuale (%)",
@@ -2291,7 +2321,17 @@ const I18N = {
       4: { title: "Heizen", desc: "Aktive geregelte Verbrennung", icon: "🔥", active: true },
       5: { title: "Rostreinigung", desc: "Automatischer Entaschungszyklus", icon: "🧹", active: true },
       6: { title: "Abbrand (Burn off)", desc: "Abkühlung & Nachbelüftung", icon: "💨", active: true },
-      7: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true }
+      7: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true },
+      11: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
+      13: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
+      14: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
+      16: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
+      17: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
+      50: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
+      20: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true },
+      21: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true },
+      splitlog_refuel: { title: "Bitte Nachlegen", desc: "Der Ofen bittet um weiteres Scheitholz", icon: "🪵", active: true },
+      splitlog_no_refuel: { title: "NICHT Nachlegen", desc: "Das Feuer ist zu schwach zum Nachlegen", icon: "🪵", active: true }
     },
     modeMap: { 0: "Manuell (%)", 1: "Automatisch", 2: "Komfort" },
     sensorDesc: {
@@ -3492,7 +3532,10 @@ async function tick() {
     }
 
     const mainSt = stObj.state_code !== undefined ? stObj.state_code : (rawS.mainState !== undefined ? rawS.mainState : (s.sensors_pos ? s.sensors_pos[31] : 1));
-    const stInfo = (t.stateMap && t.stateMap[mainSt]) || { title: stObj.state_label || ("State " + mainSt), desc: stObj.state || "Unknown", icon: "❓", active: stObj.is_burning || false };
+    // Main state 1 covers both "switched off" (sub-state 0) and "standby": the bridge tells them apart in `state`.
+    const stKey = (mainSt === 1 && stObj.state === 'off') ? 0
+                : (stObj.state === 'splitlog_refuel' || stObj.state === 'splitlog_no_refuel') ? stObj.state : mainSt;
+    const stInfo = (t.stateMap && t.stateMap[stKey]) || { title: stObj.state_label || ("State " + mainSt), desc: stObj.state || "Unknown", icon: "❓", active: stObj.is_burning || false };
     document.getElementById('mainStateTitle').textContent = stInfo.title;
     document.getElementById('subStateDesc').textContent = stInfo.desc;
     document.getElementById('stateIconBox').textContent = stInfo.icon;
