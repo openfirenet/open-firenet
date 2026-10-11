@@ -1,5 +1,19 @@
 # Changelog
 
+## Non publié
+
+### New
+- **Actual heating power.** The bridge reports the power the stove really runs at (`sensors.power_actual_percent`, MQTT sensor "Actual Heating Power"). In comfort mode the stove sets it itself from the room temperature, so it differs from the power setting. It is 0 when the stove is not heating.
+- **The stove page is simpler.** The cards at the top only show their value, all at the same height, with short titles. Running time, the pellets left before service and the number of ignitions have their own cards. In comfort mode the setpoint is shown beside the room temperature ("20.5 °C → 20°").
+- **Minus and plus buttons** beside every slider, handier than the slider on a computer.
+- **"Apply" buttons** are only active when the value was changed, and show "Sent ✓" once the order is sent.
+- The regulation mode and MultiAir speed buttons, which send their order at once, turn green for a moment when it is sent.
+
+### Fixes
+- On a phone the on/off button had no icon, and in some apps (the page opened inside another app) pressing it did nothing: the confirmation was a browser dialog that those apps do not show. The page now asks for the confirmation itself, also for "Restart" and "Forget Wi-Fi".
+- The "Power" card showed the last power of the stove when it was not heating (for example 44 % in standby). It now shows 0.
+- The setback temperature is set in whole degrees, which is what the stove stores.
+
 ## v4.1.1 (2026-10-11)
 
 ### Fixes

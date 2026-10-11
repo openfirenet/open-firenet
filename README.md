@@ -363,6 +363,7 @@ Since firmware 4.0 the bridge answers its own page and programs on your network 
     "service_countdown_kg": 699,
     "fan_speed_rpm": 0,
     "auger_speed_rpm": 0,
+    "power_actual_percent": 0,
     "air_flaps_percent": 0.0,
     "air_flaps_target_percent": 0.0
   },
