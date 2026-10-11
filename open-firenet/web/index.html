@@ -166,7 +166,16 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   align-items: center;
   gap: 8px;
 }
+.power-icon { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; flex: none; }
 .power-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+/* Confirmation asked by the page itself: the browser's own dialogs are silently refused in a web view, an embedded
+   frame or a captive portal. */
+.confirm-overlay { position: fixed; inset: 0; background: rgba(5,8,14,0.72); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+.confirm-dialog { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; max-width: 420px; width: 100%; display: flex; flex-direction: column; gap: 18px; }
+.confirm-dialog p { font-size: 1rem; font-weight: 600; line-height: 1.4; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.confirm-actions button { padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; border: 1px solid var(--border); background: #252d3d; color: var(--text); }
+.confirm-actions .confirm-yes { background: var(--primary); border-color: var(--primary); color: white; }
 .power-btn:active { transform: translateY(0); }
 .power-btn.btn-off {
   background: #22293a;
@@ -189,9 +198,11 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   padding: 18px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 12px;
 }
+/* The service gauge runs along the bottom edge of its card, so the value stays where the other cards have theirs. */
+.card-gauge { position: relative; overflow: hidden; }
+.card-gauge .progress-bar { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0; }
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -201,9 +212,15 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
-.card-val { font-size: 2.2rem; font-weight: 800; display: flex; align-items: baseline; gap: 4px; }
+.card-header span:first-child { overflow: hidden; text-overflow: ellipsis; }
+/* The value sits in the middle of the room the card leaves it, across and down. */
+.card-val { font-size: 2.2rem; font-weight: 800; display: flex; align-items: baseline; justify-content: center; gap: 4px; margin: auto 0; }
 .card-val .unit { font-size: 1.1rem; color: var(--text-dim); font-weight: 500; }
+/* The setpoint beside the room temperature: smaller and dimmed, it is not a measurement. */
+.card-val .card-target { font-size: 1.1rem; color: var(--text-muted); font-weight: 500; margin-left: 6px; }
+.card-val .card-target:empty { display: none; }
 .card-footer {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -215,7 +232,9 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
 }
 .card-footer b { color: var(--text); }
 
-.stepper { display: flex; gap: 6px; }
+.slider-row { display: flex; align-items: center; gap: 10px; }
+.slider-row input[type=range] { flex: 1; min-width: 0; }
+.slider-row .btn-step { flex: none; }
 .btn-step {
   background: #202738;
   color: var(--text);
@@ -277,7 +296,6 @@ main.no-data .grid-metrics, main.no-data .control-deck, main.no-data #powerBtn {
 }
 .mode-btn .m-icon { font-size: 1.3rem; }
 .mode-btn .m-title { font-weight: 600; font-size: 0.95rem; }
-.mode-btn .m-desc { font-size: 0.75rem; color: var(--text-muted); }
 .mode-btn:hover { border-color: #3b455c; color: var(--text); }
 .mode-btn.active {
   background: rgba(229,57,53,0.12);
@@ -336,7 +354,8 @@ input[type=range]::-webkit-slider-thumb {
   align-self: flex-end;
   transition: all 0.2s;
 }
-.btn-apply:hover { background: #323d52; border-color: #495775; }
+.btn-apply:hover:enabled { background: #323d52; border-color: #495775; }
+.btn-apply:disabled { opacity: 0.45; cursor: default; }
 
 /* MultiAir Fans */
 .multiair-grid {
@@ -407,6 +426,10 @@ input[type=range]::-webkit-slider-thumb {
   color: var(--primary);
   box-shadow: 0 0 10px var(--primary-glow);
 }
+/* Drawn like a selected button (outline and glow), in green; after the "active" rules, so it also shows on the
+   selected one. */
+.sent-ok, .btn-lvl.sent-ok, .mode-btn.sent-ok { background: rgba(16,185,129,0.14); border-color: var(--green); color: var(--green); box-shadow: 0 0 12px rgba(16,185,129,0.45); }
+.sent-err, .btn-lvl.sent-err, .mode-btn.sent-err { background: rgba(245,158,11,0.14); border-color: var(--amber); color: var(--amber); box-shadow: 0 0 12px rgba(245,158,11,0.45); }
 
 /* Tabs */
 .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
@@ -451,7 +474,6 @@ input[type=range]::-webkit-slider-thumb {
   .subtabs { width: 100%; }
   .mode-selector { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .mode-btn { padding: 10px 6px; overflow-wrap: anywhere; }
-  .mode-btn .m-desc { font-size: 0.68rem; }
   .control-deck { padding: 16px; }
   #sensorsTable th { font-size: 0.65rem; letter-spacing: 0; }
   #sensorsTable, #linkTable { table-layout: fixed; width: 100%; }
@@ -663,7 +685,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     </div>
     <div>
       <button class="power-btn btn-off" id="powerBtn" onclick="togglePower()">
-        <span>⏻</span> <span id="powerBtnText">Allumer</span>
+        <svg class="power-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg> <span id="powerBtnText">Allumer</span>
       </button>
     </div>
   </div>
@@ -672,32 +694,21 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   <div class="grid-metrics">
     <div class="card">
       <div class="card-header">
-        <span id="lblRoomHeader">Température Ambiante</span>
+        <span id="lblRoomHeader">T° ambiante</span>
         <span>🌡️</span>
       </div>
       <div class="card-val">
-        <span id="roomTemp">--</span><span class="unit">°C</span>
-      </div>
-      <div class="card-footer">
-        <span><span id="lblRoomTargetPrefix">Consigne : </span><b id="roomTarget">--</b>°C</span>
-        <div class="stepper">
-          <button class="btn-step" onclick="stepTarget(-1)">-</button>
-          <button class="btn-step" onclick="stepTarget(1)">+</button>
-        </div>
+        <span id="roomTemp">--</span><span class="unit">°C</span><span class="card-target" id="roomTarget"></span>
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <span id="lblFlameHeader">Température Chambre Combustion</span>
+        <span id="lblFlameHeader">T° flamme</span>
         <span>🔥</span>
       </div>
       <div class="card-val">
         <span id="flameTemp">--</span><span class="unit">°C</span>
-      </div>
-      <div class="card-footer">
-        <span id="lblFlameSub">Sonde thermocouple</span>
-        <span id="flameBadge" style="color:var(--text-muted)">Inactif</span>
       </div>
     </div>
 
@@ -709,26 +720,48 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <div class="card-val">
         <span id="stageCur">--</span><span class="unit">%</span>
       </div>
-      <div class="card-footer">
-        <span><span id="lblModePrefix">Mode : </span><b id="modeText">--</b></span>
-        <span><span id="lblStageTgtPrefix">Cible : </span><b id="stageTgt">--</b>%</span>
-      </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <span id="lblPelletsHeader">Compteurs & Entretien</span>
+        <span id="lblPelletsHeader">Granulés</span>
         <span>📦</span>
       </div>
       <div class="card-val">
         <span id="pelletsTotal">--</span><span class="unit">kg</span>
       </div>
-      <div class="card-footer" style="display:block">
-        <div style="display:flex;flex-direction:column;gap:2px;font-size:0.75rem;margin-bottom:4px">
-          <span style="white-space:nowrap"><span id="lblPelletHoursPrefix">Fonctionnement : </span><b id="pelletHours">--</b> h</span>
-          <span style="white-space:nowrap"><span id="lblServiceCountPrefix">Entretien dans : </span><b id="serviceCount">--</b> kg</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" id="serviceBar" style="width:100%"></div></div>
+    </div>
+  </div>
+
+  <div class="grid-metrics">
+    <div class="card">
+      <div class="card-header">
+        <span id="lblRuntimeHeader">Fonctionnement</span>
+        <span>⏱️</span>
+      </div>
+      <div class="card-val">
+        <span id="pelletHours">--</span><span class="unit">h</span>
+      </div>
+    </div>
+
+    <div class="card card-gauge">
+      <div class="card-header">
+        <span id="lblServiceHeader">Entretien dans</span>
+        <span>🧰</span>
+      </div>
+      <div class="card-val">
+        <span id="serviceCount">--</span><span class="unit">kg</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="serviceBar" style="width:100%"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span id="lblIgnitionsHeader">Allumages</span>
+        <span>✨</span>
+      </div>
+      <div class="card-val">
+        <span id="ignitionCount">--</span>
       </div>
     </div>
   </div>
@@ -755,17 +788,14 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           <div class="mode-btn" id="modeBtn2" onclick="setMode(2)">
             <div class="m-icon">🛋️</div>
             <div class="m-title" id="lblModeTitle2">Confort</div>
-            <div class="m-desc" id="lblModeDesc2">Sonde de température</div>
           </div>
           <div class="mode-btn" id="modeBtn1" onclick="setMode(1)">
             <div class="m-icon">⏱️</div>
             <div class="m-title" id="lblModeTitle1">Auto</div>
-            <div class="m-desc" id="lblModeDesc1">Horaires programmés</div>
           </div>
           <div class="mode-btn" id="modeBtn0" onclick="setMode(0)">
             <div class="m-icon">⚙️</div>
             <div class="m-title" id="lblModeTitle0">Manuel</div>
-            <div class="m-desc" id="lblModeDesc0">Puissance fixe (%)</div>
           </div>
         </div>
       </div>
@@ -778,8 +808,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
             <label id="lblSliderTemp">Consigne Ambiance (Confort)</label>
             <span class="val"><span id="sliderTempVal">20</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
           </div>
-          <input type="range" id="tempRange" min="14" max="28" step="1" value="20" oninput="onTempSlider(this.value)">
-          <button class="btn-apply" id="btnApplyTemp" onclick="applyRoomTarget()">Appliquer la température</button>
+          <div class="slider-row">
+            <button class="btn-step" type="button" onclick="stepSlider('tempRange', -1)">−</button>
+            <input type="range" id="tempRange" min="14" max="28" step="1" value="20" oninput="onTempSlider(this.value)">
+            <button class="btn-step" type="button" onclick="stepSlider('tempRange', 1)">+</button>
+          </div>
+          <button class="btn-apply" id="btnApplyTemp" onclick="applyRoomTarget()" disabled>Valider</button>
         </div>
 
         <!-- Target Stage Power -->
@@ -788,8 +822,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
             <label id="lblSliderStage">Puissance (Auto & Manuel)</label>
             <span class="val"><span id="sliderStageVal">70</span> <small style="font-size:0.9rem;color:var(--text-muted)">%</small></span>
           </div>
-          <input type="range" id="stageRange" min="30" max="100" step="5" value="70" oninput="onStageSlider(this.value)">
-          <button class="btn-apply" id="btnApplyStage" onclick="applyStageTarget()">Appliquer la puissance</button>
+          <div class="slider-row">
+            <button class="btn-step" type="button" onclick="stepSlider('stageRange', -1)">−</button>
+            <input type="range" id="stageRange" min="30" max="100" step="5" value="70" oninput="onStageSlider(this.value)">
+            <button class="btn-step" type="button" onclick="stepSlider('stageRange', 1)">+</button>
+          </div>
+          <button class="btn-apply" id="btnApplyStage" onclick="applyStageTarget()" disabled>Valider</button>
         </div>
       </div>
 
@@ -834,8 +872,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
                 <span id="lblFan1Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
                 <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan1AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
               </div>
-              <input type="range" id="fan1AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(1, this.value)">
-              <button class="btn-apply" id="btnApplyFan1Area" onclick="applyFanArea(1)">Appliquer correction</button>
+              <div class="slider-row">
+                <button class="btn-step" type="button" onclick="stepSlider('fan1AreaRange', -1)">−</button>
+                <input type="range" id="fan1AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(1, this.value)">
+                <button class="btn-step" type="button" onclick="stepSlider('fan1AreaRange', 1)">+</button>
+              </div>
+              <button class="btn-apply" id="btnApplyFan1Area" onclick="applyFanArea(1)" disabled>Valider</button>
             </div>
           </div>
 
@@ -871,8 +913,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
                 <span id="lblFan2Area" style="font-size:0.8rem;color:var(--text-dim);font-weight:600">Correction convection</span>
                 <span class="val" style="font-size:1.1rem;font-weight:700"><span id="fan2AreaVal">0</span> <small style="font-size:0.8rem;color:var(--text-muted)">%</small></span>
               </div>
-              <input type="range" id="fan2AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(2, this.value)">
-              <button class="btn-apply" id="btnApplyFan2Area" onclick="applyFanArea(2)">Appliquer correction</button>
+              <div class="slider-row">
+                <button class="btn-step" type="button" onclick="stepSlider('fan2AreaRange', -1)">−</button>
+                <input type="range" id="fan2AreaRange" min="-30" max="30" step="5" value="0" oninput="onFanAreaInput(2, this.value)">
+                <button class="btn-step" type="button" onclick="stepSlider('fan2AreaRange', 1)">+</button>
+              </div>
+              <button class="btn-apply" id="btnApplyFan2Area" onclick="applyFanArea(2)" disabled>Valider</button>
             </div>
           </div>
         </div>
@@ -894,8 +940,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
               <span id="lblBakeTemp" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Température du four</span>
               <span class="val" style="font-size:1.2rem;font-weight:700"><span id="bakeTempVal">180</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
             </div>
-            <input type="range" id="bakeTempRange" min="130" max="340" step="5" value="180" oninput="onBakeTempInput(this.value)">
-            <button class="btn-apply" id="btnApplyBakeTemp" onclick="applyBakeTemp()">Appliquer consigne four</button>
+            <div class="slider-row">
+              <button class="btn-step" type="button" onclick="stepSlider('bakeTempRange', -1)">−</button>
+              <input type="range" id="bakeTempRange" min="130" max="340" step="5" value="180" oninput="onBakeTempInput(this.value)">
+              <button class="btn-step" type="button" onclick="stepSlider('bakeTempRange', 1)">+</button>
+            </div>
+            <button class="btn-apply" id="btnApplyBakeTemp" onclick="applyBakeTemp()" disabled>Valider</button>
           </div>
         </div>
       </div>
@@ -919,9 +969,13 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <div class="slider-box">
         <div class="slider-head">
           <label id="lblSetbackTemp">Température de maintien (Éco)</label>
-          <span class="val"><span id="setbackTempVal">16.0</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
+          <span class="val"><span id="setbackTempVal">16</span> <small style="font-size:0.9rem;color:var(--text-muted)">°C</small></span>
         </div>
-        <input type="range" id="setbackTempRange" min="12" max="22" step="0.5" value="16" oninput="onSetbackInput(this.value)">
+        <div class="slider-row">
+          <button class="btn-step" type="button" onclick="stepSlider('setbackTempRange', -1)">−</button>
+          <input type="range" id="setbackTempRange" min="12" max="22" step="1" value="16" oninput="onSetbackInput(this.value)">
+          <button class="btn-step" type="button" onclick="stepSlider('setbackTempRange', 1)">+</button>
+        </div>
       </div>
 
       <!-- Quick Actions -->
@@ -965,8 +1019,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
               <span id="lblFrostTemp" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Température de consigne</span>
               <span class="val" style="font-size:1.2rem;font-weight:700"><span id="frostTempVal">5</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
             </div>
-            <input type="range" id="frostTempRange" min="4" max="10" step="1" value="5" oninput="onFrostTempInput(this.value)">
-            <button class="btn-apply" id="btnApplyFrostTemp" onclick="applyFrostTemp()">Appliquer hors-gel</button>
+            <div class="slider-row">
+              <button class="btn-step" type="button" onclick="stepSlider('frostTempRange', -1)">−</button>
+              <input type="range" id="frostTempRange" min="4" max="10" step="1" value="5" oninput="onFrostTempInput(this.value)">
+              <button class="btn-step" type="button" onclick="stepSlider('frostTempRange', 1)">+</button>
+            </div>
+            <button class="btn-apply" id="btnApplyFrostTemp" onclick="applyFrostTemp()" disabled>Valider</button>
           </div>
         </div>
 
@@ -982,8 +1040,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
               <span id="lblOffsetDesc" style="font-size:0.85rem;color:var(--text-dim);font-weight:600">Décalage appliqué</span>
               <span class="val" style="font-size:1.2rem;font-weight:700"><span id="roomOffsetVal">0.0</span> <small style="font-size:0.85rem;color:var(--text-muted)">°C</small></span>
             </div>
-            <input type="range" id="roomOffsetRange" min="-4.0" max="4.0" step="0.1" value="0.0" oninput="onRoomOffsetInput(this.value)">
-            <button class="btn-apply" id="btnApplyRoomOffset" onclick="applyRoomOffset()">Appliquer calibrage</button>
+            <div class="slider-row">
+              <button class="btn-step" type="button" onclick="stepSlider('roomOffsetRange', -1)">−</button>
+              <input type="range" id="roomOffsetRange" min="-4.0" max="4.0" step="0.1" value="0.0" oninput="onRoomOffsetInput(this.value)">
+              <button class="btn-step" type="button" onclick="stepSlider('roomOffsetRange', 1)">+</button>
+            </div>
+            <button class="btn-apply" id="btnApplyRoomOffset" onclick="applyRoomOffset()" disabled>Valider</button>
           </div>
         </div>
 
@@ -1151,7 +1213,11 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
       <div style="font-size:0.85rem" id="lblTxGap">Délai entre trames vers le poêle</div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <input type="range" id="txGap" min="50" max="600" step="50" value="150" style="flex:1;min-width:160px">
+        <div class="slider-row" style="flex:1;min-width:220px">
+          <button class="btn-step" type="button" onclick="stepSlider('txGap', -1)">−</button>
+          <input type="range" id="txGap" min="50" max="600" step="50" value="150" style="flex:1;min-width:160px">
+          <button class="btn-step" type="button" onclick="stepSlider('txGap', 1)">+</button>
+        </div>
         <span><b id="txGapVal">600</b> ms</span>
         <button class="btn-lang" id="btnTxGapDefault" style="padding:4px 10px;font-size:0.8rem" onclick="setTxGap(150)">Défaut (150)</button>
       </div>
@@ -1171,6 +1237,15 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   </div>
 </main>
 <div class="toast" id="toast"></div>
+<div class="confirm-overlay" id="confirmBox" style="display:none">
+  <div class="confirm-dialog" role="dialog" aria-modal="true">
+    <p id="confirmText"></p>
+    <div class="confirm-actions">
+      <button type="button" id="confirmNo">Annuler</button>
+      <button type="button" id="confirmYes" class="confirm-yes">Confirmer</button>
+    </div>
+  </div>
+</div>
 
 <script>
 let lastState = null;
@@ -1201,21 +1276,17 @@ const I18N = {
     commError: "Erreur de communication",
     powerOn: "Allumer",
     powerOff: "Éteindre",
+    confirmYes: "Confirmer",
+    confirmNo: "Annuler",
     confirmOn: "Voulez-vous vraiment ALLUMER le poêle ?",
     confirmOff: "Voulez-vous vraiment ÉTEINDRE le poêle ?",
-    roomHeader: "Température Ambiante",
-    roomTargetPrefix: "Consigne : ",
-    flameHeader: "Température Chambre Combustion",
-    flameSub: "Sonde thermocouple",
-    flameLive: "Combustion active",
-    flameCombustion: "Combustion",
-    flameCold: "Froid / Inactif",
+    roomHeader: "T° ambiante",
+    flameHeader: "T° flamme",
     powerHeader: "Puissance",
-    modePrefix: "Mode : ",
-    stageTgtPrefix: "Cible : ",
-    pelletsHeader: "Compteurs & Entretien",
-    serviceCountPrefix: "Entretien dans : ",
-    pelletHoursPrefix: "Fonctionnement : ",
+    pelletsHeader: "Granulés",
+    serviceHeader: "Entretien dans",
+    ignitionsHeader: "Allumages",
+    runtimeHeader: "Fonctionnement",
     serviceBarTitle: "Reste avant le prochain entretien : ",
     deckTitle: "Pilotage du Poêle",
     subtabDirect: "Commandes directes",
@@ -1225,15 +1296,13 @@ const I18N = {
     schedSectionTitle: "PLANNING HEBDOMADAIRE",
     regulationMode: "MODE DE RÉGULATION",
     modeTitle2: "Confort",
-    modeDesc2: "Sonde de température",
     modeTitle1: "Auto",
-    modeDesc1: "Horaires programmés",
     modeTitle0: "Manuel",
-    modeDesc0: "Puissance fixe (%)",
     sliderTemp: "Consigne Ambiance (Confort)",
-    btnApplyTemp: "Appliquer la température",
+    btnApply: "Valider",
+    btnApplySent: "Envoyé ✓",
+    btnApplyError: "Erreur",
     sliderStage: "Puissance (Auto & Manuel)",
-    btnApplyStage: "Appliquer la puissance",
     multiAirTitle: "VENTILATION MULTIAIR",
     multiAirShow: "Mon poêle a MultiAir : afficher ses réglages",
     multiAirHide: "Masquer les réglages MultiAir",
@@ -1241,14 +1310,12 @@ const I18N = {
     fan2Title: "MultiAir 2",
     fanSpeed: "Vitesse",
     fanArea: "Correction convection",
-    btnApplyFanArea: "Appliquer correction",
     fanOn: "Actif",
     fanOff: "Arrêt",
     fanAuto: "Auto",
     frostTitle: "PROTECTION HORS-GEL",
     frostToggle: "Hors-gel",
     frostTemp: "Température de consigne",
-    btnApplyFrostTemp: "Appliquer hors-gel",
     frostOn: "Actif",
     frostOff: "Arrêt",
     ecoToggle: "Mode éco",
@@ -1257,11 +1324,9 @@ const I18N = {
     bakeTitle: "FOUR DE CUISSON (DOMO BACK)",
     bakeSubTitle: "Consigne de cuisson",
     bakeTemp: "Température du four",
-    btnApplyBakeTemp: "Appliquer consigne four",
     offsetTitle: "CALIBRAGE SONDE D'AMBIANCE",
     offsetSubTitle: "Correction température ambiante",
     offsetDesc: "Décalage appliqué",
-    btnApplyRoomOffset: "Appliquer calibrage",
     pageStove: "🔥 Poêle",
     pageBridge: "Clé",
     pageDiag: "🩺 Diagnostic",
@@ -1420,7 +1485,6 @@ const I18N = {
       splitlog_refuel: { title: "Recharger en bûches", desc: "Le poêle demande de remettre des bûches", icon: "🪵", active: true },
       splitlog_no_refuel: { title: "Ne pas recharger", desc: "Le foyer est trop froid pour remettre des bûches", icon: "🪵", active: true }
     },
-    modeMap: { 0: "Manuel (%)", 1: "Automatique", 2: "Confort" },
     sensorDesc: {
       roomTemp: "Température ambiante (°C)",
       flame: "Température chambre de combustion (°C)",
@@ -1484,21 +1548,17 @@ const I18N = {
     commError: "Communication error",
     powerOn: "Turn On",
     powerOff: "Turn Off",
+    confirmYes: "Confirm",
+    confirmNo: "Cancel",
     confirmOn: "Are you sure you want to TURN ON the stove?",
     confirmOff: "Are you sure you want to TURN OFF the stove?",
-    roomHeader: "Room Temperature",
-    roomTargetPrefix: "Setpoint: ",
-    flameHeader: "Combustion Chamber Temp",
-    flameSub: "Thermocouple sensor",
-    flameLive: "Active combustion",
-    flameCombustion: "Combustion",
-    flameCold: "Cold / Inactive",
+    roomHeader: "Room temp.",
+    flameHeader: "Flame temp.",
     powerHeader: "Power",
-    modePrefix: "Mode: ",
-    stageTgtPrefix: "Target: ",
-    pelletsHeader: "Counters & Service",
-    serviceCountPrefix: "Service in: ",
-    pelletHoursPrefix: "Running time: ",
+    pelletsHeader: "Pellets",
+    serviceHeader: "Service in",
+    ignitionsHeader: "Ignitions",
+    runtimeHeader: "Running time",
     serviceBarTitle: "Left before the next service: ",
     deckTitle: "Stove Controls",
     subtabDirect: "Direct Controls",
@@ -1508,15 +1568,13 @@ const I18N = {
     schedSectionTitle: "WEEKLY SCHEDULE",
     regulationMode: "REGULATION MODE",
     modeTitle2: "Comfort",
-    modeDesc2: "Room thermostat sensor",
     modeTitle1: "Auto",
-    modeDesc1: "Scheduled heating",
     modeTitle0: "Manual",
-    modeDesc0: "Fixed power level (%)",
     sliderTemp: "Room Setpoint (Comfort)",
-    btnApplyTemp: "Apply Temperature",
+    btnApply: "Apply",
+    btnApplySent: "Sent ✓",
+    btnApplyError: "Error",
     sliderStage: "Power (Auto & Manual)",
-    btnApplyStage: "Apply Power",
     multiAirTitle: "MULTIAIR VENTILATION",
     multiAirShow: "My stove has MultiAir: show its settings",
     multiAirHide: "Hide the MultiAir settings",
@@ -1524,14 +1582,12 @@ const I18N = {
     fan2Title: "MultiAir 2",
     fanSpeed: "Speed",
     fanArea: "Convection correction",
-    btnApplyFanArea: "Apply correction",
     fanOn: "Active",
     fanOff: "Off",
     fanAuto: "Auto",
     frostTitle: "FROST PROTECTION",
     frostToggle: "Frost protection",
     frostTemp: "Target temperature",
-    btnApplyFrostTemp: "Apply frost temp",
     frostOn: "Active",
     frostOff: "Off",
     ecoToggle: "Eco mode",
@@ -1540,11 +1596,9 @@ const I18N = {
     bakeTitle: "BAKING OVEN (DOMO BACK)",
     bakeSubTitle: "Baking setpoint",
     bakeTemp: "Oven temperature",
-    btnApplyBakeTemp: "Apply oven target",
     offsetTitle: "ROOM SENSOR CALIBRATION",
     offsetSubTitle: "Room temperature offset",
     offsetDesc: "Applied calibration offset",
-    btnApplyRoomOffset: "Apply calibration",
     pageStove: "🔥 Stove",
     pageBridge: "Bridge",
     pageDiag: "🩺 Diagnostics",
@@ -1703,7 +1757,6 @@ const I18N = {
       splitlog_refuel: { title: "Put on split logs", desc: "The stove asks for more logs", icon: "🪵", active: true },
       splitlog_no_refuel: { title: "DO NOT put logs", desc: "The fire is too low to add logs", icon: "🪵", active: true }
     },
-    modeMap: { 0: "Manual (%)", 1: "Automatic", 2: "Comfort" },
     sensorDesc: {
       roomTemp: "Measured room temperature (°C)",
       flame: "Combustion chamber temperature (°C)",
@@ -1767,21 +1820,17 @@ const I18N = {
     "commError": "Errore di comunicazione",
     "powerOn": "Accendi",
     "powerOff": "Spegni",
+    "confirmYes": "Conferma",
+    "confirmNo": "Annulla",
     "confirmOn": "Vuoi davvero ACCENDERE la stufa?",
     "confirmOff": "Vuoi davvero SPEGNERE la stufa?",
-    "roomHeader": "Temperatura ambiente",
-    "roomTargetPrefix": "Impostata: ",
-    "flameHeader": "Temperatura camera di combustione",
-    "flameSub": "Sensore a termocoppia",
-    "flameLive": "Combustione attiva",
-    "flameCombustion": "Combustione",
-    "flameCold": "Fredda / Inattiva",
+    "roomHeader": "T° ambiente",
+    "flameHeader": "T° fiamma",
     "powerHeader": "Potenza",
-    "modePrefix": "Modalità: ",
-    "stageTgtPrefix": "Impostata: ",
-    "pelletsHeader": "Contatori e manutenzione",
-    "serviceCountPrefix": "Manutenzione tra: ",
-    "pelletHoursPrefix": "Ore di funzionamento: ",
+    "pelletsHeader": "Pellet",
+    "serviceHeader": "Manutenzione tra",
+    "ignitionsHeader": "Accensioni",
+    "runtimeHeader": "Funzionamento",
     "serviceBarTitle": "Pellet rimanente prima della manutenzione: ",
     "deckTitle": "Comandi della stufa",
     "subtabDirect": "Comandi diretti",
@@ -1791,15 +1840,13 @@ const I18N = {
     "schedSectionTitle": "PROGRAMMAZIONE SETTIMANALE",
     "regulationMode": "MODALITÀ DI REGOLAZIONE",
     "modeTitle2": "Comfort",
-    "modeDesc2": "Sensore del termostato ambiente",
     "modeTitle1": "Auto",
-    "modeDesc1": "Riscaldamento programmato",
     "modeTitle0": "Manuale",
-    "modeDesc0": "Potenza fissa (%)",
     "sliderTemp": "Temperatura ambiente impostata (Comfort)",
-    "btnApplyTemp": "Applica temperatura",
+    "btnApply": "Applica",
+    "btnApplySent": "Inviato ✓",
+    "btnApplyError": "Errore",
     "sliderStage": "Potenza (Auto e Manuale)",
-    "btnApplyStage": "Applica potenza",
     "multiAirTitle": "VENTILAZIONE MULTIAIR",
     "multiAirShow": "La mia stufa ha MultiAir: mostra le impostazioni",
     "multiAirHide": "Nascondi le impostazioni MultiAir",
@@ -1807,14 +1854,12 @@ const I18N = {
     "fan2Title": "MultiAir 2",
     "fanSpeed": "Velocità",
     "fanArea": "Correzione della convezione",
-    "btnApplyFanArea": "Applica correzione",
     "fanOn": "Attiva",
     "fanOff": "Spenta",
     "fanAuto": "Auto",
     "frostTitle": "PROTEZIONE ANTIGELO",
     "frostToggle": "Protezione antigelo",
     "frostTemp": "Temperatura impostata",
-    "btnApplyFrostTemp": "Applica temperatura antigelo",
     "frostOn": "Attiva",
     "frostOff": "Disattivata",
     "ecoToggle": "Modalità Eco",
@@ -1823,11 +1868,9 @@ const I18N = {
     "bakeTitle": "FORNO DI COTTURA (DOMO BACK)",
     "bakeSubTitle": "Temperatura impostata del forno",
     "bakeTemp": "Temperatura del forno",
-    "btnApplyBakeTemp": "Applica temperatura forno",
     "offsetTitle": "CALIBRAZIONE SENSORE AMBIENTE",
     "offsetSubTitle": "Correzione della temperatura ambiente",
     "offsetDesc": "Correzione di calibrazione applicata",
-    "btnApplyRoomOffset": "Applica calibrazione",
     "pageStove": "🔥 Stufa",
     "pageBridge": "Bridge",
     "pageDiag": "🩺 Diagnostica",
@@ -2046,11 +2089,6 @@ const I18N = {
       "splitlog_refuel": { "title": "Aggiungere legna", "desc": "La stufa chiede altra legna", "icon": "🪵", "active": true },
       "splitlog_no_refuel": { "title": "NON aggiungere legna", "desc": "Il fuoco è troppo basso per aggiungere legna", "icon": "🪵", "active": true }
     },
-    "modeMap": {
-      "0": "Manuale (%)",
-      "1": "Automatico",
-      "2": "Comfort"
-    },
     "sensorDesc": {
       "roomTemp": "Temperatura ambiente rilevata (°C)",
       "flame": "Temperatura della camera di combustione (°C)",
@@ -2114,21 +2152,17 @@ const I18N = {
     commError: "Kommunikationsfehler",
     powerOn: "Einschalten",
     powerOff: "Ausschalten",
+    confirmYes: "Bestätigen",
+    confirmNo: "Abbrechen",
     confirmOn: "Möchten Sie den Ofen wirklich EINSCHALTEN?",
     confirmOff: "Möchten Sie den Ofen wirklich AUSSCHALTEN?",
-    roomHeader: "Raumtemperatur",
-    roomTargetPrefix: "Sollwert: ",
-    flameHeader: "Brennkammer Temp.",
-    flameSub: "Thermoelement-Sensor",
-    flameLive: "Aktive Verbrennung",
-    flameCombustion: "Verbrennung",
-    flameCold: "Kalt / Inaktiv",
+    roomHeader: "Raumtemp.",
+    flameHeader: "Flammentemp.",
     powerHeader: "Leistung",
-    modePrefix: "Modus: ",
-    stageTgtPrefix: "Ziel: ",
-    pelletsHeader: "Zähler & Wartung",
-    serviceCountPrefix: "Wartung in: ",
-    pelletHoursPrefix: "Betriebszeit: ",
+    pelletsHeader: "Pellets",
+    serviceHeader: "Wartung in",
+    ignitionsHeader: "Zündungen",
+    runtimeHeader: "Betriebszeit",
     serviceBarTitle: "Verbleibend bis zur nächsten Wartung: ",
     deckTitle: "Ofensteuerung",
     subtabDirect: "Direktsteuerung",
@@ -2138,15 +2172,13 @@ const I18N = {
     schedSectionTitle: "WÖCHENTLICHER ZEITPLAN",
     regulationMode: "REGELUNGSMODUS",
     modeTitle2: "Komfort",
-    modeDesc2: "Raumtemperatursensor",
     modeTitle1: "Auto",
-    modeDesc1: "Zeitgesteuerte Heizung",
     modeTitle0: "Manuell",
-    modeDesc0: "Feste Leistung (%)",
     sliderTemp: "Raum-Sollwert (Komfort)",
-    btnApplyTemp: "Temperatur übernehmen",
+    btnApply: "Übernehmen",
+    btnApplySent: "Gesendet ✓",
+    btnApplyError: "Fehler",
     sliderStage: "Leistung (Auto & Manuell)",
-    btnApplyStage: "Leistung übernehmen",
     multiAirTitle: "MULTIAIR GEBLÄSE",
     multiAirShow: "Mein Ofen hat MultiAir: Einstellungen anzeigen",
     multiAirHide: "MultiAir-Einstellungen ausblenden",
@@ -2154,14 +2186,12 @@ const I18N = {
     fan2Title: "MultiAir 2",
     fanSpeed: "Stufe",
     fanArea: "Konvektions-Korrektur",
-    btnApplyFanArea: "Korrektur übernehmen",
     fanOn: "Aktiv",
     fanOff: "Aus",
     fanAuto: "Auto",
     frostTitle: "FROSTSCHUTZ",
     frostToggle: "Frostschutz",
     frostTemp: "Soll-Temperatur",
-    btnApplyFrostTemp: "Frostschutz übernehmen",
     frostOn: "Aktiv",
     frostOff: "Aus",
     ecoToggle: "Eco-Modus",
@@ -2170,11 +2200,9 @@ const I18N = {
     bakeTitle: "BACKOFEN (DOMO BACK)",
     bakeSubTitle: "Backtemperatur-Sollwert",
     bakeTemp: "Backofentemperatur",
-    btnApplyBakeTemp: "Backtemperatur übernehmen",
     offsetTitle: "RAUMFÜHLER-KALIBRIERUNG",
     offsetSubTitle: "Raumtemperatur-Korrektur",
     offsetDesc: "Angewendeter Offset",
-    btnApplyRoomOffset: "Kalibrierung übernehmen",
     pageStove: "🔥 Ofen",
     pageBridge: "Stick",
     pageDiag: "🩺 Diagnose",
@@ -2333,7 +2361,6 @@ const I18N = {
       splitlog_refuel: { title: "Bitte Nachlegen", desc: "Der Ofen bittet um weiteres Scheitholz", icon: "🪵", active: true },
       splitlog_no_refuel: { title: "NICHT Nachlegen", desc: "Das Feuer ist zu schwach zum Nachlegen", icon: "🪵", active: true }
     },
-    modeMap: { 0: "Manuell (%)", 1: "Automatisch", 2: "Komfort" },
     sensorDesc: {
       roomTemp: "Gemessene Raumtemperatur (°C)",
       flame: "Brennkammer Temp. (°C)",
@@ -2399,15 +2426,13 @@ function applyLang() {
   const ls = document.getElementById('langSelect');
   if (ls) ls.value = curLang;
   document.getElementById('lblRoomHeader').textContent = t.roomHeader;
-  document.getElementById('lblRoomTargetPrefix').textContent = t.roomTargetPrefix;
   document.getElementById('lblFlameHeader').textContent = t.flameHeader;
-  document.getElementById('lblFlameSub').textContent = t.flameSub;
   document.getElementById('lblPowerHeader').textContent = t.powerHeader;
-  document.getElementById('lblModePrefix').textContent = t.modePrefix;
-  document.getElementById('lblStageTgtPrefix').textContent = t.stageTgtPrefix;
   document.getElementById('lblPelletsHeader').textContent = t.pelletsHeader;
-  document.getElementById('lblServiceCountPrefix').textContent = t.serviceCountPrefix;
-  document.getElementById('lblPelletHoursPrefix').textContent = t.pelletHoursPrefix;
+  document.getElementById('lblServiceHeader').textContent = t.serviceHeader;
+  Object.keys(APPLY_BUTTONS).forEach((id) => { const b = document.getElementById(id); if (b && !b.dataset.busy) b.textContent = t.btnApply; });
+  document.getElementById('lblRuntimeHeader').textContent = t.runtimeHeader;
+  document.getElementById('lblIgnitionsHeader').textContent = t.ignitionsHeader;
   if (document.getElementById('lblDeckTitle')) document.getElementById('lblDeckTitle').textContent = t.deckTitle;
   if (document.getElementById('lblSubtabDirect')) document.getElementById('lblSubtabDirect').textContent = t.subtabDirect;
   if (document.getElementById('lblSubtabSched')) document.getElementById('lblSubtabSched').textContent = t.subtabSched;
@@ -2416,15 +2441,10 @@ function applyLang() {
   if (document.getElementById('lblParamsSectionTitle')) document.getElementById('lblParamsSectionTitle').textContent = t.paramsSectionTitle;
   document.getElementById('lblRegulationMode').textContent = t.regulationMode;
   document.getElementById('lblModeTitle2').textContent = t.modeTitle2;
-  document.getElementById('lblModeDesc2').textContent = t.modeDesc2;
   document.getElementById('lblModeTitle1').textContent = t.modeTitle1;
-  document.getElementById('lblModeDesc1').textContent = t.modeDesc1;
   document.getElementById('lblModeTitle0').textContent = t.modeTitle0;
-  document.getElementById('lblModeDesc0').textContent = t.modeDesc0;
   document.getElementById('lblSliderTemp').textContent = t.sliderTemp;
-  document.getElementById('btnApplyTemp').textContent = t.btnApplyTemp;
   document.getElementById('lblSliderStage').textContent = t.sliderStage;
-  document.getElementById('btnApplyStage').textContent = t.btnApplyStage;
   if (document.getElementById('lblMultiAirTitle')) document.getElementById('lblMultiAirTitle').textContent = t.multiAirTitle;
   if (document.getElementById('lblFan1Title')) document.getElementById('lblFan1Title').textContent = t.fan1Title;
   if (document.getElementById('lblFan2Title')) document.getElementById('lblFan2Title').textContent = t.fan2Title;
@@ -2432,23 +2452,18 @@ function applyLang() {
   if (document.getElementById('lblFan2Speed')) document.getElementById('lblFan2Speed').textContent = t.fanSpeed;
   if (document.getElementById('lblFan1Area')) document.getElementById('lblFan1Area').textContent = t.fanArea;
   if (document.getElementById('lblFan2Area')) document.getElementById('lblFan2Area').textContent = t.fanArea;
-  if (document.getElementById('btnApplyFan1Area')) document.getElementById('btnApplyFan1Area').textContent = t.btnApplyFanArea;
-  if (document.getElementById('btnApplyFan2Area')) document.getElementById('btnApplyFan2Area').textContent = t.btnApplyFanArea;
   if (document.getElementById('f1Lvl0')) document.getElementById('f1Lvl0').textContent = t.fanAuto;
   if (document.getElementById('f2Lvl0')) document.getElementById('f2Lvl0').textContent = t.fanAuto;
   if (document.getElementById('lblFrostTitle')) document.getElementById('lblFrostTitle').textContent = t.frostTitle;
   if (document.getElementById('lblFrostToggle')) document.getElementById('lblFrostToggle').textContent = t.frostToggle;
   if (document.getElementById('lblEcoToggle')) document.getElementById('lblEcoToggle').textContent = t.ecoToggle;
   if (document.getElementById('lblFrostTemp')) document.getElementById('lblFrostTemp').textContent = t.frostTemp;
-  if (document.getElementById('btnApplyFrostTemp')) document.getElementById('btnApplyFrostTemp').textContent = t.btnApplyFrostTemp;
   if (document.getElementById('lblBakeTitle')) document.getElementById('lblBakeTitle').textContent = t.bakeTitle;
   if (document.getElementById('lblBakeSubTitle')) document.getElementById('lblBakeSubTitle').textContent = t.bakeSubTitle;
   if (document.getElementById('lblBakeTemp')) document.getElementById('lblBakeTemp').textContent = t.bakeTemp;
-  if (document.getElementById('btnApplyBakeTemp')) document.getElementById('btnApplyBakeTemp').textContent = t.btnApplyBakeTemp;
   if (document.getElementById('lblOffsetTitle')) document.getElementById('lblOffsetTitle').textContent = t.offsetTitle;
   if (document.getElementById('lblOffsetSubTitle')) document.getElementById('lblOffsetSubTitle').textContent = t.offsetSubTitle;
   if (document.getElementById('lblOffsetDesc')) document.getElementById('lblOffsetDesc').textContent = t.offsetDesc;
-  if (document.getElementById('btnApplyRoomOffset')) document.getElementById('btnApplyRoomOffset').textContent = t.btnApplyRoomOffset;
   document.getElementById('pageBtnStoveLbl').textContent = t.pageStove;
   document.getElementById('pageBtnBridgeLbl').textContent = t.pageBridge;
   document.getElementById('pageBtnDiag').textContent = t.pageDiag;
@@ -2542,6 +2557,30 @@ function onSelectLang(l) {
   applyLang();
   if (lastState) renderSensors(lastState.raw_sensors || lastState.sensors || {}, document.getElementById('sensorSearch') ? document.getElementById('sensorSearch').value : '');
   tick();
+}
+
+// Asks for a confirmation in the page; resolves to true or false. Escape, or a click outside, means no.
+function askConfirm(text) {
+  const t = I18N[curLang] || I18N.en;
+  const box = document.getElementById('confirmBox'), yes = document.getElementById('confirmYes'), no = document.getElementById('confirmNo');
+  document.getElementById('confirmText').textContent = text;
+  yes.textContent = t.confirmYes;
+  no.textContent = t.confirmNo;
+  box.style.display = 'flex';
+  yes.focus();
+  return new Promise((resolve) => {
+    const done = (answer) => {
+      box.style.display = 'none';
+      yes.onclick = no.onclick = box.onclick = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(answer);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') done(false); };
+    yes.onclick = () => done(true);
+    no.onclick = () => done(false);
+    box.onclick = (e) => { if (e.target === box) done(false); };
+    document.addEventListener('keydown', onKey);
+  });
 }
 
 function toast(msg) {
@@ -2639,7 +2678,7 @@ async function fetchLogs() {
 }
 function clearLog() { document.getElementById('logConsole').innerHTML = '(effacé, en attente…)'; }
 async function restartDongle() {
-  if (!confirm(I18N[curLang].confirmRestart)) return;
+  if (!(await askConfirm(I18N[curLang].confirmRestart))) return;
   try { await fetch('/api/restart', {method: 'POST'}); } catch (e) { /* la carte redémarre */ }
   toast(I18N[curLang].restartToast);
 }
@@ -2941,7 +2980,9 @@ async function downloadLog() {
 function setInteracting() {
   userInteracting = true;
   clearTimeout(userInteractTimer);
-  userInteractTimer = setTimeout(() => { userInteracting = false; }, 4000);
+  syncApplyButtons(false);
+  // A slider waiting to be applied is left alone for 30 s (4 s otherwise) before the page puts the stove's value back.
+  userInteractTimer = setTimeout(() => { userInteracting = false; }, anySliderChanged() ? 30000 : 4000);
 }
 
 function onTempSlider(v) {
@@ -2954,13 +2995,16 @@ function onStageSlider(v) {
   setInteracting();
 }
 
-function stepTarget(delta) {
-  const r = document.getElementById('tempRange');
-  let v = parseInt(r.value, 10) + delta;
-  if (v < 14) v = 14; if (v > 28) v = 28;
-  r.value = v;
-  onTempSlider(v);
-  applyRoomTarget();
+// The minus and plus buttons beside a slider move it by one step, within its limits, and tell the page as if the
+// slider itself had been moved: where the slider waits for "Apply", so do they.
+function stepSlider(id, direction) {
+  const r = document.getElementById(id);
+  if (!r) return;
+  const step = parseFloat(r.step) || 1;
+  const decimals = (String(r.step).split('.')[1] || '').length;
+  const v = Math.min(parseFloat(r.max), Math.max(parseFloat(r.min), parseFloat(r.value) + direction * step));
+  r.value = v.toFixed(decimals);
+  r.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 async function sendControl(name, value) {
@@ -2971,36 +3015,92 @@ async function sendControl(name, value) {
     if (res.ok) {
       toast(t.orderSent + name + " = " + value);
       setTimeout(tick, 300);
-    } else {
-      const err = await res.json();
-      toast(t.errorPrefix + (err.error || "failed"));
+      return true;
     }
+    const err = await res.json();
+    toast(t.errorPrefix + (err.error || "failed"));
   } catch(e) { toast(t.netError); }
+  return false;
 }
 
-function togglePower() {
+// "Apply" buttons: each goes with one slider. A button is enabled only while its slider differs from the value the
+// stove has (kept in the slider's data-ref each time the page refreshes it), and shows for a moment whether the
+// order was sent.
+const APPLY_BUTTONS = {
+  btnApplyTemp: 'tempRange', btnApplyStage: 'stageRange', btnApplyFan1Area: 'fan1AreaRange',
+  btnApplyFan2Area: 'fan2AreaRange', btnApplyBakeTemp: 'bakeTempRange', btnApplyFrostTemp: 'frostTempRange',
+  btnApplyRoomOffset: 'roomOffsetRange'
+};
+function sliderChanged(r) { return r.dataset.ref !== undefined && Number(r.value) !== Number(r.dataset.ref); }
+function anySliderChanged() {
+  return Object.values(APPLY_BUTTONS).some((id) => { const r = document.getElementById(id); return r && sliderChanged(r); });
+}
+function syncApplyButtons(takeReference) {
+  for (const [btnId, rangeId] of Object.entries(APPLY_BUTTONS)) {
+    const b = document.getElementById(btnId), r = document.getElementById(rangeId);
+    if (!b || !r) continue;
+    if (takeReference) r.dataset.ref = r.value;
+    if (!b.dataset.busy) b.disabled = !sliderChanged(r);
+  }
+}
+async function applyControl(btnId, name, value) {
+  const b = document.getElementById(btnId), r = document.getElementById(APPLY_BUTTONS[btnId]);
+  b.dataset.busy = '1';
+  b.disabled = true;
+  const ok = await sendControl(name, value);
+  const t = I18N[curLang] || I18N.en;
+  if (ok) r.dataset.ref = r.value;
+  b.textContent = ok ? t.btnApplySent : t.btnApplyError;
+  b.style.background = ok ? 'var(--green)' : 'var(--amber)';
+  b.style.opacity = '1';
+  setTimeout(() => {
+    b.textContent = (I18N[curLang] || I18N.en).btnApply;
+    b.style.background = '';
+    b.style.opacity = '';
+    delete b.dataset.busy;
+    syncApplyButtons(false);
+  }, 2500);
+}
+
+async function togglePower() {
   if (!lastState) return;
   const t = I18N[curLang] || I18N.en;
   const curOn = (lastState.controls && (lastState.controls.on === true || lastState.controls.onOff == 1)) ||
                 (lastState.controls_pos && lastState.controls_pos[1] == 1);
   const promptText = curOn ? t.confirmOff : t.confirmOn;
-  if (confirm(promptText)) {
+  if (await askConfirm(promptText)) {
     sendControl("on", curOn ? 0 : 1);
   }
 }
 
+// Buttons that send their order at once (no "Apply"): the button itself shows for a moment that the order was
+// sent, green, or refused, amber. A button holding a short label (the fan speeds) shows a check mark meanwhile.
+async function sendFromButton(el, name, value, withMark) {
+  const ok = await sendControl(name, value);
+  if (!el) return;
+  clearTimeout(el._sentTimer);
+  if (withMark && el.dataset.label === undefined) el.dataset.label = el.textContent;
+  el.classList.remove('sent-ok', 'sent-err');
+  el.classList.add(ok ? 'sent-ok' : 'sent-err');
+  if (withMark) el.textContent = ok ? '✓' : '!';
+  el._sentTimer = setTimeout(() => {
+    el.classList.remove('sent-ok', 'sent-err');
+    if (withMark && el.dataset.label !== undefined) { el.textContent = el.dataset.label; delete el.dataset.label; }
+  }, 1800);
+}
+
 function setMode(m) {
-  sendControl("mode", m);
+  sendFromButton(document.getElementById('modeBtn' + m), "mode", m, false);
 }
 
 function applyRoomTarget() {
   const v = parseInt(document.getElementById('tempRange').value, 10);
-  sendControl("roomTarget", v * 10);
+  applyControl('btnApplyTemp', "roomTarget", v * 10);
 }
 
 function applyStageTarget() {
   const v = parseInt(document.getElementById('stageRange').value, 10);
-  sendControl("targetStage", v);
+  applyControl('btnApplyStage', "targetStage", v);
 }
 
 function toggleFan(n) {
@@ -3018,11 +3118,7 @@ function toggleFan(n) {
 }
 
 function setFanLevel(n, lvl) {
-  if (n === 1) {
-    sendControl("convectionFan1Level", lvl);
-  } else {
-    sendControl("convectionFan2Level", lvl);
-  }
+  sendFromButton(document.getElementById('f' + n + 'Lvl' + lvl), n === 1 ? "convectionFan1Level" : "convectionFan2Level", lvl, true);
 }
 
 function onFanAreaInput(n, val) {
@@ -3036,9 +3132,9 @@ function applyFanArea(n) {
   if (!r) return;
   const val = parseInt(r.value, 10);
   if (n === 1) {
-    sendControl("convectionFan1Area", val);
+    applyControl('btnApplyFan1Area', "convectionFan1Area", val);
   } else {
-    sendControl("convectionFan2Area", val);
+    applyControl('btnApplyFan2Area', "convectionFan2Area", val);
   }
 }
 
@@ -3074,7 +3170,7 @@ function applyFrostTemp() {
   const r = document.getElementById('frostTempRange');
   if (!r) return;
   const val = parseInt(r.value, 10);
-  sendControl("frostProtectionTemp", val * 10);
+  applyControl('btnApplyFrostTemp', "frostProtectionTemp", val * 10);
 }
 
 function onBakeTempInput(val) {
@@ -3087,7 +3183,7 @@ function applyBakeTemp() {
   const r = document.getElementById('bakeTempRange');
   if (!r) return;
   const val = parseInt(r.value, 10);
-  sendControl("bakeTarget", val);
+  applyControl('btnApplyBakeTemp', "bakeTarget", val);
 }
 
 function onRoomOffsetInput(val) {
@@ -3101,7 +3197,7 @@ function applyRoomOffset() {
   const r = document.getElementById('roomOffsetRange');
   if (!r) return;
   const val = parseFloat(r.value);
-  sendControl("roomTempOffset", Math.round(val * 10));
+  applyControl('btnApplyRoomOffset', "roomTempOffset", Math.round(val * 10));
 }
 
 // --- Programmation hebdomadaire (Heating Schedule) -------------------------
@@ -3187,7 +3283,7 @@ function onSlotToggle(dayKey, slotNum) {
 
 function onSetbackInput(v) {
   const el = document.getElementById('setbackTempVal');
-  if (el) el.textContent = parseFloat(v).toFixed(1);
+  if (el) el.textContent = Math.round(parseFloat(v));
   setInteracting();
 }
 
@@ -3238,7 +3334,7 @@ function populateScheduleUI(data) {
   const sbRange = document.getElementById('setbackTempRange');
   const sbVal = document.getElementById('setbackTempVal');
   if (sbRange) sbRange.value = sb;
-  if (sbVal) sbVal.textContent = parseFloat(sb).toFixed(1);
+  if (sbVal) sbVal.textContent = Math.round(parseFloat(sb));
 
   const slots = data.slots || {};
   DAYS.forEach(d => {
@@ -3341,9 +3437,9 @@ async function saveSchedule() {
 
 async function forgetWifi() {
   const t = I18N[curLang] || I18N.en;
-  if (confirm(t.confirmForgetWifi)) {
+  if (await askConfirm(t.confirmForgetWifi)) {
     await fetch('/api/forget', { method: 'POST' });
-    alert(t.forgetWifiSuccess);
+    toast(t.forgetWifiSuccess);
   }
 }
 
@@ -3562,7 +3658,6 @@ async function tick() {
       document.getElementById('roomTemp').textContent = (rawS.roomTemp / 10).toLocaleString(bcpLanguageTag, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     }
     const rTgtVal = ctrl.target_temperature !== undefined ? Math.round(ctrl.target_temperature) : (ctrl.roomTarget !== undefined ? Math.round(ctrl.roomTarget / 10) : (s.controls_pos && s.controls_pos.length > 4 ? Math.round(s.controls_pos[4] / 10) : 20));
-    document.getElementById('roomTarget').textContent = rTgtVal;
 
     if (!userInteracting) {
       document.getElementById('tempRange').value = rTgtVal;
@@ -3572,16 +3667,11 @@ async function tick() {
     // Flame / Combustion Chamber
     const flVal = sens.combustion_temperature !== undefined ? Math.round(sens.combustion_temperature) : (rawS.flame !== undefined ? rawS.flame : 0);
     document.getElementById('flameTemp').textContent = flVal.toLocaleString(bcpLanguageTag);
-    const fBadge = document.getElementById('flameBadge');
-    if (flVal > 80) { fBadge.textContent = t.flameLive; fBadge.style.color = "var(--primary)"; }
-    else if (flVal > 40) { fBadge.textContent = t.flameCombustion; fBadge.style.color = "var(--amber)"; }
-    else { fBadge.textContent = t.flameCold; fBadge.style.color = "var(--text-muted)"; }
 
     // Stage / Power
-    const stCur = sens.power_percent !== undefined ? sens.power_percent : (rawS.stageCur !== undefined ? rawS.stageCur : 0);
+    const stCur = sens.power_actual_percent !== undefined ? sens.power_actual_percent : (rawS.stageCur !== undefined ? rawS.stageCur : 0);
     document.getElementById('stageCur').textContent = stCur;
     const stTgt = ctrl.power_percent !== undefined ? ctrl.power_percent : (ctrl.targetStage !== undefined ? ctrl.targetStage : (s.controls_pos && s.controls_pos.length > 3 ? s.controls_pos[3] : 70));
-    document.getElementById('stageTgt').textContent = stTgt;
     if (!userInteracting) {
       document.getElementById('stageRange').value = stTgt;
       document.getElementById('sliderStageVal').textContent = stTgt;
@@ -3589,7 +3679,8 @@ async function tick() {
 
     // Mode
     const curMode = ctrl.mode_code !== undefined ? ctrl.mode_code : (ctrl.mode !== undefined ? ctrl.mode : (s.controls_pos && s.controls_pos.length > 2 ? s.controls_pos[2] : 2));
-    document.getElementById('modeText').textContent = (t.modeMap && t.modeMap[curMode]) || curMode;
+    // The setpoint is shown beside the room temperature in comfort mode, the mode that heats towards it.
+    document.getElementById('roomTarget').textContent = curMode === 2 ? '→ ' + rTgtVal + '°' : '';
     [0, 1, 2].forEach(m => {
       const b = document.getElementById('modeBtn' + m);
       if (b) { if (m === curMode) b.classList.add('active'); else b.classList.remove('active'); }
@@ -3600,6 +3691,7 @@ async function tick() {
     document.getElementById('pelletsTotal').textContent = pTot.toLocaleString(bcpLanguageTag);
     const pHours = sens.pellet_hours !== undefined ? sens.pellet_hours : (rawS.pelletHours !== undefined ? rawS.pelletHours : (s.sensors_pos ? s.sensors_pos[47] : 0));
     document.getElementById('pelletHours').textContent = pHours.toLocaleString(bcpLanguageTag);
+    document.getElementById('ignitionCount').textContent = rawS.ignitionCount !== undefined ? Number(rawS.ignitionCount).toLocaleString(bcpLanguageTag) : '--';
     const sCount = sens.service_countdown_kg !== undefined ? sens.service_countdown_kg : (rawS.serviceCountdown !== undefined ? rawS.serviceCountdown : (s.sensors_pos ? s.sensors_pos[50] : 700));
     document.getElementById('serviceCount').textContent = sCount.toLocaleString(bcpLanguageTag);
     // Gauge of what is left before the next service: full right after a service, empty when it is due. The
@@ -3788,6 +3880,8 @@ async function tick() {
       if (ro) ro.value = tempOffset.toFixed(1);
       if (vo) vo.textContent = (tempOffset > 0 ? '+' : '') + tempOffset.toFixed(1);
     }
+
+    syncApplyButtons(!userInteracting);
 
     document.getElementById('netMode').textContent = s.wifi_mode;
     document.getElementById('netIp').textContent = s.ip;

@@ -121,6 +121,8 @@ static const Entity ENTITIES[] = {
    "\"state_topic\":\"~/sensors/service_countdown_kg\",\"unit_of_measurement\":\"kg\",\"device_class\":\"weight\","},
   {"sensor", "fan_speed_rpm", "Flue Draft Fan Speed",
    "\"state_topic\":\"~/sensors/fan_speed_rpm\",\"unit_of_measurement\":\"rpm\",\"state_class\":\"measurement\",\"icon\":\"mdi:fan\"," OF_DIAG},
+  {"sensor", "power_actual_percent", "Actual Heating Power",
+   "\"state_topic\":\"~/sensors/power_actual_percent\",\"unit_of_measurement\":\"%\",\"state_class\":\"measurement\",\"icon\":\"mdi:fire\","},
   {"sensor", "auger_speed_rpm", "Pellet Auger Speed",
    "\"state_topic\":\"~/sensors/auger_speed_rpm\",\"unit_of_measurement\":\"rpm\",\"state_class\":\"measurement\",\"icon\":\"mdi:screw-lag\"," OF_DIAG},
   {"sensor", "air_flaps_percent", "Air Flaps",

@@ -498,6 +498,7 @@ components:
         service_countdown_kg: { type: integer, description: Pellets left before the next service }
         fan_speed_rpm: { type: integer }
         auger_speed_rpm: { type: integer }
+        power_actual_percent: { type: integer, description: "Power the stove really runs at. In comfort mode the stove sets it itself, whatever `power_percent` says. 0 when it is not heating." }
         air_flaps_percent: { type: number, nullable: true }
         air_flaps_target_percent: { type: number, nullable: true }
     ControlsState:

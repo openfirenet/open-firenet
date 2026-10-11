@@ -247,6 +247,10 @@ static String jsonStoveSections() {
   long sCount   = sensorValue(m, "serviceCountdown", 700);
   long idFan    = sensorValue(m, "idFanMeas", 0);
   long auger    = sensorValue(m, "augerSet", 0);
+  // The power the stove really runs at (inputCurrentStagePID). In comfort mode it sets it itself from the room
+  // temperature, whatever "power_percent" says. Outside heating and grate cleaning the stove keeps the last value
+  // it had (seen on firmware 2.29: 78 all through an ignition), so 0 is reported there.
+  long powerNow = (mainSt == 4 || mainSt == 5) ? sensorValue(m, "stageCur", 0) : 0;
   long errMask  = sensorValue(m, "errMask32", 0);
   long errSub   = sensorValue(m, "errSub", 0);
   // Stove identity: only what the stove itself reported. Before its first sensor post these are null (they used to
@@ -345,6 +349,7 @@ static String jsonStoveSections() {
       "\"service_countdown_kg\":%ld,"
       "\"fan_speed_rpm\":%ld,"
       "\"auger_speed_rpm\":%ld,"
+      "\"power_actual_percent\":%ld,"
       "\"air_flaps_percent\":%s,"
       "\"air_flaps_target_percent\":%s"
     "},"
@@ -374,7 +379,7 @@ static String jsonStoveSections() {
     errMask != 0 ? "true" : "false",
     errMask, errSub, warnCode,
     modelS, modelNameS, mbVerS, buildS,
-    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, sCount, idFan, auger,
+    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, sCount, idFan, auger, powerNow,
     airFlapsS, airFlapsTgtS,
     (curOn == 1) ? "true" : "false",
     modeName, curMode, rTargetF, curStage,
