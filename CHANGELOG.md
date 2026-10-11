@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.2.0 (2026-10-12)
 
 ### New
 - **Actual heating power.** The bridge reports the power the stove really runs at (`sensors.power_actual_percent`, MQTT sensor "Actual Heating Power"). In comfort mode the stove sets it itself from the room temperature, so it differs from the power setting. It is 0 when the stove is not heating.
