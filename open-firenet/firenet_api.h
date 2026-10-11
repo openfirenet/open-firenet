@@ -160,4 +160,34 @@ inline std::map<std::string, long> parseControlCommands(const std::vector<std::p
   return cmd;
 }
 
+// A text made safe to put between the quotes of a JSON string: quotes and backslashes escaped, control characters
+// dropped, and every byte that is not part of a well-formed UTF-8 sequence replaced by U+FFFD. The stove sends some
+// texts as raw bytes (its status fields; a 0xFF as "ssid" was seen on firmware 2.28, open-firenet-ha issue #38),
+// and a single such byte made the whole answer of /api/state undecodable by strict JSON readers.
+inline std::string jsonText(const std::string& in) {
+  std::string out;
+  out.reserve(in.size());
+  const size_t n = in.size();
+  for (size_t i = 0; i < n;) {
+    const unsigned char c = (unsigned char)in[i];
+    if (c < 0x20) { i++; continue; }
+    if (c == '"' || c == '\\') { out += '\\'; out += (char)c; i++; continue; }
+    if (c < 0x80) { out += (char)c; i++; continue; }
+    // Length of the sequence this lead byte announces; 0 for a byte that cannot start one.
+    size_t len = (c >= 0xC2 && c <= 0xDF) ? 2 : (c >= 0xE0 && c <= 0xEF) ? 3 : (c >= 0xF0 && c <= 0xF4) ? 4 : 0;
+    bool ok = len != 0 && i + len <= n;
+    for (size_t k = 1; ok && k < len; k++) ok = ((unsigned char)in[i + k] & 0xC0) == 0x80;
+    if (ok && len >= 3) {
+      const unsigned char c1 = (unsigned char)in[i + 1];
+      if (c == 0xE0 && c1 < 0xA0) ok = false;        // overlong
+      else if (c == 0xED && c1 > 0x9F) ok = false;   // surrogates
+      else if (c == 0xF0 && c1 < 0x90) ok = false;   // overlong
+      else if (c == 0xF4 && c1 > 0x8F) ok = false;   // above U+10FFFF
+    }
+    if (ok) { out.append(in, i, len); i += len; }
+    else    { out += "\xEF\xBF\xBD"; i++; }
+  }
+  return out;
+}
+
 }  // namespace firenet

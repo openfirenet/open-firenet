@@ -895,8 +895,11 @@ private:
     auto v = parseStatusFrame(buf);
     for (int i = 0; i < NUM_FIELDS && i < (int)v.size(); i++)
       model_.status[CDC_FIELDS[i].name] = v[i];
-    auto it = model_.status.find("ssid");      // décodage hexa (§5.3)
-    if (it != model_.status.end() && dt() == 3) it->second = hexDecode(it->second);
+    // The Wi-Fi name comes back hex-encoded from a stove on firmware 2.29 (§5.3). A stove on firmware 2.28 returns
+    // it as plain text (read in a state reported from a REVO II, open-firenet-ha issue #38: the name "iot" had been
+    // "decoded" into the byte 0xFF), so it is only decoded for the 2.29 profile, and only when it is hex.
+    auto it = model_.status.find("ssid");
+    if (it != model_.status.end() && model_.version_profile == DETECT_V3) it->second = hexDecodeIfHex(it->second);
   }
   // Parse un corps "name=val; name=val; ..." (§7.5). Les paires nommées vont dans
   // `store` (s'il est fourni) ; TOUTES les valeurs sont aussi ajoutées à `pos`

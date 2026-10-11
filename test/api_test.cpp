@@ -11,6 +11,16 @@ static std::map<std::string, long> fromJson(const std::string& j) {
 }
 
 int main() {
+  // --- texts put into JSON answers are always valid UTF-8 (open-firenet-ha issue #38)
+  CH("json text: plain text unchanged", jsonText("iot-2.4G") == "iot-2.4G");
+  CH("json text: quote and backslash escaped", jsonText("a\"b\\c") == "a\\\"b\\\\c");
+  CH("json text: control characters dropped", jsonText(std::string("a\x01\n\tb")) == "ab");
+  CH("json text: valid accents kept", jsonText("Caf\xC3\xA9 \xE2\x82\xAC") == "Caf\xC3\xA9 \xE2\x82\xAC");
+  CH("json text: a lone 0xFF is replaced", jsonText(std::string("\xFF")) == "\xEF\xBF\xBD");
+  CH("json text: a cut sequence is replaced", jsonText(std::string("ab\xC3")) == "ab\xEF\xBF\xBD");
+  CH("json text: a stray continuation byte is replaced", jsonText(std::string("a\x80z")) == "a\xEF\xBF\xBDz");
+  CH("json text: an overlong sequence is replaced", jsonText(std::string("\xC0\xAF")) == "\xEF\xBF\xBD\xEF\xBF\xBD");
+
   // Home Assistant integration payloads (JSON, °C floats, booleans)
   auto a = fromJson("{\"target_temperature\": 21.5}");
   CH("HA target temperature 21.5 °C -> 215", a.at("roomTarget") == 215);

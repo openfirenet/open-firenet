@@ -59,6 +59,18 @@ inline std::string hexDecode(const std::string& s, int limit = 31) {  // FUN_420
   return o;
 }
 
+// A text that is hex-encoded bytes: not empty, an even number of characters, hex digits only.
+inline bool isHexText(const std::string& s) {
+  if (s.empty() || s.size() % 2) return false;
+  for (char c : s) if (hexVal(c) < 0) return false;
+  return true;
+}
+// hexDecode() for a text that may not be hex at all: such a text is returned as it is. Decoding a plain Wi-Fi name
+// turned it into garbage bytes: "iot" became the single byte 0xFF (open-firenet-ha issue #38).
+inline std::string hexDecodeIfHex(const std::string& s) {
+  return isHexText(s) ? hexDecode(s) : s;
+}
+
 // --------------------------------------------------- §7.2 tokeniseur littéral
 // FUN_4200B5F8 : cherche la CHAÎNE delim ; jetons vides conservés ; limite out.
 // Renvoie les valeurs d'une trame status (2 sauts "=;\n", 1 saut "\n", boucle "\n").

@@ -18,6 +18,9 @@ int main(){
   CHECK("5.3","aller-retour", hexDecode(hexEncode("MonSSID"))=="MonSSID");
   CHECK("5.3","minuscules", hexDecode("6d6f6e")=="mon");
   CHECK("5.3","borne 31 octets", hexDecode(std::string(80,'4')).size()==31);
+  CHECK("5.3","hex reconnu", isHexText("4D6F6e") && !isHexText("iot") && !isHexText("4D6") && !isHexText(""));
+  CHECK("5.3","un nom en clair n'est pas decode", hexDecodeIfHex("iot")=="iot" && hexDecodeIfHex("Livebox-1234")=="Livebox-1234");
+  CHECK("5.3","un nom en hexa est decode", hexDecodeIfHex("4D6F6E53534944")=="MonSSID");
   CHECK("5.3","MonSSID connu", hexEncode("MonSSID")=="4D6F6E53534944");
 
   // §7.2 tokeniseur : jetons vides conservés

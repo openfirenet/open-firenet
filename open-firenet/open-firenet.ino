@@ -455,7 +455,7 @@ static String jsonState() {
   bool first = true;
   for (auto& kv : m.sensors) {
     if (!first) j += ","; first = false;
-    j += "\"" + String(kv.first.c_str()) + "\":" + String(kv.second);
+    j += "\"" + jsonEscape(String(kv.first.c_str())) + "\":" + String(kv.second);
   }
   j += "},";
 
@@ -1389,13 +1389,7 @@ static void mqttLoop() {
 }
 
 static String jsonEscape(const String& in) {
-  String out;
-  for (size_t i = 0; i < in.length(); i++) {
-    char c = in[i];
-    if (c == '"' || c == '\\') { out += '\\'; out += c; }
-    else if ((uint8_t)c >= 0x20) out += c;
-  }
-  return out;
+  return String(firenet::jsonText(std::string(in.c_str(), in.length())).c_str());
 }
 
 // GET /api/mqtt: settings (the password is never returned) and connection status.
