@@ -12,12 +12,24 @@ narrower than 500 px).
 
 Needs: chromium (or chromium-browser / google-chrome) and Pillow.
 """
-import argparse, http.server, json, pathlib, shutil, subprocess, sys, tempfile, threading
+import argparse, http.server, json, pathlib, re, shutil, subprocess, sys, tempfile, threading
 from urllib.parse import urlparse, parse_qs
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PAGE = ROOT / "open-firenet" / "web" / "index.html"
 FIX = ROOT / "tools" / "screenshot_fixtures"
+# The page shows the firmware version beside its title: the shots carry the one of the source, not the fixture's.
+VERSION = re.search(r'#define OPENFIRENET_VERSION "([^"]+)"', (ROOT / "open-firenet" / "open-firenet.ino").read_text()).group(1)
+
+
+def fixture(name):
+    body = (FIX / name).read_bytes()
+    if name == "state.json":
+        state = json.loads(body)
+        for key in ("version", "app_version", "firmware_version"):
+            state["device"][key] = VERSION
+        body = json.dumps(state).encode()
+    return body
 
 # name, width, height, page (#hash), JavaScript run in the page once loaded
 SHOTS = [
@@ -59,7 +71,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif url.path == "/":
             self.reply(PAGE.read_bytes(), "text/html; charset=utf-8")
         elif url.path in API:
-            self.reply((FIX / API[url.path]).read_bytes())
+            self.reply(fixture(API[url.path]))
         elif url.path == "/log":
             self.reply((FIX / "log.txt").read_bytes(), "text/plain")
         elif url.path == "/api/scan":

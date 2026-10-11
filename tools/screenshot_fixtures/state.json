@@ -1,9 +1,9 @@
 {
  "device": {
   "name": "Open Firenet",
-  "version": "4.0.0",
-  "app_version": "3.3.0",
-  "firmware_version": "3.3.0",
+  "version": "4.2.0",
+  "app_version": "4.2.0",
+  "firmware_version": "4.2.0",
   "ip": "192.168.1.50",
   "mac": "AA:BB:CC:12:34:56",
   "wifi_ssid": "MyHomeWiFi",
