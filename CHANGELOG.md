@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.1.1 (2026-10-11)
 
 ### Fixes
 - Firmware 2.28: Home Assistant could not add the stove ("Unexpected error"). The bridge decoded the Wi-Fi name returned by the stove as if it were encoded, which it is not on this firmware, and produced a character that is not valid text; Home Assistant then refused the whole answer of `/api/state`. The name is now kept as the stove returns it. (open-firenet-ha#38)
