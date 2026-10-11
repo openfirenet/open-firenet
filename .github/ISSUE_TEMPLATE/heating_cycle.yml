@@ -1,0 +1,46 @@
+name: Share a heating cycle
+description: Send a recording of what your stove does while it heats, to help us show it more faithfully.
+title: "Heating cycle: "
+labels: ["heating-cycle"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping. A recording tells us how your stove goes through its states (ignition, heating, cleaning, wood operation...), which differs between models and firmware versions.
+
+        To make one, use the installer (version 1.10.0 or later): tab **Record**, or the command `open-firenet-installer record --ip <address of the bridge>`. The stove is only read, nothing is sent to it, and the file holds neither your Wi-Fi name nor your addresses.
+
+        The most useful recordings: a whole cycle from a cold start, a stove model or a firmware version we do not know yet, and wood operation on a combined stove.
+  - type: input
+    id: stove_model
+    attributes:
+      label: Stove model
+      placeholder: e.g. DOMO, INDUO II, SONO, LIVO
+    validations:
+      required: true
+  - type: input
+    id: stove_firmware
+    attributes:
+      label: Stove firmware version
+      description: Info menu on the stove screen (mainboard software).
+      placeholder: e.g. 2.27, 2.28, 2.29, 2.30
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What the stove did
+      description: In a few words. What the stove's screen showed at the notable moments helps a lot, with the time if you noted it (the notes typed during the recording are already in the file).
+      placeholder: "e.g. cold start at 18:05, flame visible at 18:09, the screen showed \"Cleaning\" at 19:10"
+  - type: textarea
+    id: recording
+    attributes:
+      label: Recording file
+      description: Drag the file `open-firenet-cycle-....log` here.
+    validations:
+      required: true
+  - type: textarea
+    id: anything_else
+    attributes:
+      label: Anything else
+      description: Something the page or Home Assistant showed that did not match what the stove was doing?
