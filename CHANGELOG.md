@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Fixes
+- Now and then the bridge lost part of a message of the stove: some values stayed a few seconds behind, and names cut in two (such as "gridMotoerviceCountdown") appeared in the table of all values. The bridge now has room for the whole message. The Diagnostics tab reports the bytes lost, if any.
+
 ## v4.2.0 (2026-10-12)
 
 ### New

@@ -86,6 +86,7 @@
   "stove_last_frame_seconds": 1,
   "stove_detections": 1,
   "stove_link_losses": 0,
+  "stove_rx_dropped_bytes": 0,
   "mqtt_disconnects": 0
  },
  "frames_in": 212,

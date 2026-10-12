@@ -46,6 +46,9 @@ struct MqttSettings {
 };
 static MqttSettings g_mqttCfg;
 static volatile bool g_mqttConnected = false;
+// Bytes from the stove lost because the USB receive buffer was full, since boot (see onUsbCdcRxOverflow).
+static volatile uint32_t g_stoveRxDropped = 0;
+
 static String jsonHealth(bool forMqtt);   // defined with the bridge health code
 static String g_otaHash;                  // SHA-256 of the update password, empty when none (see loadOtaPassword)
 // Wi-Fi power saving (modem sleep), the owner's choice in the Bridge tab (issue #82). On, the default: the chip
@@ -578,6 +581,7 @@ static String jsonHealth(bool forMqtt) {
   }
   j += "\"stove_detections\":" + String(m.detections) + ",";
   j += "\"stove_link_losses\":" + String(m.link_losses) + ",";
+  j += "\"stove_rx_dropped_bytes\":" + String((unsigned)g_stoveRxDropped) + ",";
   j += "\"mqtt_disconnects\":" + String((unsigned)g_mqttDisconnects);
   j += "}";
   return j;
@@ -846,6 +850,12 @@ static void logEntry(const char* dir, const std::string& msg) {
 // even with zero reply from the dongle, which points away from CDC *data*
 // content and toward the USB *control* transfers (SET_CONTROL_LINE_STATE /
 // SET_LINE_CODING) that nothing in this codebase has ever logged before.
+// Counts the bytes from the stove that the USB receive buffer had no room for (g_stoveRxDropped). The stove sends its 88 values as one message of
+// about 1.3 kB; with the library's default buffer of 256 bytes, a main loop busy for a moment lost what followed
+// byte 256, which cut a name in two ("gridMoto" + the end of a later name) and left the values in between stale.
+static void onUsbCdcRxOverflow(void* arg, esp_event_base_t base, int32_t id, void* data) {
+  g_stoveRxDropped += ((arduino_usb_cdc_event_data_t*)data)->rx_overflow.dropped_bytes;
+}
 static void onUsbCdcLineState(void* arg, esp_event_base_t base, int32_t id, void* data) {
   auto* p = (arduino_usb_cdc_event_data_t*)data;
   char b[48];
@@ -1541,6 +1551,7 @@ void setup() {
   USB.manufacturerName("Open-Firenet");
   USB.productName("Open-Firenet (V1)");
   USB.serialNumber("23176212");
+  STOVE.setRxBufferSize(4096);     // room for three full messages of the stove (see onUsbCdcRxOverflow)
   STOVE.begin();                   // CDC TinyUSB vers le poêle
   // This device stays permanently wired into the stove: the Arduino
   // "1200-baud / DTR touch reset" watcher (on by default, reboot_enable=true
@@ -1549,6 +1560,7 @@ void setup() {
   // dropping the ESP32 into the bootloader mid-handshake, which would look
   // exactly like an infinite probe loop from the stove's side.
   STOVE.enableReboot(false);
+  STOVE.onEvent(ARDUINO_USB_CDC_RX_OVERFLOW_EVENT, onUsbCdcRxOverflow);
   STOVE.onEvent(ARDUINO_USB_CDC_LINE_STATE_EVENT, onUsbCdcLineState);
   STOVE.onEvent(ARDUINO_USB_CDC_LINE_CODING_EVENT, onUsbCdcLineCoding);
   USB.begin();
