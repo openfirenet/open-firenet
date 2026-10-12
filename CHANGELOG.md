@@ -2,7 +2,13 @@
 
 ## Non publié
 
+### New
+- **The Bridge page has three tabs** instead of one long page: Network (Wi-Fi, power saving, access to the page), MQTT, and System (information about the bridge, delay between frames, restart). The tab you chose is remembered.
+- The delay between frames, which was under "Advanced" in the Diagnostics tab, is now in the System tab, and is written in the diagnostic file.
+
 ### Fixes
+- The "Scan" button of the Wi-Fi form often left the list on "Scanning..." without any network: the page asked for the result once, too early. It now waits for the scan to finish.
+- The hint "If the button does nothing, open http://192.168.4.1" was shown all the time under the Wi-Fi form. It is now shown only while the bridge runs its own setup network, where it applies.
 - Now and then the bridge lost part of a message of the stove: some values stayed a few seconds behind, and names cut in two (such as "gridMotoerviceCountdown") appeared in the table of all values. The bridge now has room for the whole message. The Diagnostics tab reports the bytes lost, if any.
 
 ## v4.2.0 (2026-10-12)

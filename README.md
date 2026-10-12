@@ -229,15 +229,13 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
     - **Baking oven** target temperature (DOMO BACK only)
 
 <p align="center">
-  <img src="assets/ui-desktop-bridge.png" alt="Open Firenet Web UI - Bridge tab: Wi-Fi, MQTT, restart" width="760">
+  <img src="assets/ui-desktop-bridge.png" alt="Open Firenet Web UI - Bridge tab, Network: Wi-Fi, power saving, access to the page" width="760">
 </p>
 
-- **Bridge tab** (`/#bridge`):
-  - **Network**: IP, signal strength, Wi-Fi scan, Wi-Fi reconfiguration & reset
+- **Bridge tab** (`/#bridge`), in three tabs:
+  - **Network**: IP, signal strength, Wi-Fi scan, Wi-Fi reconfiguration & reset; **Wi-Fi power saving** (on by default; switch it off if the bridge often loses the Wi-Fi or should answer faster); **access to the page**, the extra names under which the bridge accepts to answer (see [Who can call the API](#who-can-call-the-api))
   - **MQTT**: broker settings and connection status (see [MQTT](#mqtt))
-  - **Access to the page**: extra names under which the bridge accepts to answer (see [Who can call the API](#who-can-call-the-api))
-  - **Wi-Fi power saving**: on by default; switch it off if the bridge often loses the Wi-Fi or should answer faster
-  - **Restart** of the bridge
+  - **System**: firmware version, uptime, cause of the last restart, free memory and chip temperature; delay between frames sent to the stove (50 – 600 ms, default 150 ms); **restart** of the bridge
 
 <p align="center">
   <img src="assets/ui-desktop-diagnostics.png" alt="Open Firenet Web UI - Diagnostics tab: link with the stove, exchange log, all values" width="760">
@@ -245,10 +243,9 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
 
 - **Diagnostics tab** (`/#diagnostics`):
   - **Bridge health**: cause of the last restart, free memory, chip temperature, Wi-Fi disconnections, time since the stove's last message
-  - **Diagnostic file**: one button downloads a single file to attach to a report (Wi-Fi name and MAC address masked)
+  - **Diagnostic file**: one button downloads a single file to attach to a report (Wi-Fi name and MAC address masked); it includes the delay between frames
   - **Link with the stove**: USB CDC state, packet counters, protocol revision
   - **Exchange log**: real-time console of the raw frames exchanged with the stove, with sanitized WiFi credentials (identical consecutive lines are merged), and its download button
-  - **Advanced**: delay between frames sent to the stove (50 – 600 ms, default 150 ms)
   - **All values**: every value reported by the stove, with its name (temperatures, pellet consumption, auger & exhaust fan, air flaps, runtime hours, service countdown, error and warning codes, error counters, versions...)
 
 ### Mobile Interface
