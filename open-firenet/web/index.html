@@ -1437,6 +1437,7 @@ const I18N = {
     healthAgo: "il y a {v}",
     healthNever: "jamais",
     healthLink: "Liaison poêle : établie / perdue",
+    healthRxDropped: "Octets du poêle perdus",
     healthMqttDrops: "Déconnexions MQTT",
     healthKb: "{v} ko",
     restartReasons: {
@@ -1709,6 +1710,7 @@ const I18N = {
     healthAgo: "{v} ago",
     healthNever: "never",
     healthLink: "Stove link: established / lost",
+    healthRxDropped: "Bytes from the stove lost",
     healthMqttDrops: "MQTT disconnections",
     healthKb: "{v} kB",
     restartReasons: {
@@ -2001,6 +2003,7 @@ const I18N = {
     "healthAgo": "{v} fa",
     "healthNever": "mai",
     "healthLink": "Collegamento stufa: stabilito / perso",
+    "healthRxDropped": "Byte della stufa persi",
     "healthMqttDrops": "Disconnessioni MQTT",
     "healthKb": "{v} kB",
     "restartReasons": {
@@ -2313,6 +2316,7 @@ const I18N = {
     healthAgo: "vor {v}",
     healthNever: "nie",
     healthLink: "Verbindung zum Ofen: aufgebaut / verloren",
+    healthRxDropped: "Verlorene Bytes vom Ofen",
     healthMqttDrops: "MQTT-Verbindungsabbrüche",
     healthKb: "{v} kB",
     restartReasons: {
@@ -3509,6 +3513,7 @@ function renderHealth(s) {
     rows.push([t.healthLastFrame, h.stove_last_frame_seconds === null ? t.healthNever : t.healthAgo.replace('{v}', formatUptime(h.stove_last_frame_seconds))]);
   }
   if (h.stove_detections !== undefined) rows.push([t.healthLink, h.stove_detections + ' / ' + h.stove_link_losses]);
+  if (h.stove_rx_dropped_bytes) rows.push([t.healthRxDropped, h.stove_rx_dropped_bytes]);
   if (s.mqtt && s.mqtt.enabled && h.mqtt_disconnects !== undefined) rows.push([t.healthMqttDrops, h.mqtt_disconnects]);
   body.textContent = '';
   for (const [label, value] of rows) {
