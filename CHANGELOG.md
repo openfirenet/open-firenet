@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.3.0 (2026-10-12)
 
 ### New
 - **The Bridge page has three tabs** instead of one long page: Network (Wi-Fi, power saving, access to the page), MQTT, and System (information about the bridge, delay between frames, restart). The tab you chose is remembered.
