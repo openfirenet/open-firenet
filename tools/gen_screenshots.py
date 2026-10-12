@@ -35,10 +35,12 @@ def fixture(name):
 SHOTS = [
     ("ui-desktop-controls",    1280, 1260, "stove",       ""),
     ("ui-desktop-schedule",    1280, 1260, "stove",       "showCtrlTab('ctrl-sched')"),
-    ("ui-desktop-bridge",      1280, 1560, "bridge",      ""),
+    ("ui-desktop-bridge",      1280,  900, "bridge",      "showBridgeTab('bridge-net')"),
+    ("ui-desktop-bridge-mqtt", 1280,  860, "bridge",      "showBridgeTab('bridge-mqtt')"),
+    ("ui-desktop-bridge-system", 1280, 760, "bridge",     "showBridgeTab('bridge-system')"),
     ("ui-desktop-diagnostics", 1280, 1260, "diagnostics", ""),
     ("ui-mobile",               430, 2250, "stove",       ""),
-    ("ui-mobile-bridge",        430, 1840, "bridge",      ""),
+    ("ui-mobile-bridge",        430, 1100, "bridge",      "showBridgeTab('bridge-net')"),
 ]
 API = {"/api/state": "state.json", "/api/controls": "controls.json", "/api/control": "controls.json",
        "/api/schedule": "schedule.json", "/api/txgap": "txgap.json", "/api/mqtt": "mqtt.json"}

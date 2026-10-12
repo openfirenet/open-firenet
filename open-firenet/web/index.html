@@ -462,6 +462,8 @@ input[type=range]::-webkit-slider-thumb {
   gap: 6px;
 }
 .subtab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.bridge-panel { display: flex; flex-direction: column; gap: 16px; }
+#bridgeInfoTable td:first-child { color: var(--text-dim); }
 .subtab-btn.active { color: var(--text); background: #202738; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 
 .page { display: none; flex-direction: column; gap: inherit; }
@@ -1069,13 +1071,19 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 
   <!-- Page 2: bridge settings (Wi-Fi, MQTT, restart) -->
   <div class="page" id="page-bridge">
+    <!-- Three tabs instead of one long page: network, MQTT, the bridge itself -->
+    <div class="subtabs" style="display:flex;gap:6px;background:#10141e;padding:4px;border-radius:10px;border:1px solid var(--border);align-self:flex-start">
+      <button type="button" class="subtab-btn bridge-tab active" id="bridgeTabBtnNet" onclick="showBridgeTab('bridge-net')">📶 <span id="lblBridgeTabNet">Réseau</span></button>
+      <button type="button" class="subtab-btn bridge-tab" id="bridgeTabBtnMqtt" onclick="showBridgeTab('bridge-mqtt')">🔁 <span id="lblBridgeTabMqtt">MQTT</span></button>
+      <button type="button" class="subtab-btn bridge-tab" id="bridgeTabBtnSystem" onclick="showBridgeTab('bridge-system')">⚙️ <span id="lblBridgeTabSystem">Système</span></button>
+    </div>
+    <div class="bridge-panel" id="bridge-net">
     <div class="card" style="gap:16px">
       <h3 id="lblNetTitle">Configuration Réseau</h3>
       <div style="display:flex;justify-content:space-between;color:var(--text-dim);font-size:0.9rem;flex-wrap:wrap;gap:8px">
         <span><span id="lblNetModePrefix">Mode : </span><b id="netMode">--</b></span>
         <span>IP : <b id="netIp">--</b></span>
         <span><span id="lblNetRssiPrefix">Signal RSSI : </span><b id="netRssi">--</b> dBm</span>
-        <span><span id="lblNetUptimePrefix">Uptime : </span><b id="netUptime">--</b></span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <label id="lblJoinWifi" style="font-size:0.9rem;font-weight:600">Rejoindre un réseau WiFi (2.4 GHz) :</label>
@@ -1101,7 +1109,30 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <p id="captiveHint" style="font-size:0.8rem;color:var(--text-dim);margin:2px 0 0 0;text-align:center"></p>
       </form>
     </div>
-    <div class="card" style="gap:12px;margin-top:16px" id="mqttCard">
+    <div class="card" style="gap:12px" id="wifiPsCard">
+      <h3 id="lblWifiPsTitle"></h3>
+      <p id="lblWifiPsDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <span id="lblWifiPsToggle" style="font-weight:600;font-size:0.9rem"></span>
+        <label class="switch">
+          <input type="checkbox" id="wifiPsToggle" onchange="saveWifiPowerSaving()">
+          <span class="slider-switch"></span>
+        </label>
+        <span id="wifiPsStatus" style="font-size:0.8rem;color:var(--text-dim)"></span>
+      </label>
+    </div>
+    <div class="card" style="gap:12px" id="accessCard">
+      <h3 id="lblAccessTitle"></h3>
+      <p id="lblAccessDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
+      <label style="display:flex;flex-direction:column;gap:4px;font-size:0.8rem;color:var(--text-dim)"><span id="lblAccessHosts"></span>
+        <textarea class="input-text" id="accessHosts" rows="3" spellcheck="false" autocomplete="off" autocapitalize="off" style="font-family:monospace;font-size:0.85rem;resize:vertical" placeholder="open-firenet.lan"></textarea></label>
+      <div style="display:flex;justify-content:flex-end">
+        <button type="button" class="power-btn" id="btnSaveAccess" style="padding:8px 16px;font-size:0.9rem" onclick="saveAccess()"></button>
+      </div>
+    </div>
+    </div>
+    <div class="bridge-panel" id="bridge-mqtt" style="display:none">
+    <div class="card" style="gap:12px" id="mqttCard">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <h3 id="lblMqttTitle">MQTT</h3>
         <span class="badge badge-live off" id="mqttStatus">--</span>
@@ -1139,33 +1170,32 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <button type="button" class="power-btn" id="btnSaveMqtt" style="padding:8px 16px;font-size:0.9rem" onclick="saveMqtt()">Save</button>
       </div>
     </div>
-    <div class="card" style="gap:12px;margin-top:16px" id="accessCard">
-      <h3 id="lblAccessTitle"></h3>
-      <p id="lblAccessDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
-      <label style="display:flex;flex-direction:column;gap:4px;font-size:0.8rem;color:var(--text-dim)"><span id="lblAccessHosts"></span>
-        <textarea class="input-text" id="accessHosts" rows="3" spellcheck="false" autocomplete="off" autocapitalize="off" style="font-family:monospace;font-size:0.85rem;resize:vertical" placeholder="open-firenet.lan"></textarea></label>
-      <div style="display:flex;justify-content:flex-end">
-        <button type="button" class="power-btn" id="btnSaveAccess" style="padding:8px 16px;font-size:0.9rem" onclick="saveAccess()"></button>
+    </div>
+    <div class="bridge-panel" id="bridge-system" style="display:none">
+    <div class="card" style="gap:12px">
+      <h3 id="lblBridgeInfo"></h3>
+      <table id="bridgeInfoTable"><tbody id="bridgeInfoRows"></tbody></table>
+    </div>
+    <div class="card" style="gap:12px">
+      <h3 id="lblTxGap">Délai entre trames vers le poêle</h3>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="slider-row" style="flex:1;min-width:220px">
+          <button class="btn-step" type="button" onclick="stepSlider('txGap', -1)">−</button>
+          <input type="range" id="txGap" min="50" max="600" step="50" value="150" style="flex:1;min-width:160px">
+          <button class="btn-step" type="button" onclick="stepSlider('txGap', 1)">+</button>
+        </div>
+        <span><b id="txGapVal">600</b> ms</span>
+        <button class="btn-lang" id="btnTxGapDefault" style="padding:4px 10px;font-size:0.8rem" onclick="setTxGap(150)">Défaut (150)</button>
       </div>
+      <div style="font-size:0.75rem;color:var(--text-dim)" id="lblTxGapHelp">Appliqué immédiatement et conservé après redémarrage. Trop bas : le poêle peut ne traiter qu'une trame sur deux.</div>
     </div>
-    <div class="card" style="gap:12px;margin-top:16px" id="wifiPsCard">
-      <h3 id="lblWifiPsTitle"></h3>
-      <p id="lblWifiPsDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-        <span id="lblWifiPsToggle" style="font-weight:600;font-size:0.9rem"></span>
-        <label class="switch">
-          <input type="checkbox" id="wifiPsToggle" onchange="saveWifiPowerSaving()">
-          <span class="slider-switch"></span>
-        </label>
-        <span id="wifiPsStatus" style="font-size:0.8rem;color:var(--text-dim)"></span>
-      </label>
-    </div>
-    <div class="card" style="gap:12px;margin-top:16px">
+    <div class="card" style="gap:12px">
       <h3 id="lblBridgeRestart"></h3>
       <p id="lblBridgeRestartDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
       <div style="display:flex;justify-content:flex-end">
         <button class="btn-lock" id="btnRestart" style="color:var(--amber);border-color:var(--amber)" onclick="restartDongle()">🔄 Redémarrer la clef</button>
       </div>
+    </div>
     </div>
   </div>
 
@@ -1208,22 +1238,6 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
       <pre id="logConsole" class="log-console">…</pre>
     </div>
-    <details class="card advanced" style="padding:14px;margin-top:16px">
-      <summary id="lblDiagAdvanced"></summary>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
-      <div style="font-size:0.85rem" id="lblTxGap">Délai entre trames vers le poêle</div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div class="slider-row" style="flex:1;min-width:220px">
-          <button class="btn-step" type="button" onclick="stepSlider('txGap', -1)">−</button>
-          <input type="range" id="txGap" min="50" max="600" step="50" value="150" style="flex:1;min-width:160px">
-          <button class="btn-step" type="button" onclick="stepSlider('txGap', 1)">+</button>
-        </div>
-        <span><b id="txGapVal">600</b> ms</span>
-        <button class="btn-lang" id="btnTxGapDefault" style="padding:4px 10px;font-size:0.8rem" onclick="setTxGap(150)">Défaut (150)</button>
-      </div>
-      <div style="font-size:0.75rem;color:var(--text-dim)" id="lblTxGapHelp">Appliqué immédiatement et conservé après redémarrage. Trop bas : le poêle peut ne traiter qu'une trame sur deux.</div>
-      </div>
-    </details>
     <div class="card" style="padding:14px;margin-top:16px">
       <h3 id="lblDiagValues" style="margin-bottom:12px"></h3>
       <div style="margin-bottom:12px;display:flex;gap:10px">
@@ -1333,7 +1347,10 @@ const I18N = {
     diagLink: "Liaison avec le poêle",
     diagLogs: "Journal des échanges",
     diagValues: "Toutes les valeurs",
-    diagAdvanced: "Avancé",
+    bridgeTabNet: "Réseau",
+    bridgeTabSystem: "Système",
+    bridgeInfo: "Informations",
+    bridgeInfoVersion: "Version du firmware",
     bridgeRestart: "Redémarrage",
     bridgeRestartDesc: "Redémarre la clé. Le poêle continue de fonctionner ; la liaison revient en une minute environ.",
     linkHintMore: "Ouvrir le diagnostic →",
@@ -1454,7 +1471,6 @@ const I18N = {
       software: "Redémarrage logiciel",
       unknown: "Inconnu"
     },
-    lblNetUptimePrefix: "Uptime : ",
     yes: "Oui",
     no: "Non",
     confirmSaveWifi: "La carte va redémarrer et tenter de rejoindre ",
@@ -1606,7 +1622,10 @@ const I18N = {
     diagLink: "Link with the stove",
     diagLogs: "Exchange log",
     diagValues: "All values",
-    diagAdvanced: "Advanced",
+    bridgeTabNet: "Network",
+    bridgeTabSystem: "System",
+    bridgeInfo: "Information",
+    bridgeInfoVersion: "Firmware version",
     bridgeRestart: "Restart",
     bridgeRestartDesc: "Restarts the bridge. The stove keeps running; the link comes back in about a minute.",
     linkHintMore: "Open diagnostics →",
@@ -1727,7 +1746,6 @@ const I18N = {
       software: "Software restart",
       unknown: "Unknown"
     },
-    lblNetUptimePrefix: "Uptime: ",
     yes: "Yes",
     no: "No",
     confirmSaveWifi: "Board will reboot and attempt to join ",
@@ -1879,7 +1897,10 @@ const I18N = {
     "diagLink": "Collegamento con la stufa",
     "diagLogs": "Registro degli scambi",
     "diagValues": "Tutti i valori",
-    "diagAdvanced": "Avanzate",
+    "bridgeTabNet": "Rete",
+    "bridgeTabSystem": "Sistema",
+    "bridgeInfo": "Informazioni",
+    "bridgeInfoVersion": "Versione del firmware",
     "bridgeRestart": "Riavvio",
     "bridgeRestartDesc": "Riavvia il bridge. La stufa continua a funzionare. Il collegamento si ripristina in circa un minuto.",
     "linkHintMore": "Apri diagnostica →",
@@ -2020,7 +2041,6 @@ const I18N = {
       "software": "Riavvio software",
       "unknown": "Sconosciuto"
     },
-    "lblNetUptimePrefix": "Tempo di attività: ",
     "yes": "Sì",
     "no": "No",
     "confirmSaveWifi": "La scheda si riavvierà e proverà a connettersi a ",
@@ -2212,7 +2232,10 @@ const I18N = {
     diagLink: "Verbindung zum Ofen",
     diagLogs: "Kommunikationsprotokoll",
     diagValues: "Alle Werte",
-    diagAdvanced: "Erweitert",
+    bridgeTabNet: "Netzwerk",
+    bridgeTabSystem: "System",
+    bridgeInfo: "Informationen",
+    bridgeInfoVersion: "Firmware-Version",
     bridgeRestart: "Neustart",
     bridgeRestartDesc: "Startet den Stick neu. Der Ofen läuft weiter; die Verbindung ist nach etwa einer Minute wieder da.",
     linkHintMore: "Diagnose öffnen →",
@@ -2333,7 +2356,6 @@ const I18N = {
       software: "Software-Neustart",
       unknown: "Unbekannt"
     },
-    lblNetUptimePrefix: "Betriebszeit: ",
     yes: "Ja",
     no: "Nein",
     confirmSaveWifi: "Der Dongle wird neu gestartet und versucht, sich zu verbinden mit ",
@@ -2486,7 +2508,9 @@ function applyLang() {
   renderHealth(lastHealthState);
   document.getElementById('lblDiagLogs').textContent = t.diagLogs;
   document.getElementById('lblDiagValues').textContent = t.diagValues;
-  document.getElementById('lblDiagAdvanced').textContent = t.diagAdvanced;
+  document.getElementById('lblBridgeTabNet').textContent = t.bridgeTabNet;
+  document.getElementById('lblBridgeTabSystem').textContent = t.bridgeTabSystem;
+  document.getElementById('lblBridgeInfo').textContent = t.bridgeInfo;
   document.getElementById('lblBridgeRestart').textContent = t.bridgeRestart;
   document.getElementById('lblBridgeRestartDesc').textContent = t.bridgeRestartDesc;
   document.getElementById('linkHintMore').textContent = t.linkHintMore;
@@ -2551,8 +2575,6 @@ function applyLang() {
   document.getElementById('lblCdcOut').textContent = t.cdcOut;
   const elU = document.getElementById('lblUptime');
   if (elU) elU.textContent = t.lblUptime;
-  const elNetP = document.getElementById('lblNetUptimePrefix');
-  if (elNetP) elNetP.textContent = t.lblNetUptimePrefix;
 }
 
 function onSelectLang(l) {
@@ -2595,8 +2617,19 @@ function toast(msg) {
   t.timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
 
+// Tabs of the Bridge page; the one chosen is remembered, like the language.
+function showBridgeTab(id) {
+  const ids = ['bridge-net', 'bridge-mqtt', 'bridge-system'];
+  if (!ids.includes(id)) id = ids[0];
+  ids.forEach(p => { const el = document.getElementById(p); if (el) el.style.display = (p === id) ? 'flex' : 'none'; });
+  document.querySelectorAll('.bridge-tab').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById({ 'bridge-net': 'bridgeTabBtnNet', 'bridge-mqtt': 'bridgeTabBtnMqtt', 'bridge-system': 'bridgeTabBtnSystem' }[id]);
+  if (btn) btn.classList.add('active');
+  try { localStorage.setItem('bridgeTab', id); } catch (e) { /* private browsing: the tab is just not remembered */ }
+}
+
 function showCtrlTab(id) {
-  document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.subtab-btn:not(.bridge-tab)').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.ctrl-content').forEach(c => c.style.display = 'none');
   if (id === 'ctrl-sched') {
     const btn = document.getElementById('subtabBtnSched');
@@ -2932,6 +2965,7 @@ function buildDiagFile(parts) {
   out.push('', '===== LINK WITH THE STOVE =====');
   out.push(line('linked', s.version_ack), line('version_frame', s.version_frame), line('generation', s.generation));
   out.push(line('usb', JSON.stringify(s.usb)), line('frames_in', s.frames_in), line('frames_out', s.frames_out), line('revision', s.revision));
+  out.push(line('frame_gap_ms', parts.txgap ? parts.txgap.ms : null));
   out.push(line('stove model', stove.model_name), line('stove firmware', stove.mainboard_version), line('stove build', stove.firmware_build));
   out.push('', '===== MQTT (/api/mqtt) =====', json(mqtt));
   out.push('', '===== SCHEDULE (/api/schedule) =====', json(parts.schedule));
@@ -2950,13 +2984,13 @@ async function downloadDiagFile() {
   const get = async (url, asText) => {
     try { const r = await fetch(url); return asText ? await r.text() : await r.json(); } catch (e) { return null; }
   };
-  const [state, mqtt, schedule, log] = [await get('/api/state'), await get('/api/mqtt'), await get('/api/schedule'), await get('/log', true)];
+  const [state, mqtt, schedule, txgap, log] = [await get('/api/state'), await get('/api/mqtt'), await get('/api/schedule'), await get('/api/txgap'), await get('/log', true)];
   const pad = n => String(n).padStart(2, '0');
   const d = new Date();
   const off = -d.getTimezoneOffset();
   const when = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds())
              + (off >= 0 ? '+' : '-') + pad(Math.floor(Math.abs(off) / 60)) + ':' + pad(Math.abs(off) % 60);
-  const txt = buildDiagFile({when, lang: curLang, browser: navigator.userAgent, state, mqtt, schedule, log});
+  const txt = buildDiagFile({when, lang: curLang, browser: navigator.userAgent, state, mqtt, schedule, txgap, log});
   const version = (state && state.device && state.device.version) || 'unknown';
   const name = 'open-firenet-diag-v' + version + '-' + d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()) + '.txt';
   const url = URL.createObjectURL(new Blob([txt], {type: 'text/plain'}));
@@ -3466,13 +3500,16 @@ async function scanWifi() {
   if (btn) btn.disabled = true;
   sel.innerHTML = '<option value="">' + t.scanning + '</option>';
   try {
-    let res = await fetch('/api/scan');
-    let data = await res.json();
-    if (data.status === 'scanning') {
-      await new Promise(r => setTimeout(r, 1500));
-      res = await fetch('/api/scan');
+    // The first call starts the scan and the bridge answers "scanning" until it is over, which takes a few
+    // seconds: ask again every second, for 20 s at most, instead of once (the list then stayed on "Scanning...").
+    let data = null;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const res = await fetch('/api/scan');
       data = await res.json();
+      if (Array.isArray(data)) break;
+      await new Promise(r => setTimeout(r, 1000));
     }
+    if (!Array.isArray(data)) throw new Error('scan timeout');
     if (Array.isArray(data)) {
       let h = '<option value="">' + t.selectNetwork + ' (' + data.length + ')</option>';
       data.sort((a,b) => b.rssi - a.rssi);
@@ -3491,7 +3528,26 @@ async function scanWifi() {
 
 // Bridge health card of the Diagnostics tab: one row per value of the "health" object of /api/state.
 let lastHealthState = null;
+function renderBridgeInfo(s) {
+  const body = document.getElementById('bridgeInfoRows');
+  if (!body || !s) return;
+  const t = I18N[curLang] || I18N.en, h = s.health || {}, dev = s.device || {};
+  const kb = (v) => t.healthKb.replace('{v}', Math.round(v / 1024));
+  const rows = [];
+  if (dev.version) rows.push([t.bridgeInfoVersion, dev.version]);
+  rows.push([t.lblUptime, formatUptime((s.uptime_seconds !== undefined) ? s.uptime_seconds : dev.uptime_seconds)]);
+  if (h.restart_reason) rows.push([t.healthRestart, t.restartReasons[h.restart_reason] || h.restart_reason]);
+  if (dev.free_heap !== undefined) rows.push([t.healthMemory, kb(dev.free_heap)]);
+  if (h.chip_temperature !== undefined && h.chip_temperature !== null) rows.push([t.healthTemp, Number(h.chip_temperature).toFixed(1) + ' °C']);
+  body.textContent = '';
+  rows.forEach(([name, value]) => {
+    const tr = document.createElement('tr'), a = document.createElement('td'), b = document.createElement('td');
+    a.textContent = name; b.textContent = value; tr.append(a, b); body.appendChild(tr);
+  });
+}
+
 function renderHealth(s) {
+  renderBridgeInfo(s);
   const body = document.getElementById('healthRows');
   if (!body || !s) return;
   lastHealthState = s;
@@ -3889,6 +3945,9 @@ async function tick() {
     syncApplyButtons(!userInteracting);
 
     document.getElementById('netMode').textContent = s.wifi_mode;
+    // The hint about the captive portal only makes sense while the bridge runs its own setup network. It is shown
+    // until the bridge says it is on the home network: in a captive portal the page may get no state at all.
+    document.getElementById('captiveHint').style.display = (s.wifi_mode === 'STA') ? 'none' : '';
     document.getElementById('netIp').textContent = s.ip;
     const rssiVal = (s.device && s.device.wifi_rssi !== undefined) ? s.device.wifi_rssi : (rawS.rssi || '--');
     document.getElementById('netRssi').textContent = rssiVal;
@@ -3905,8 +3964,6 @@ async function tick() {
     const upStr = formatUptime(upSec);
     const elUptime = document.getElementById('dongleUptime');
     if (elUptime) elUptime.textContent = upStr;
-    const elNetUp = document.getElementById('netUptime');
-    if (elNetUp) elNetUp.textContent = upStr;
 
     // No data from the stove yet (not linked, or linked but nothing posted): the values on the page are the API
     // defaults, not the stove's. Say so in the hero, and grey out the cards and the controls.
@@ -3930,6 +3987,7 @@ async function tick() {
 }
 
 applyLang();
+try { showBridgeTab(localStorage.getItem('bridgeTab') || 'bridge-net'); } catch (e) { showBridgeTab('bridge-net'); }
 showPage(currentPage());
 setInterval(tick, 2000);
 setInterval(fetchLogs, 1500);
