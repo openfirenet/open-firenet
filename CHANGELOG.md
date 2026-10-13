@@ -1,5 +1,15 @@
 # Changelog
 
+## Non publié
+
+### Changes
+- The Wi-Fi settings and the update password sent over USB by the installer are saved without restarting the bridge. Unplug the bridge and plug it into the stove (or plug it in again) for the Wi-Fi settings to be used. Installers up to 1.11.2 still say the bridge restarts: it does not.
+- A new update password is asked at once. A removed one is still asked until the bridge restarts.
+
+### Fixes
+- On Windows, saving the Wi-Fi settings over USB could end on an error ("os error 22" or "433"): the bridge restarted while the installer was still reading its answer.
+- The update password can also be sent on the USB port of the bridge, not only on its debug port.
+
 ## v4.3.0 (2026-10-12)
 
 ### New

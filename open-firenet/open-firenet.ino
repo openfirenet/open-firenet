@@ -661,24 +661,27 @@ static void handleForget() {
 // Option C — provisioning par commande série (UART0 DBG et CDC TinyUSB STOVE) :
 //   SETWIFI:<ssid>:<password>
 // Le SSID s'arrête au premier ':' ; tout le reste est le mot de passe (donc un
-// mot de passe contenant ':' est accepté). Enregistre en NVS puis redémarre en STA.
+// mot de passe contenant ':' est accepté). Enregistre en NVS.
 //   SETOTAPASS:<password>   sets the password asked for wireless updates; an empty password removes it.
+// A new password is applied at once. A removal only takes effect at the next restart: the update library has no
+// way to clear its password. g_otaHash always follows what is stored, since handleForget writes it back.
 static bool applySetOtaPass(const String& line, Print& out) {
   if (!line.startsWith("SETOTAPASS:")) return false;
   String pass = line.substring(11);
+  g_otaHash = pass.length() > 0 ? sha256Hex(pass) : "";
   prefs.begin("firenet", false);
-  if (pass.length() > 0) prefs.putString("ota_hash", sha256Hex(pass)); else prefs.remove("ota_hash");
+  if (g_otaHash.length() == 64) prefs.putString("ota_hash", g_otaHash); else prefs.remove("ota_hash");
   prefs.end();
-  const char* what = pass.length() > 0 ? "password set" : "password removed";
-  DBG.printf("[ota] SETOTAPASS OK %s -> reboot\n", what);
-  if ((Print*)&out != (Print*)&DBG) { out.printf("[ota] SETOTAPASS OK %s -> reboot\r\n", what); out.flush(); }
-  delay(200); restartBecause(NOTE_USER);
+  if (g_otaHash.length() == 64) ArduinoOTA.setPasswordHash(g_otaHash.c_str());
+  const char* what = pass.length() > 0 ? "password set" : "password removed, effective after restart";
+  DBG.printf("[ota] SETOTAPASS OK %s\n", what);
+  if ((Print*)&out != (Print*)&DBG) { out.printf("[ota] SETOTAPASS OK %s\r\n", what); out.flush(); }
   return true;
 }
 
 static bool applySetWifi(const String& line, Print& out) {
   if (line.startsWith("SETWIFI:")) {
-    String rest = line.substring(8);       // après "SETWIFI:"
+    String rest = line.substring(8);       // after "SETWIFI:"
     int sep = rest.indexOf(':');
     if (sep > 0) {
       String ssid = rest.substring(0, sep);
@@ -687,12 +690,11 @@ static bool applySetWifi(const String& line, Print& out) {
       prefs.putString("ssid", ssid);
       prefs.putString("pass", pass);
       prefs.end();
-      DBG.printf("[wifi] SETWIFI OK ssid=\"%s\" -> reboot STA\n", ssid.c_str());
+      DBG.printf("[wifi] SETWIFI OK ssid=\"%s\"\n", ssid.c_str());
       if ((Print*)&out != (Print*)&DBG) {
-        out.printf("[wifi] SETWIFI OK ssid=\"%s\" -> reboot STA\r\n", ssid.c_str());
+        out.printf("[wifi] SETWIFI OK ssid=\"%s\"\r\n", ssid.c_str());
         out.flush();
       }
-      delay(200); restartBecause(NOTE_WIFI_CHANGE);
       return true;
     } else {
       DBG.println("[wifi] SETWIFI: format attendu -> SETWIFI:<ssid>:<password>");
@@ -734,7 +736,7 @@ static void handleSerialProvisioning() {
         if (c == 'S') stoveLine += c;
       } else if (stoveLine.length() < 160) {
         stoveLine += c;
-        if (stoveLine.length() == 8 && stoveLine != "SETWIFI:") {
+        if (stoveLine.length() == 8 && stoveLine != "SETWIFI:" && stoveLine != "SETOTAPA") {
           stoveLine = "";
         }
       }
