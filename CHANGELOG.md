@@ -1,5 +1,13 @@
 # Changelog
 
+## Non publié
+
+### Changes
+- MQTT: the air flaps sensors (position and target) are ordinary sensors in Home Assistant and no longer filed under "Diagnostic". (open-firenet-ha#42)
+
+### Fixes
+- After a firmware update, a browser could keep showing the page of the previous version, with missing texts (for example "Split Log Check" in English on a German page). The bridge now tells the browser to check for the current page each time. (#105)
+
 ## v4.3.0 (2026-10-12)
 
 ### New
