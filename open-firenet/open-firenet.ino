@@ -500,6 +500,9 @@ static void handleVersion() {
 }
 // The page is stored gzip-compressed (web_ui.h, generated from web/index.html) and decompressed by the browser.
 static void handleRoot() {
+  // The browser must ask again each time: a page kept from before a firmware update talks to the new firmware
+  // with old code (issue #105: a state the old page did not know, shown as "Split Log Check" in English).
+  web.sendHeader("Cache-Control", "no-cache");
   web.sendHeader("Content-Encoding", "gzip");
   web.send_P(200, "text/html", (PGM_P)INDEX_HTML_GZ, INDEX_HTML_GZ_LEN);
 }

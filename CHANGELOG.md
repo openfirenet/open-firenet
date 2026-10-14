@@ -5,10 +5,12 @@
 ### Changes
 - The Wi-Fi settings and the update password sent over USB by the installer are saved without restarting the bridge. Unplug the bridge and plug it into the stove (or plug it in again) for the Wi-Fi settings to be used. Installers up to 1.11.2 still say the bridge restarts: it does not.
 - A new update password is asked at once. A removed one is still asked until the bridge restarts.
+- MQTT: the air flaps sensors (position and target) are ordinary sensors in Home Assistant and no longer filed under "Diagnostic". (open-firenet-ha#42)
 
 ### Fixes
 - On Windows, saving the Wi-Fi settings over USB could end on an error ("os error 22" or "433"): the bridge restarted while the installer was still reading its answer.
 - The update password can also be sent on the USB port of the bridge, not only on its debug port.
+- After a firmware update, a browser could keep showing the page of the previous version, with missing texts (for example "Split Log Check" in English on a German page). The bridge now tells the browser to check for the current page each time. (#105)
 
 ## v4.3.0 (2026-10-12)
 

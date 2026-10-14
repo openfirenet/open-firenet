@@ -127,10 +127,10 @@ static const Entity ENTITIES[] = {
    "\"state_topic\":\"~/sensors/auger_speed_rpm\",\"unit_of_measurement\":\"rpm\",\"state_class\":\"measurement\",\"icon\":\"mdi:screw-lag\"," OF_DIAG},
   {"sensor", "air_flaps_percent", "Air Flaps",
    "\"state_topic\":\"~/sensors/air_flaps_percent\"," OF_NULLABLE
-   "\"unit_of_measurement\":\"%\",\"state_class\":\"measurement\"," OF_DIAG},
+   "\"unit_of_measurement\":\"%\",\"state_class\":\"measurement\","},
   {"sensor", "air_flaps_target_percent", "Air Flaps Target",
    "\"state_topic\":\"~/sensors/air_flaps_target_percent\"," OF_NULLABLE
-   "\"unit_of_measurement\":\"%\",\"state_class\":\"measurement\"," OF_DIAG},
+   "\"unit_of_measurement\":\"%\",\"state_class\":\"measurement\","},
   {"sensor", "stove_state", "Stove State",
    "\"state_topic\":\"~/stove/state\",\"device_class\":\"enum\","
    "\"options\":[\"off\",\"standby\",\"ignition\",\"flame_start\",\"heating\",\"cleaning\",\"burn_off\",\"splitlog\",\"splitlog_check\",\"splitlog_refuel\",\"splitlog_no_refuel\",\"unknown\"],"
