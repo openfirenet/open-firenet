@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.3.1 (2026-10-14)
 
 ### Changes
 - The Wi-Fi settings and the update password sent over USB by the installer are saved without restarting the bridge. Unplug the bridge and plug it into the stove (or plug it in again) for the Wi-Fi settings to be used. Installers up to 1.11.2 still say the bridge restarts: it does not.
