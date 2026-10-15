@@ -12,13 +12,15 @@ int main() {
   {
     std::vector<std::pair<std::string, std::string>> f;
     mqtt::flattenSections("{\"stove\":{\"state\":\"heating\",\"state_code\":4,\"model\":null,\"state_label\":\"Grate Cleaning\"},"
-                          "\"sensors\":{\"room_temperature\":21.5,\"deep\":{\"x\":1},\"last\":-3},\"top\":7,\"controls\":{\"on\":true}}", f);
+                          "\"sensors\":{\"room_temperature\":21.5,\"deep\":{\"x\":1},\"last\":-3},\"top\":7,\"controls\":{\"on\":true},"
+                          "\"schedule\":{\"heatTimeMon1\":6000800,\"heatTimeSun2\":0}}", f);
     std::map<std::string, std::string> m(f.begin(), f.end());
     CH("flatten: string without quotes", m["stove/state"] == "heating");
     CH("flatten: number, null, boolean, negative", m["stove/state_code"] == "4" && m["stove/model"] == "null" && m["controls/on"] == "true" && m["sensors/last"] == "-3");
     CH("flatten: string with a space", m["stove/state_label"] == "Grate Cleaning");
     CH("flatten: float", m["sensors/room_temperature"] == "21.5");
-    CH("flatten: deeper levels and top-level scalars ignored", f.size() == 7 && !m.count("sensors/x") && !m.count("deep/x") && !m.count("top"));
+    CH("flatten: schedule slots", m["schedule/heatTimeMon1"] == "6000800" && m["schedule/heatTimeSun2"] == "0");
+    CH("flatten: deeper levels and top-level scalars ignored", f.size() == 9 && !m.count("sensors/x") && !m.count("deep/x") && !m.count("top"));
   }
 
   // --- command topics

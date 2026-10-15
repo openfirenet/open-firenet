@@ -520,8 +520,8 @@ Optional and off by default. The bridge can publish the stove state to an MQTT b
 | Topic | Direction | Content |
 |---|---|---|
 | `openfirenet/availability` | bridge → broker | `online` / `offline` (retained; `offline` is the last will, sent by the broker when the bridge disappears) |
-| `openfirenet/state` | bridge → broker | JSON with the `device`, `stove`, `sensors` and `controls` objects, same names and units as `GET /api/state` (retained). Published when something changes, at most every 5 s and at least every 60 s |
-| `openfirenet/<section>/<name>` | bridge → broker | The same values, one per topic (retained), e.g. `openfirenet/sensors/room_temperature`, `openfirenet/stove/state`, `openfirenet/controls/on`. Published when the value changes |
+| `openfirenet/state` | bridge → broker | JSON with the `device`, `stove`, `sensors`, `controls` and `schedule` objects (retained). Published when something changes, at most every 5 s and at least every 60 s |
+| `openfirenet/<section>/<name>` | bridge → broker | The same values, one per topic (retained), e.g. `openfirenet/sensors/room_temperature`, `openfirenet/stove/state`, `openfirenet/controls/on`, `openfirenet/schedule/heatTimeMon1`. Published when the value changes |
 | `openfirenet/set` | broker → bridge | A command as JSON, same fields as `POST /api/controls`, e.g. `{"on": true, "target_temperature": 21}` |
 | `openfirenet/set/<name>` | broker → bridge | One value, e.g. `openfirenet/set/target_temperature` with payload `21` (whole degrees), `openfirenet/set/on` with `true` / `false` / `ON` / `OFF`, `openfirenet/set/mode` with `manual` / `auto` / `comfort`, `openfirenet/set/power_percent` with `70` |
 
