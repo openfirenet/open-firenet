@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### New
+- Over MQTT, the bridge publishes the 14 heating schedule time slots (`heatTimeMon1` to `heatTimeSun2`) under `<base>/schedule/...` and in `<base>/state`, so that automation systems using MQTT can read the schedule configured on the stove. (#87)
+
 ## v4.3.1 (2026-10-14)
 
 ### Changes

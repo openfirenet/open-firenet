@@ -398,6 +398,25 @@ static String jsonStoveSections() {
   return String(buf);
 }
 
+// The 14 heating time slots, shared by /api/schedule and by MQTT.
+static String jsonScheduleSlots() {
+  const auto& m = g_link->model();
+  String j;
+  for (int i = 0; i < 14; i++) {
+    std::string key = firenet::ctrlName(7 + i);
+    long val = 0;
+    auto it = m.controls.find(key); if (it != m.controls.end()) val = it->second;
+    else if (m.controls_pos.size() > (size_t)(7 + i)) val = m.controls_pos[7 + i];
+    if (i > 0) j += ",";
+    j += "\"" + String(key.c_str()) + "\":" + String(val);
+  }
+  return j;
+}
+
+static String jsonScheduleSection() {
+  return "\"schedule\":{" + jsonScheduleSlots() + "}";
+}
+
 static String jsonState() {
   const auto& m = g_link->model();
   const char* stName; const char* stLabel; bool isBurning;
@@ -1061,8 +1080,8 @@ static void handleApiControls() {
 // ------------------------------------------------------------------------ MQTT
 // Optional, off by default (issue #52). Topics, under a configurable base ("openfirenet"):
 //   <base>/availability        online / offline (retained, last will)
-//   <base>/state               JSON: the "device", "stove", "sensors" and "controls" objects of /api/state (retained)
-//   <base>/<section>/<name>    the same values, one per topic (retained), e.g. <base>/sensors/room_temperature
+//   <base>/state               JSON: the "device", "stove", "sensors", "controls" and "schedule" objects of /api/state (retained)
+//   <base>/<section>/<name>    the same values, one per topic (retained), e.g. <base>/sensors/room_temperature, <base>/schedule/heatTimeMon1
 //   <base>/set                 command: JSON or "k=v;" text, as POST /api/controls
 //   <base>/set/<name>          command: one value, e.g. <base>/set/target_temperature 21
 // The client is esp-mqtt. It runs in its own task (connection, reconnection every 10 s, keep-alive), so a broker
@@ -1356,7 +1375,7 @@ static void mqttPublish() {
   snprintf(dev, sizeof dev, "{\"device\":{\"version\":\"" OPENFIRENET_VERSION "\",\"connected\":%s,\"ip\":\"%s\"}",
            linked ? "true" : "false", WiFi.localIP().toString().c_str());
   // Before the stove is linked its values are not known: only the "device" object is published.
-  String state = String(dev) + "," + jsonHealth(true) + (linked ? "," + jsonStoveSections() : String()) + "}";
+  String state = String(dev) + "," + jsonHealth(true) + (linked ? "," + jsonStoveSections() + "," + jsonScheduleSection() : String()) + "}";
   uint32_t now = millis();
   bool changed = state != g_mqttLastState;
   if ((changed && (g_mqttLastState.isEmpty() || now - g_mqttLastStateMs >= 5000)) || now - g_mqttLastStateMs >= 60000) {
@@ -1486,16 +1505,7 @@ static void handleApiSchedule() {
     json += "\"heatingTimesActive\":" + String(htActive) + ",";
     json += "\"setback_temperature\":" + String(sbTemp / 10.0f, 1) + ",";
     json += "\"setBackTemp\":" + String(sbTemp) + ",";
-    json += "\"slots\":{";
-    for (int i = 0; i < 14; i++) {
-      std::string key = firenet::ctrlName(7 + i);
-      long val = 0;
-      auto it = m.controls.find(key); if (it != m.controls.end()) val = it->second;
-      else if (m.controls_pos.size() > (size_t)(7 + i)) val = m.controls_pos[7 + i];
-      if (i > 0) json += ",";
-      json += "\"" + String(key.c_str()) + "\":" + String(val);
-    }
-    json += "}}";
+    json += "\"slots\":{" + jsonScheduleSlots() + "}}";
     web.send(200, "application/json", json);
     return;
   }
