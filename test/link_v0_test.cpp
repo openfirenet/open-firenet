@@ -51,8 +51,8 @@ int main() {
     clk += LinkV0Probe::READ_GAP_MS; p.poll(false);
     expect += v0::readFrame(LinkV0Probe::CODES[i]);
   }
-  CH("reads 001, 000, 002, then 003 to 010 in turn", wire == expect);
-  CH("codes are 3 digits, 0..10 each once", LinkV0Probe::CODES[0] == 1 && LinkV0Probe::CODES[1] == 0 && LinkV0Probe::CODES[10] == 10 && wire.size() == 5u * LinkV0Probe::CODE_COUNT);
+  CH("reads every code of CODES in turn", wire == expect);
+  CH("codes list starts 001, 000 and ends 040", LinkV0Probe::CODES[0] == 1 && LinkV0Probe::CODES[1] == 0 && LinkV0Probe::CODES[LinkV0Probe::CODE_COUNT - 1] == 40 && wire.size() == 5u * LinkV0Probe::CODE_COUNT);
   for (int b : std::initializer_list<int>{0x02, '2', '1', '5', 0x03}) p.onByte((uint8_t)b);
   CH("reply is logged", p.replies() == 1 && !log.empty() && log.back() == "v0 rx:FRAME 215");
   // the sent bytes never contain '=' (no write frame can be built)

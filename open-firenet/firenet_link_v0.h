@@ -52,7 +52,7 @@ private:
 }  // namespace v0
 
 // Read-only trial: when the stove has sent its 0x16 probe and the usual text dialect has not been acknowledged
-// for ENGAGE_MS, answer with one ACK then read codes 001, 000, 002, 003 .. 010 in turn, a couple of rounds, and log every reply.
+// for ENGAGE_MS, answer with one ACK then read the codes of CODES in turn, a few rounds, and log every reply.
 class LinkV0Probe {
 public:
   using TxFn  = std::function<void(const uint8_t*, size_t)>;
@@ -60,12 +60,14 @@ public:
   using DbgFn = std::function<void(const char*, const std::string&)>;
   static constexpr uint32_t ENGAGE_MS = 8000;   // after the first 0x16 with no text ACK
   static constexpr uint32_t READ_GAP_MS = 1500;
-  static constexpr int ROUNDS = 2;              // all codes per round, then stop until the next 0x16
-  // 000 to 010. Read on a stove (issue #110): 001 = 11 and 000 = 17 while its display showed flame temperature 11 and room
-  // temperature 17.9; 002 = 0 is unexplained. 003 to 010 are unknown: read to find the other values of that display page
-  // (external request, pressure switch, grate contact).
-  static constexpr int CODE_COUNT = 11;
-  static constexpr int CODES[CODE_COUNT] = {1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  static constexpr int ROUNDS = 3;              // all codes per round, then stop until the next 0x16
+  // Codes worth reading, from the stove's own application (SUMO 2.25 disassembly) and from what it answered on a stove (issue #110):
+  // 001 = 11 then 12 and 000 = 17 while its display showed flame temperature 11 and room temperature 17.9; 002 to 010 were all 0.
+  // 012, 013, 016, 017, 029 and 032 read digital inputs of the stove's processor (0 or 1): three of them should follow the
+  // external request, pressure switch and grate contact shown on its display. 002 to 005 and 007 read counters and values, and
+  // 019, 028 and 040 single bytes: read to see which ones move.
+  static constexpr int CODE_COUNT = 16;
+  static constexpr int CODES[CODE_COUNT] = {1, 0, 12, 13, 16, 17, 29, 32, 2, 3, 4, 5, 7, 19, 28, 40};
 
   LinkV0Probe(TxFn tx, NowFn now) : tx_(tx), now_(now), dec_([this](v0::Decoder::Kind k, const std::string& f) { onFrame(k, f); }) {}
   void onDebug(DbgFn f) { dbg_ = f; }
