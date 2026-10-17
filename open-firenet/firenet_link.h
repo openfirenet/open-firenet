@@ -106,6 +106,8 @@ public:
       silence_pending_ = false;
       if (!rx_.empty()) { dispatch(rx_); rx_.clear(); }
     }
+    // Paused while the read-only 2.25 trial talks to the stove: our text frames would be mixed into its frames.
+    if (paused_) { txq_.clear(); return; }
     if (!model_.version_ack && txq_.empty() &&
         (!version_sent_ || (now_() - last_version_ms_) >= VERSION_RETRY_MS)) {
       sendVersion();
@@ -115,6 +117,7 @@ public:
     // émission cadencée : une trame par TX_GAP_MS
     if (!txq_.empty() && (now_() - last_tx_ms_) >= tx_gap_ms_) emitOne();
   }
+  void setPaused(bool p) { paused_ = p; }
   bool txIdle() const { return txq_.empty(); }
   size_t txPending() const { return txq_.size(); }
 
@@ -703,6 +706,7 @@ public:
   const StoveModel& model() const { return model_; }
   void setRevision(long r) { model_.revision = r; }
 
+  bool paused_ = false;
   static const uint32_t SILENCE_MS = 40;       // choix d'implémentation (§4.3 : silence, durée non prouvée)
   static const uint32_t VERSION_RETRY_MS = 1000;
   // Délai entre trames vers le poêle, réglable à chaud (UI, /api/txgap), borné à [TX_GAP_MIN_MS, TX_GAP_MAX_MS].

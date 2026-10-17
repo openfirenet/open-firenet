@@ -24,6 +24,7 @@
 #include "tusb.h"   // écriture CDC directe, sans la condition DTR d'Arduino
 #include "esp_wifi.h"  // connexion STA robuste (méthode open-firenet, coexistence USB)
 #include "firenet_link.h"
+#include "firenet_link_v0.h"
 #include "firenet_api.h"
 #include "firenet_web_guard.h"
 #include "mbedtls/sha256.h"
@@ -121,6 +122,7 @@ static long controlValue(const firenet::StoveModel& m, const char* name, long de
 
 // --------------------------------------------------------- liaison protocole
 firenet::DongleLink* g_link = nullptr;
+firenet::LinkV0Probe* g_v0 = nullptr;   // read-only trial for stoves on firmware 2.25 (issue #110)
 static uint32_t lastPoll = 0;
 
 static void txToStove(const uint8_t* d, size_t n) {
@@ -747,6 +749,7 @@ static void handleSerialProvisioning() {
   while (STOVE.available()) {
     uint8_t b = (uint8_t)STOVE.read();
     if (g_link) g_link->onByte(b);
+    if (g_v0) g_v0->onByte(b);
     char c = (char)b;
     if (c == '\n' || c == '\r') {
       if (stoveLine.length() > 0) {
@@ -1593,6 +1596,11 @@ void setup() {
     DBG.println();
     logEntry(dir, safe);
   });
+  g_v0 = new firenet::LinkV0Probe(txToStove, nowMs);
+  g_v0->onDebug([](const char* dir, const std::string& f){
+    DBG.printf("[%s] %s\n", dir, f.c_str());
+    logEntry(dir, f);
+  });
 
   prefs.begin("firenet", true);
   g_link->setTxGapMs(prefs.getUInt("txgap", firenet::DongleLink::TX_GAP_MS));
@@ -1745,6 +1753,7 @@ void loop() {
 
   // 1) traiter les trames du poêle
   g_link->poll();
+  if (g_v0) { g_v0->poll(g_link->model().version_ack); g_link->setPaused(g_v0->engaged()); }
 
   // 1b) Watchdog RX : une fois la version acquittée, le poêle répond en continu
   // (POST_CDCDEVICE_STATUS à chaque cycle). Si plus AUCUN octet reçu pendant
