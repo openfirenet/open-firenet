@@ -5,7 +5,7 @@
 //  - its frame decoder (fn 0x80034c34) collects bytes between STX (0x02) and ETX (0x03) while its receive state is 1
 //    (probe sent) or 2 (an ACK 0x06 was seen); a frame of 3 bytes "NNN" is a READ, "NNN=value" is a WRITE;
 //  - it answers STX digits ETX (value), ACK 0x06 or NAK 0x15.
-// The meaning of the codes is NOT known (unverified labels only), so this class only reads three codes and logs
+// The meaning of the codes is NOT known (unverified labels only), so this class only reads codes and logs
 // the replies. It has no way to build a write frame on purpose.
 #pragma once
 #include <cstdint>
@@ -52,7 +52,7 @@ private:
 }  // namespace v0
 
 // Read-only trial: when the stove has sent its 0x16 probe and the usual text dialect has not been acknowledged
-// for ENGAGE_MS, answer with one ACK then read codes 001, 000, 002 in turn, a few rounds, and log every reply.
+// for ENGAGE_MS, answer with one ACK then read codes 001, 000, 002, 003 .. 010 in turn, a couple of rounds, and log every reply.
 class LinkV0Probe {
 public:
   using TxFn  = std::function<void(const uint8_t*, size_t)>;
@@ -60,8 +60,12 @@ public:
   using DbgFn = std::function<void(const char*, const std::string&)>;
   static constexpr uint32_t ENGAGE_MS = 8000;   // after the first 0x16 with no text ACK
   static constexpr uint32_t READ_GAP_MS = 1500;
-  static constexpr int ROUNDS = 4;              // 3 codes per round, then stop until the next 0x16
-  static constexpr int CODES[3] = {1, 0, 2};
+  static constexpr int ROUNDS = 2;              // all codes per round, then stop until the next 0x16
+  // 000 to 010. Read on a stove (issue #110): 001 = 11 and 000 = 17 while its display showed flame temperature 11 and room
+  // temperature 17.9; 002 = 0 is unexplained. 003 to 010 are unknown: read to find the other values of that display page
+  // (external request, pressure switch, grate contact).
+  static constexpr int CODE_COUNT = 11;
+  static constexpr int CODES[CODE_COUNT] = {1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
   LinkV0Probe(TxFn tx, NowFn now) : tx_(tx), now_(now), dec_([this](v0::Decoder::Kind k, const std::string& f) { onFrame(k, f); }) {}
   void onDebug(DbgFn f) { dbg_ = f; }
@@ -85,10 +89,10 @@ public:
       send(std::string(1, (char)v0::ACK), "ack");
       return;
     }
-    if (steps_ >= 3 * ROUNDS) { engaged_ = false; syn_seen_ = false; return; }
+    if (steps_ >= CODE_COUNT * ROUNDS) { engaged_ = false; syn_seen_ = false; return; }
     if ((now - last_ms_) >= READ_GAP_MS) {
       last_ms_ = now;
-      send(v0::readFrame(CODES[steps_ % 3]), "read");
+      send(v0::readFrame(CODES[steps_ % CODE_COUNT]), "read");
       steps_++;
     }
   }

@@ -47,17 +47,18 @@ int main() {
   p.poll(false);
   CH("no read before READ_GAP_MS", wire.empty());
   std::string expect;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < LinkV0Probe::CODE_COUNT; i++) {
     clk += LinkV0Probe::READ_GAP_MS; p.poll(false);
     expect += v0::readFrame(LinkV0Probe::CODES[i]);
   }
-  CH("reads 001, 000, 002 in turn", wire == expect);
+  CH("reads 001, 000, 002, then 003 to 010 in turn", wire == expect);
+  CH("codes are 3 digits, 0..10 each once", LinkV0Probe::CODES[0] == 1 && LinkV0Probe::CODES[1] == 0 && LinkV0Probe::CODES[10] == 10 && wire.size() == 5u * LinkV0Probe::CODE_COUNT);
   for (int b : std::initializer_list<int>{0x02, '2', '1', '5', 0x03}) p.onByte((uint8_t)b);
   CH("reply is logged", p.replies() == 1 && !log.empty() && log.back() == "v0 rx:FRAME 215");
   // the sent bytes never contain '=' (no write frame can be built)
   CH("never a write frame", wire.find('=') == std::string::npos);
-  for (int i = 0; i < 40; i++) { clk += LinkV0Probe::READ_GAP_MS; p.poll(false); }
-  CH("stops after ROUNDS", !p.engaged() && wire.size() == 1 * 0 + 5 * 3 * LinkV0Probe::ROUNDS);
+  for (int i = 0; i < 60; i++) { clk += LinkV0Probe::READ_GAP_MS; p.poll(false); }
+  CH("stops after ROUNDS", !p.engaged() && wire.size() == 1 * 0 + 5 * LinkV0Probe::CODE_COUNT * LinkV0Probe::ROUNDS);
   // text dialect acknowledged: stays out of the way
   LinkV0Probe q([&](const uint8_t*, size_t) { ko++; std::cout << "ECHEC sent while acked\n"; }, [&]() { return clk; });
   q.onByte(0x16); clk += 20000; q.poll(true); q.poll(true);
