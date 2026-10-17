@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.4.0 (2026-10-17)
 
 ### New
 - **Self-update from GitHub.** The bridge can check for new official firmware releases directly on GitHub and install them with one click from the System tab. The update is cryptographically verified (Minisign Ed25519 signature and SHA-256 hash table) before installation, cannot downgrade to an older release, and refuses to install unless the stove is switched off. For offline or isolated local networks, background checking is disabled by default and generates zero internet traffic.
