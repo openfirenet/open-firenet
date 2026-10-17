@@ -326,6 +326,64 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/Restarting"
+  /api/update:
+    get:
+      tags: [Bridge]
+      summary: Firmware update status
+      description: Returns the current self-update state, installed and available versions, progress, and settings.
+      responses:
+        "200":
+          description: Update status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateStatus"
+    post:
+      tags: [Bridge]
+      summary: Trigger an update check, installation, or change auto-check settings
+      description: |
+        Send `{"action": "check"}` to check GitHub releases, `{"action": "install"}` to download and flash
+        the available release (only permitted when the stove is off), or `{"auto_check": true, "check_hours": 24}`
+        to configure periodic checks.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCommand"
+      responses:
+        "200":
+          description: Settings updated (when auto_check was sent)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateStatus"
+        "202":
+          description: Action accepted and running in the background
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  error: { type: string }
+        "409":
+          description: Busy, nothing to install, or the stove is not off
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  error: { type: string }
   /log:
     get:
       tags: [Diagnostics]
@@ -651,3 +709,50 @@ components:
         build_date: { type: string }
         build_time: { type: string }
         target: { type: string }
+    UpdateStatus:
+      type: object
+      required: [state, current, latest, percent, error, stove_blocks, auto_check, check_hours, last_check]
+      properties:
+        state:
+          type: string
+          enum: [idle, checking, available, downloading, verifying, installing, error, restarting]
+          description: Current lifecycle state of the update task
+        current:
+          type: string
+          description: Version currently installed on the bridge (e.g. 4.3.1)
+        latest:
+          type: string
+          description: Latest version found on GitHub releases, if any
+        percent:
+          type: integer
+          description: Progress percentage (0 to 100) during download or flash
+        error:
+          type: string
+          description: Description of the last error, if state is error
+        stove_blocks:
+          type: boolean
+          description: True if the stove state prevents installation (must be strictly switched off)
+        auto_check:
+          type: boolean
+          description: Whether periodic background checks are enabled
+        check_hours:
+          type: integer
+          description: Interval between checks in hours (12, 24, or 168)
+        last_check:
+          type: integer
+          description: Seconds elapsed since the last check that reached GitHub (-1 if none)
+    UpdateCommand:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [check, install]
+          description: Action to run in the background
+        auto_check:
+          type: boolean
+          description: Enable or disable periodic checks
+        check_hours:
+          type: integer
+          enum: [12, 24, 168]
+          description: Check interval in hours
+

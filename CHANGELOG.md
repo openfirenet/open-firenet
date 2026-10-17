@@ -3,6 +3,7 @@
 ## Non publié
 
 ### New
+- **Self-update from GitHub.** The bridge can check for new official firmware releases directly on GitHub and install them with one click from the System tab. The update is cryptographically verified (Minisign Ed25519 signature and SHA-256 hash table) before installation, cannot downgrade to an older release, and refuses to install unless the stove is switched off. For offline or isolated local networks, background checking is disabled by default and generates zero internet traffic.
 - Over MQTT, the bridge publishes the 14 heating schedule time slots (`heatTimeMon1` to `heatTimeSun2`) under `<base>/schedule/...` and in `<base>/state`, so that automation systems using MQTT can read the schedule configured on the stove. (#87)
 
 ## v4.3.1 (2026-10-14)

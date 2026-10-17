@@ -1176,6 +1176,40 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <h3 id="lblBridgeInfo"></h3>
       <table id="bridgeInfoTable"><tbody id="bridgeInfoRows"></tbody></table>
     </div>
+    <div class="card" style="gap:12px" id="cardFwUpdate">
+      <h3 id="lblFwUpdateTitle">Mise à jour du firmware</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div style="font-size:0.85rem">
+          <span id="lblFwCurrentVersion">Version installée :</span> <b id="fwCurrentVal">--</b>
+          <span id="fwLatestWrap" style="display:none;margin-left:8px">
+            → <span id="lblFwAvailableVersion">Disponible :</span> <b id="fwLatestVal" style="color:var(--green)">--</b>
+          </span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="btn-lang" id="btnFwCheck" style="padding:6px 12px;font-size:0.85rem" onclick="checkFwUpdate()">🔍 <span id="lblBtnFwCheck">Vérifier</span></button>
+          <button type="button" class="power-btn" id="btnFwInstall" style="display:none;padding:6px 14px;font-size:0.85rem;background:var(--green)" onclick="installFwUpdate()">⬇ <span id="lblBtnFwInstall">Installer</span></button>
+        </div>
+      </div>
+      <div id="fwUpdateMsg" style="font-size:0.8rem;color:var(--text-dim);min-height:1.2em"></div>
+      <div id="fwProgressWrap" style="display:none;background:var(--border);border-radius:6px;overflow:hidden;height:8px">
+        <div id="fwProgressBar" style="background:var(--green);width:0%;height:100%;transition:width 0.3s"></div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;cursor:pointer">
+          <input type="checkbox" id="fwAutoCheck" onchange="saveFwSettings()">
+          <span id="lblFwAutoCheck">Vérifier automatiquement les mises à jour</span>
+        </label>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.85rem">
+          <span id="lblFwInterval" style="color:var(--text-dim)">Intervalle :</span>
+          <select class="lang-select" id="fwCheckHours" style="padding:4px 24px 4px 8px;font-size:0.8rem" onchange="saveFwSettings()">
+            <option value="12">12 h</option>
+            <option value="24" selected>24 h</option>
+            <option value="168">7 j</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-dim)" id="lblFwAutoHelp"></div>
+    </div>
     <div class="card" style="gap:12px">
       <h3 id="lblTxGap">Délai entre trames vers le poêle</h3>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1353,6 +1387,24 @@ const I18N = {
     bridgeInfoVersion: "Version du firmware",
     bridgeRestart: "Redémarrage",
     bridgeRestartDesc: "Redémarre la clé. Le poêle continue de fonctionner ; la liaison revient en une minute environ.",
+    fwUpdateTitle: "Mise à jour du firmware",
+    fwCurrentVersion: "Version installée :",
+    fwAvailableVersion: "Disponible :",
+    btnFwCheck: "Vérifier",
+    btnFwInstall: "Installer",
+    fwAutoCheck: "Vérifier automatiquement les mises à jour",
+    fwInterval: "Intervalle :",
+    fwAutoHelp: "Désactivé par défaut. Si activé, la clé vérifie discrètement les releases sur GitHub sans jamais installer seule. Aucun trafic vers internet si la case est décochée.",
+    fwUpToDate: "Votre clé est à jour.",
+    fwChecking: "Recherche de mise à jour sur GitHub...",
+    fwAvailable: "Une nouvelle version est disponible !",
+    fwStoveBlocked: "Installation bloquée : le poêle doit être éteint.",
+    fwDownloading: "Téléchargement du firmware...",
+    fwVerifying: "Vérification de la signature cryptographique...",
+    fwInstalling: "Écriture en mémoire flash...",
+    fwRestarting: "Mise à jour réussie ! Redémarrage de la clé...",
+    fwError: "Échec de la mise à jour : ",
+    confirmInstall: "Voulez-vous vraiment installer la version ",
     linkHintMore: "Ouvrir le diagnostic →",
     schedActive: "Programmation active",
     schedActiveDesc: "Active ou désactive le planning des plages horaires de chauffe.",
@@ -1628,6 +1680,24 @@ const I18N = {
     bridgeInfoVersion: "Firmware version",
     bridgeRestart: "Restart",
     bridgeRestartDesc: "Restarts the bridge. The stove keeps running; the link comes back in about a minute.",
+    fwUpdateTitle: "Firmware Update",
+    fwCurrentVersion: "Installed version:",
+    fwAvailableVersion: "Available:",
+    btnFwCheck: "Check",
+    btnFwInstall: "Install",
+    fwAutoCheck: "Check automatically for updates",
+    fwInterval: "Interval:",
+    fwAutoHelp: "Disabled by default. When enabled, the bridge quietly checks GitHub releases without installing automatically. Zero internet traffic when unchecked.",
+    fwUpToDate: "Your bridge is up to date.",
+    fwChecking: "Checking GitHub for updates...",
+    fwAvailable: "A new version is available!",
+    fwStoveBlocked: "Installation blocked: stove must be turned off.",
+    fwDownloading: "Downloading firmware...",
+    fwVerifying: "Verifying cryptographic signature...",
+    fwInstalling: "Flashing firmware...",
+    fwRestarting: "Update succeeded! Rebooting bridge...",
+    fwError: "Update failed: ",
+    confirmInstall: "Do you really want to install version ",
     linkHintMore: "Open diagnostics →",
     schedActive: "Heating schedule active",
     schedActiveDesc: "Enables or disables the weekly heating schedule.",
@@ -1903,6 +1973,24 @@ const I18N = {
     "bridgeInfoVersion": "Versione del firmware",
     "bridgeRestart": "Riavvio",
     "bridgeRestartDesc": "Riavvia il bridge. La stufa continua a funzionare. Il collegamento si ripristina in circa un minuto.",
+    "fwUpdateTitle": "Aggiornamento firmware",
+    "fwCurrentVersion": "Versione installata:",
+    "fwAvailableVersion": "Disponibile:",
+    "btnFwCheck": "Verifica",
+    "btnFwInstall": "Installa",
+    "fwAutoCheck": "Verifica automaticamente la disponibilità di aggiornamenti",
+    "fwInterval": "Intervallo:",
+    "fwAutoHelp": "Disattivato per impostazione predefinita. Quando attivato, il bridge controlla silenziosamente i rilasci su GitHub senza installare automaticamente. Nessun traffico internet quando la casella non è selezionata.",
+    "fwUpToDate": "Il tuo bridge è aggiornato.",
+    "fwChecking": "Controllo aggiornamenti su GitHub...",
+    "fwAvailable": "È disponibile una nuova versione!",
+    "fwStoveBlocked": "Installazione bloccata: la stufa deve essere spenta.",
+    "fwDownloading": "Download del firmware in corso...",
+    "fwVerifying": "Verifica della firma crittografica...",
+    "fwInstalling": "Scrittura nella memoria flash...",
+    "fwRestarting": "Aggiornamento riuscito! Riavvio del bridge...",
+    "fwError": "Aggiornamento non riuscito: ",
+    "confirmInstall": "Vuoi davvero installare la versione ",
     "linkHintMore": "Apri diagnostica →",
     "schedActive": "Programmazione del riscaldamento attiva",
     "schedActiveDesc": "Abilita o disabilita la programmazione settimanale del riscaldamento.",
@@ -2238,6 +2326,24 @@ const I18N = {
     bridgeInfoVersion: "Firmware-Version",
     bridgeRestart: "Neustart",
     bridgeRestartDesc: "Startet den Stick neu. Der Ofen läuft weiter; die Verbindung ist nach etwa einer Minute wieder da.",
+    fwUpdateTitle: "Firmware-Aktualisierung",
+    fwCurrentVersion: "Installierte Version:",
+    fwAvailableVersion: "Verfügbar:",
+    btnFwCheck: "Prüfen",
+    btnFwInstall: "Installieren",
+    fwAutoCheck: "Automatisch nach Updates suchen",
+    fwInterval: "Intervall:",
+    fwAutoHelp: "Standardmäßig deaktiviert. Wenn aktiviert, sucht die Bridge still nach GitHub-Releases, ohne automatisch zu installieren. Kein Internetverkehr bei deaktiviertem Kontrollkästchen.",
+    fwUpToDate: "Ihr Stick ist auf dem neuesten Stand.",
+    fwChecking: "Suche nach Updates auf GitHub...",
+    fwAvailable: "Eine neue Version ist verfügbar!",
+    fwStoveBlocked: "Installation blockiert: Der Ofen muss ausgeschaltet sein.",
+    fwDownloading: "Firmware wird heruntergeladen...",
+    fwVerifying: "Kryptografische Signatur wird überprüft...",
+    fwInstalling: "Firmware wird geflasht...",
+    fwRestarting: "Aktualisierung erfolgreich! Stick startet neu...",
+    fwError: "Aktualisierung fehlgeschlagen: ",
+    confirmInstall: "Möchten Sie wirklich Version installieren: ",
     linkHintMore: "Diagnose öffnen →",
     schedActive: "Heizzeiten aktiv",
     schedActiveDesc: "Aktiviert oder deaktiviert den wöchentlichen Heizzeitplan.",
@@ -2513,6 +2619,15 @@ function applyLang() {
   document.getElementById('lblBridgeInfo').textContent = t.bridgeInfo;
   document.getElementById('lblBridgeRestart').textContent = t.bridgeRestart;
   document.getElementById('lblBridgeRestartDesc').textContent = t.bridgeRestartDesc;
+  if (document.getElementById('lblFwUpdateTitle')) document.getElementById('lblFwUpdateTitle').textContent = t.fwUpdateTitle;
+  if (document.getElementById('lblFwCurrentVersion')) document.getElementById('lblFwCurrentVersion').textContent = t.fwCurrentVersion;
+  if (document.getElementById('lblFwAvailableVersion')) document.getElementById('lblFwAvailableVersion').textContent = t.fwAvailableVersion;
+  if (document.getElementById('lblBtnFwCheck')) document.getElementById('lblBtnFwCheck').textContent = t.btnFwCheck;
+  if (document.getElementById('lblBtnFwInstall')) document.getElementById('lblBtnFwInstall').textContent = t.btnFwInstall;
+  if (document.getElementById('lblFwAutoCheck')) document.getElementById('lblFwAutoCheck').textContent = t.fwAutoCheck;
+  if (document.getElementById('lblFwInterval')) document.getElementById('lblFwInterval').textContent = t.fwInterval;
+  if (document.getElementById('lblFwAutoHelp')) document.getElementById('lblFwAutoHelp').textContent = t.fwAutoHelp;
+  if (lastUpdateState) renderUpdateStatus(lastUpdateState);
   document.getElementById('linkHintMore').textContent = t.linkHintMore;
   if (document.getElementById('lblSchedActiveTitle')) document.getElementById('lblSchedActiveTitle').textContent = t.schedActive;
   if (document.getElementById('lblSchedActiveDesc')) document.getElementById('lblSchedActiveDesc').textContent = t.schedActiveDesc;
@@ -2625,6 +2740,7 @@ function showBridgeTab(id) {
   document.querySelectorAll('.bridge-tab').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById({ 'bridge-net': 'bridgeTabBtnNet', 'bridge-mqtt': 'bridgeTabBtnMqtt', 'bridge-system': 'bridgeTabBtnSystem' }[id]);
   if (btn) btn.classList.add('active');
+  if (id === 'bridge-system') loadUpdateStatus();
   try { localStorage.setItem('bridgeTab', id); } catch (e) { /* private browsing: the tab is just not remembered */ }
 }
 
@@ -2911,6 +3027,190 @@ async function setTxGap(ms) {
     document.getElementById('txGap').addEventListener('input', e => setTxGap(e.target.value));
   } catch (e) { /* ignoré */ }
 })();
+
+let lastUpdateState = null;
+let _updatePollTimer = null;
+
+function renderUpdateStatus(st) {
+  if (!st) return;
+  lastUpdateState = st;
+  const t = I18N[curLang] || I18N.en;
+
+  const curVer = st.current || (lastHealthState && lastHealthState.device && lastHealthState.device.version) || '--';
+  const curEl = document.getElementById('fwCurrentVal');
+  if (curEl) curEl.textContent = curVer;
+
+  const latestWrap = document.getElementById('fwLatestWrap');
+  const latestVal = document.getElementById('fwLatestVal');
+  if (latestWrap && latestVal) {
+    if (st.latest && st.latest !== st.current) {
+      latestVal.textContent = st.latest;
+      latestWrap.style.display = 'inline';
+    } else {
+      latestWrap.style.display = 'none';
+    }
+  }
+
+  const btnCheck = document.getElementById('btnFwCheck');
+  const btnInstall = document.getElementById('btnFwInstall');
+  const msgEl = document.getElementById('fwUpdateMsg');
+  const progWrap = document.getElementById('fwProgressWrap');
+  const progBar = document.getElementById('fwProgressBar');
+
+  const busy = ['checking', 'downloading', 'verifying', 'installing'].includes(st.state);
+  if (btnCheck) btnCheck.disabled = busy;
+
+  if (btnInstall) {
+    if (st.state === 'available') {
+      btnInstall.style.display = 'inline-flex';
+      btnInstall.disabled = !!st.stove_blocks;
+    } else {
+      btnInstall.style.display = 'none';
+    }
+  }
+
+  if (progWrap && progBar) {
+    if (st.state === 'downloading' || st.state === 'installing') {
+      progWrap.style.display = 'block';
+      progBar.style.width = (st.percent || 0) + '%';
+    } else {
+      progWrap.style.display = 'none';
+      progBar.style.width = '0%';
+    }
+  }
+
+  if (msgEl) {
+    msgEl.style.color = 'var(--text-dim)';
+    if (st.state === 'checking') {
+      msgEl.textContent = t.fwChecking;
+    } else if (st.state === 'available') {
+      if (st.stove_blocks) {
+        msgEl.textContent = t.fwStoveBlocked;
+        msgEl.style.color = '#ef4444';
+      } else {
+        msgEl.textContent = t.fwAvailable;
+        msgEl.style.color = 'var(--green)';
+      }
+    } else if (st.state === 'downloading') {
+      msgEl.textContent = t.fwDownloading + ' (' + (st.percent || 0) + '%)';
+    } else if (st.state === 'verifying') {
+      msgEl.textContent = t.fwVerifying;
+    } else if (st.state === 'installing') {
+      msgEl.textContent = t.fwInstalling + ' (' + (st.percent || 0) + '%)';
+    } else if (st.state === 'restarting') {
+      msgEl.textContent = t.fwRestarting;
+      msgEl.style.color = 'var(--green)';
+    } else if (st.state === 'error') {
+      msgEl.textContent = t.fwError + (st.error || '');
+      msgEl.style.color = '#ef4444';
+    } else if (st.state === 'idle') {
+      if (st.latest && st.latest === st.current) {
+        msgEl.textContent = t.fwUpToDate;
+        msgEl.style.color = 'var(--green)';
+      } else {
+        msgEl.textContent = '';
+      }
+    } else {
+      msgEl.textContent = '';
+    }
+  }
+
+  const chkAuto = document.getElementById('fwAutoCheck');
+  if (chkAuto && document.activeElement !== chkAuto && st.auto_check !== undefined) {
+    chkAuto.checked = !!st.auto_check;
+  }
+  const selHours = document.getElementById('fwCheckHours');
+  if (selHours && document.activeElement !== selHours && st.check_hours !== undefined) {
+    selHours.value = String(st.check_hours);
+  }
+}
+
+async function loadUpdateStatus() {
+  clearTimeout(_updatePollTimer);
+  try {
+    const r = await fetch('/api/update');
+    if (r.ok) {
+      const st = await r.json();
+      renderUpdateStatus(st);
+      if (['checking', 'downloading', 'verifying', 'installing'].includes(st.state)) {
+        _updatePollTimer = setTimeout(loadUpdateStatus, 1000);
+      }
+    }
+  } catch (e) { /* ignored: bridge might be restarting or offline */ }
+}
+
+async function checkFwUpdate() {
+  const t = I18N[curLang] || I18N.en;
+  const msgEl = document.getElementById('fwUpdateMsg');
+  if (msgEl) {
+    msgEl.textContent = t.fwChecking;
+    msgEl.style.color = 'var(--text-dim)';
+  }
+  const btnCheck = document.getElementById('btnFwCheck');
+  if (btnCheck) btnCheck.disabled = true;
+
+  try {
+    const r = await fetch('/api/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'check' })
+    });
+    if (r.ok) {
+      const st = await r.json();
+      renderUpdateStatus(st);
+    }
+  } catch (e) {
+    toast(t.btnApplyError);
+  }
+  _updatePollTimer = setTimeout(loadUpdateStatus, 1500);
+}
+
+async function installFwUpdate() {
+  const t = I18N[curLang] || I18N.en;
+  if (!lastUpdateState || !lastUpdateState.latest) return;
+  if (lastUpdateState.stove_blocks) {
+    toast(t.fwStoveBlocked);
+    return;
+  }
+  const confirmed = await askConfirm(t.confirmInstall + lastUpdateState.latest + ' ?');
+  if (!confirmed) return;
+
+  try {
+    const r = await fetch('/api/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'install' })
+    });
+    if (r.ok) {
+      const st = await r.json();
+      renderUpdateStatus(st);
+    }
+  } catch (e) {
+    toast(t.btnApplyError);
+  }
+  _updatePollTimer = setTimeout(loadUpdateStatus, 1000);
+}
+
+async function saveFwSettings() {
+  const chkAuto = document.getElementById('fwAutoCheck');
+  const selHours = document.getElementById('fwCheckHours');
+  if (!chkAuto || !selHours) return;
+  try {
+    const r = await fetch('/api/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        auto_check: chkAuto.checked,
+        check_hours: Number(selHours.value)
+      })
+    });
+    if (r.ok) {
+      const st = await r.json();
+      renderUpdateStatus(st);
+    }
+  } catch (e) { /* ignored */ }
+}
+
 // --- diagnostic file (begin): the functions up to the end marker are also run by test/diag_file_test.mjs ---
 // The diagnostic file is meant to be attached to a public issue: the Wi-Fi name and the last three bytes of the
 // MAC address are masked. The Wi-Fi password is never part of what the bridge exposes.
