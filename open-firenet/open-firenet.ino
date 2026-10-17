@@ -16,6 +16,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoOTA.h>
+#include "firenet_update_task.h"
 #include <Preferences.h>
 #include <ESPmDNS.h>
 #include <DNSServer.h>
@@ -614,6 +615,48 @@ static void handleRestart() {
   delay(300); restartBecause(NOTE_USER);
 }
 
+
+// ---- Self-update (see firenet_update_task.h). Installing needs an explicit POST; the stove must be off. ----
+static firenet::Updater* g_updater = nullptr;
+static bool g_imageConfirmed = false;
+
+static std::string stoveStateName() {
+  if (!g_link) return "unknown";
+  const auto& m = g_link->model();
+  const char* stName; const char* stLabel; bool isBurning;
+  mainStateNames(sensorValue(m, "mainState", 1), sensorValue(m, "subState", 0), sensorValue(m, "flame", 0), stName, stLabel, isBurning);
+  return stName;
+}
+
+static void sendUpdateStatus() {
+  auto s = g_updater->status();
+  String j = "{\"state\":\"" + String(s.state) + "\",\"current\":\"" + String(s.current.c_str()) + "\",\"latest\":\"" + String(s.latest.c_str())
+    + "\",\"percent\":" + String(s.percent) + ",\"error\":\"" + String(s.error.c_str()) + "\",\"stove_blocks\":" + (s.stoveBlocks ? "true" : "false")
+    + ",\"auto_check\":" + (s.autoCheck ? "true" : "false") + ",\"check_hours\":" + String(s.checkHours) + ",\"last_check\":" + String(s.lastCheckAgoS) + "}";
+  web.send(200, "application/json", j);
+}
+// GET /api/update: status. POST /api/update: {"action":"check"} or {"action":"install"} or
+// {"auto_check":true,"check_hours":24} (12, 24 or 168; check_hours may be left out).
+static void handleUpdate() {
+  if (web.method() == HTTP_GET) { sendUpdateStatus(); return; }
+  String b = web.arg("plain");
+  auto sub = [&](const char* k) { int i = b.indexOf(k); if (i < 0) return String(); String r = b.substring(i + strlen(k)); r.trim(); return r; };
+  if (b.indexOf("\"action\"") >= 0) {
+    bool check = b.indexOf("\"check\"") >= 0, install = b.indexOf("\"install\"") >= 0;
+    if (check == install) { web.send(400, "application/json", "{\"ok\":false,\"error\":\"action must be check or install\"}"); return; }
+    if (!(check ? g_updater->requestCheck() : g_updater->requestInstall())) {
+      web.send(409, "application/json", "{\"ok\":false,\"error\":\"busy, nothing to install, or the stove is not off\"}"); return;
+    }
+    web.send(202, "application/json", "{\"ok\":true}");
+    return;
+  }
+  String a = sub("\"auto_check\":"), h = sub("\"check_hours\":");
+  if (!(a.startsWith("true") || a.startsWith("false"))) { web.send(400, "application/json", "{\"ok\":false,\"error\":\"expected action, or auto_check true/false\"}"); return; }
+  int hours = h.isEmpty() ? 0 : h.toInt();
+  if (!h.isEmpty() && hours != 12 && hours != 24 && hours != 168) { web.send(400, "application/json", "{\"ok\":false,\"error\":\"check_hours must be 12, 24 or 168\"}"); return; }
+  g_updater->setAuto(a.startsWith("true"), hours);
+  sendUpdateStatus();
+}
 
 // POST /api/wifi  ssid=<..>&pass=<..>  -> enregistre et redémarre en STA.
 // Répond en HTML (et non JSON) : la page est soumise par un <form> natif afin de
@@ -1658,6 +1701,8 @@ void setup() {
   if (g_otaHash.length() == 64) ArduinoOTA.setPasswordHash(g_otaHash.c_str());
   ArduinoOTA.onEnd([]() { noteRestart(NOTE_UPDATE); });   // the update library restarts the chip by itself
   ArduinoOTA.begin();
+  g_updater = new firenet::Updater(OPENFIRENET_VERSION, stoveStateName, []() { noteRestart(NOTE_UPDATE); });
+  g_updater->begin();
 
   if (MDNS.begin("open-firenet")) {
     MDNS.addService("http", "tcp", 80);
@@ -1671,6 +1716,7 @@ void setup() {
   web.on("/api/controls", handleApiControls);
   web.on("/api/schedule", handleApiSchedule);
   web.on("/api/restart", HTTP_POST, handleRestart);
+  web.on("/api/update", handleUpdate);
   web.on("/api/txgap", handleTxGap);
   web.on("/api/mqtt", handleMqtt);
   web.on("/api/access", handleAccess);
@@ -1826,6 +1872,10 @@ void loop() {
   }
 
   ArduinoOTA.handle();
+  if (g_updater) g_updater->poll();
+  // A freshly installed image stays "pending" until it has run for a while on Wi-Fi; if it never gets there, the next
+  // restart brings the previous image back.
+  if (!g_imageConfirmed && g_wifiUp && millis() > 30000) { g_imageConfirmed = true; esp_ota_mark_app_valid_cancel_rollback(); }
   web.handleClient();
   mqttLoop();
 }
