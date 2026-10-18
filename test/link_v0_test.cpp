@@ -54,11 +54,24 @@ int main() {
   CH("reads every code of CODES in turn", wire == expect);
   CH("codes list starts 001, 000 and ends 040", LinkV0Probe::CODES[0] == 1 && LinkV0Probe::CODES[1] == 0 && LinkV0Probe::CODES[LinkV0Probe::CODE_COUNT - 1] == 40 && wire.size() == 5u * LinkV0Probe::CODE_COUNT);
   for (int b : std::initializer_list<int>{0x02, '2', '1', '5', 0x03}) p.onByte((uint8_t)b);
-  CH("reply is logged", p.replies() == 1 && !log.empty() && log.back() == "v0 rx:FRAME 215");
+  CH("reply is logged", p.replies() == 1 && !log.empty() && log.back() == "v0 rx:040=215");
   // the sent bytes never contain '=' (no write frame can be built)
   CH("never a write frame", wire.find('=') == std::string::npos);
+  // same value again: not logged twice; a new value is
+  size_t nlog = log.size();
+  for (int b : std::initializer_list<int>{0x02, '2', '1', '5', 0x03}) p.onByte((uint8_t)b);
+  CH("an unchanged value is not logged again", log.size() == nlog);
+  for (int b : std::initializer_list<int>{0x02, '2', '1', '6', 0x03}) p.onByte((uint8_t)b);
+  CH("a changed value is logged", log.size() == nlog + 1 && log.back() == "v0 rx:040=216");
+  // the stove answered: reading goes on past ROUNDS, the text link stays paused
   for (int i = 0; i < 60; i++) { clk += LinkV0Probe::READ_GAP_MS; p.poll(false); }
-  CH("stops after ROUNDS", !p.engaged() && wire.size() == 1 * 0 + 5 * LinkV0Probe::CODE_COUNT * LinkV0Probe::ROUNDS);
+  CH("keeps reading while the stove answers", p.engaged() && wire.size() > 5u * LinkV0Probe::CODE_COUNT * LinkV0Probe::ROUNDS);
+  // no answer at all: stops after ROUNDS
+  std::string wire2; uint32_t clk2 = 1000;
+  LinkV0Probe m([&](const uint8_t* b, size_t n) { wire2.append((const char*)b, n); }, [&]() { return clk2; });
+  m.onByte(0x16); clk2 += LinkV0Probe::ENGAGE_MS; m.poll(false);
+  for (int i = 0; i < 80; i++) { clk2 += LinkV0Probe::READ_GAP_MS; m.poll(false); }
+  CH("stops after ROUNDS without any reply", !m.engaged() && wire2.size() == 1 + 5u * LinkV0Probe::CODE_COUNT * LinkV0Probe::ROUNDS);
   // text dialect acknowledged: stays out of the way
   LinkV0Probe q([&](const uint8_t*, size_t) { ko++; std::cout << "ECHEC sent while acked\n"; }, [&]() { return clk; });
   q.onByte(0x16); clk += 20000; q.poll(true); q.poll(true);

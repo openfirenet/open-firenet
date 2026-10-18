@@ -4,7 +4,7 @@
 
 ### New
 - Over MQTT, the bridge publishes the 14 heating schedule time slots (`heatTimeMon1` to `heatTimeSun2`) under `<base>/schedule/...` and in `<base>/state`, so that automation systems using MQTT can read the schedule configured on the stove. (#87)
-- First step towards stoves on firmware 2.25 (SUMO, SONO, INDUO), which do not understand the text frames of the other firmware versions. When such a stove has sent its start-up probe and nothing was acknowledged, the bridge now sends one acknowledgement and reads sixteen values (counters, temperatures and input states) in the stove's own numeric format, and writes what the stove answers to the exchange log. It only reads, it never changes a setting, and the stove is not controlled yet. Please send the diagnostic file if you try it. (#110)
+- First step towards stoves on firmware 2.25 (SUMO, SONO, INDUO), which do not understand the text frames of the other firmware versions. When such a stove has sent its start-up probe and nothing was acknowledged, the bridge now sends one acknowledgement and reads sixteen values (counters, temperatures and input states) in the stove's own numeric format, and writes what the stove answers (only when a value changes) to the exchange log. It only reads, it never changes a setting, and the stove is not controlled yet. Please send the diagnostic file if you try it. (#110)
 
 ## v4.3.1 (2026-10-14)
 

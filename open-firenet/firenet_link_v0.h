@@ -91,26 +91,38 @@ public:
       send(std::string(1, (char)v0::ACK), "ack");
       return;
     }
-    if (steps_ >= CODE_COUNT * ROUNDS) { engaged_ = false; syn_seen_ = false; return; }
+    // Without any reply, give up after ROUNDS. Once the stove answers, keep reading in turn so that the log follows the stove.
+    if (steps_ >= CODE_COUNT * ROUNDS && replies_ == 0) { engaged_ = false; syn_seen_ = false; return; }
     if ((now - last_ms_) >= READ_GAP_MS) {
       last_ms_ = now;
-      send(v0::readFrame(CODES[steps_ % CODE_COUNT]), "read");
+      last_code_ = CODES[steps_ % CODE_COUNT];
+      send(v0::readFrame(last_code_), "read", false);
       steps_++;
     }
   }
 
 private:
-  void send(const std::string& f, const char* what) {
+  void send(const std::string& f, const char* what, bool log = true) {
     if (f.empty()) return;
     tx_(reinterpret_cast<const uint8_t*>(f.data()), f.size());
-    if (dbg_) { char h[48]; snprintf(h, sizeof h, "v0 %s", what); dbg_(h, hex(f)); }
+    if (log && dbg_) { char h[48]; snprintf(h, sizeof h, "v0 %s", what); dbg_(h, hex(f)); }
   }
   void onFrame(v0::Decoder::Kind k, const std::string& f) {
     replies_++;
     if (!dbg_) return;
     if (k == v0::Decoder::Kind::Ack) dbg_("v0 rx", "ACK");
     else if (k == v0::Decoder::Kind::Nak) dbg_("v0 rx", "NAK");
-    else dbg_("v0 rx", "FRAME " + f);
+    else {
+      // Log a value only when it differs from the last one of that code, so the exchange log (a small ring) keeps the whole
+      // start-up of the stove instead of filling with identical lines.
+      int i = 0;
+      while (i < CODE_COUNT && CODES[i] != last_code_) i++;
+      if (i == CODE_COUNT) { dbg_("v0 rx", "FRAME " + f); return; }
+      if (seen_[i] && last_[i] == f) return;
+      seen_[i] = true; last_[i] = f;
+      char h[16]; snprintf(h, sizeof h, "%03d=", last_code_);
+      dbg_("v0 rx", std::string(h) + f);
+    }
   }
   static std::string hex(const std::string& s) {
     std::string o; char t[4];
@@ -122,6 +134,9 @@ private:
   bool syn_seen_ = false, started_ = false, engaged_ = false;
   uint32_t first_syn_ms_ = 0, last_ms_ = 0, replies_ = 0;
   int steps_ = 0;
+  int last_code_ = -1;
+  bool seen_[CODE_COUNT] = {};
+  std::string last_[CODE_COUNT];
 };
 
 }  // namespace firenet
