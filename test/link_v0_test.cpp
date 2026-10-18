@@ -93,7 +93,7 @@ int main() {
     CH("room temperature is stored in tenths", v0map::apply(m, 0, "18", 5) && m.sensors["roomTemp"] == 180 && m.v0_linked && m.last_rx_ms == 5);
     CH("flame temperature as is", v0map::apply(m, 1, "276", 6) && m.sensors["flame"] == 276);
     CH("main and sub state", v0map::apply(m, 27, "2", 7) && v0map::apply(m, 28, "9", 8) && m.sensors["mainState"] == 2 && m.sensors["subState"] == 9 && m.main_state == 2 && m.sub_state == 9);
-    CH("grate contact and unidentified inputs", v0map::apply(m, 12, "1", 9) && m.sensors["gridContact"] == 1 && v0map::apply(m, 16, "1", 9) && m.sensors["in016"] == 1);
+    CH("pressure switch and unidentified inputs", v0map::apply(m, 12, "1", 9) && m.sensors["pressureSwitch"] == 1 && v0map::apply(m, 16, "1", 9) && m.sensors["in016"] == 1);
     CH("settings go to the controls", v0map::apply(m, 26, "21", 10) && m.controls["roomTarget"] == 210 && v0map::apply(m, 24, "2", 10) && m.controls["mode"] == 2);
     CH("text and unknown codes are not stored", !v0map::apply(m, 901, "SUMO", 11) && !v0map::apply(m, 6, "0", 11) && m.sensors.count("in006") == 0);
     CH("negative values parse", v0map::apply(m, 7, "-3", 12) && m.sensors["idFanMeas"] == -3);

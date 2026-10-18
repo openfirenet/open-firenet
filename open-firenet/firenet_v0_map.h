@@ -19,11 +19,10 @@ inline bool parseInt(const std::string& s, long& out) {
   return true;
 }
 
-// Sensors. Read on a stove (issue #110): 000 room temperature (whole degrees), 001 flame temperature, 012 grate contact (very
-// probable), 027 / 028 main state and sub state (the sub state sequence of an ignition matches the other firmware versions).
+// Sensors. Read on a stove (issue #110): 000 room temperature (whole degrees), 001 flame temperature, 027 / 028 main state and sub state (the sub state sequence of an ignition matches the other firmware versions).
 // By comparison with the other firmware versions, not proven one by one: 002 to 004 errors, 005 auger in per mille, 007 flue fan
-// measured, 019 auger current. 013, 016, 017, 029 and 032 are digital inputs not identified yet (external request and pressure
-// switch are two of 016 / 017): kept under their code.
+// measured, 019 auger current. 012 pressure switch, 013 grate contact and 032 ignition element were matched with the stove display (issue #110 photos).
+// 016, 017 and 029 are not identified yet (external request is one of 016 / 017): kept under their code.
 inline const char* sensorName(int code) {
   switch (code) {
     case 0: return "roomTemp";
@@ -33,15 +32,15 @@ inline const char* sensorName(int code) {
     case 4: return "stateMask";
     case 5: return "augerSet";
     case 7: return "idFanMeas";
-    case 12: return "gridContact";
-    case 13: return "in013";
+    case 12: return "pressureSwitch";
+    case 13: return "gridContact";
     case 16: return "in016";
     case 17: return "in017";
     case 19: return "augerCurrent";
     case 27: return "mainState";
     case 28: return "subState";
     case 29: return "in029";
-    case 32: return "in032";
+    case 32: return "ignition";
   }
   return nullptr;
 }
