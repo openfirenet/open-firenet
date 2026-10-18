@@ -36,6 +36,7 @@ struct StoveModel {
   // are defaults, or the unnamed values of a frame posted before the names were registered, whose positions are
   // not known: a command built from them would write wrong settings (seen 2026-10-08: stove switched on at 100 %).
   bool controls_synced = false;
+  bool v0_linked = false;      // a stove on firmware 2.25 answers the numeric reads (firenet_link_v0.h), see firenet_v0_map.h
   uint32_t link_losses = 0;   // times an acknowledged link was dropped by the stove since boot
 };
 
@@ -704,6 +705,7 @@ public:
   void transferCompleted() { send("TRANSFER_COMPLETED"); }
 
   const StoveModel& model() const { return model_; }
+  StoveModel& modelMutable() { return model_; }   // for the numeric link of firmware 2.25 (firenet_v0_map.h)
   void setRevision(long r) { model_.revision = r; }
 
   bool paused_ = false;

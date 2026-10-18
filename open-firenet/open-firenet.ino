@@ -25,6 +25,7 @@
 #include "esp_wifi.h"  // connexion STA robuste (méthode open-firenet, coexistence USB)
 #include "firenet_link.h"
 #include "firenet_link_v0.h"
+#include "firenet_v0_map.h"
 #include "firenet_api.h"
 #include "firenet_web_guard.h"
 #include "mbedtls/sha256.h"
@@ -452,7 +453,7 @@ static String jsonState() {
     // over Wi-Fi (1,310,720 bytes on a board flashed with Arduino's default partition scheme).
     (unsigned)ESP.getFreeSketchSpace(),
     g_otaHash.length() == 64 ? "true" : "false",
-    m.version_ack ? "true" : "false"
+    (m.version_ack || m.v0_linked) ? "true" : "false"
   );
 
   String j = String(buf) + jsonStoveSections() + ",";
@@ -462,7 +463,7 @@ static String jsonState() {
   j += "\"wifi_power_saving\":" + String(g_wifiPowerSaving?"true":"false") + ",";
   j += "\"uptime_seconds\":" + String(millis() / 1000UL) + ",";
   j += "\"write_enabled\":true,";
-  j += "\"version_ack\":" + String(m.version_ack ? "true" : "false") + ",";
+  j += "\"version_ack\":" + String((m.version_ack || m.v0_linked) ? "true" : "false") + ",";
   // version_profile: which family's probe got acked (DongleLink::DETECT_V3=0, DETECT_V28=1, DETECT_V1=2); a
   // detected 2.28 still runs the DOMO/V3 protocol (generation=1), this label is for display only.
   const char* verFrameLabel = m.version_profile == 0 ? "V3" : (m.version_profile == 1 ? "V28" : (m.version_profile == 2 ? "V1" : "?"));
@@ -1366,7 +1367,7 @@ static void mqttDiscoveryStep() {
 // call, so a full refresh is spread over a few seconds.
 static void mqttPublish() {
   const auto& m = g_link->model();
-  bool linked = m.version_ack && !m.sensors_pos.empty();
+  bool linked = (m.version_ack && !m.sensors_pos.empty()) || m.v0_linked;
   if (g_mqttCfg.discovery) {
     // Announce again once the stove has told its model, so that the device shows it.
     long modelId = sensorValue(m, "model", -1);
@@ -1600,6 +1601,9 @@ void setup() {
   g_v0->onDebug([](const char* dir, const std::string& f){
     DBG.printf("[%s] %s\n", dir, f.c_str());
     logEntry(dir, f);
+  });
+  g_v0->onValue([](int code, const std::string& text){
+    firenet::v0map::apply(g_link->modelMutable(), code, text, millis());
   });
 
   prefs.begin("firenet", true);

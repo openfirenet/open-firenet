@@ -1,4 +1,5 @@
 #include "firenet_link_v0.h"
+#include "firenet_v0_map.h"
 #include <iostream>
 using namespace firenet;
 
@@ -85,6 +86,28 @@ int main() {
   LinkV0Probe q([&](const uint8_t*, size_t) { ko++; std::cout << "ECHEC sent while acked\n"; }, [&]() { return clk; });
   q.onByte(0x16); clk += 20000; q.poll(true); q.poll(true);
   CH("quiet once the text link is acknowledged", !q.engaged());
+
+  // values into the shared model
+  {
+    StoveModel m;
+    CH("room temperature is stored in tenths", v0map::apply(m, 0, "18", 5) && m.sensors["roomTemp"] == 180 && m.v0_linked && m.last_rx_ms == 5);
+    CH("flame temperature as is", v0map::apply(m, 1, "276", 6) && m.sensors["flame"] == 276);
+    CH("main and sub state", v0map::apply(m, 27, "2", 7) && v0map::apply(m, 28, "9", 8) && m.sensors["mainState"] == 2 && m.sensors["subState"] == 9 && m.main_state == 2 && m.sub_state == 9);
+    CH("grate contact and unidentified inputs", v0map::apply(m, 12, "1", 9) && m.sensors["gridContact"] == 1 && v0map::apply(m, 16, "1", 9) && m.sensors["in016"] == 1);
+    CH("settings go to the controls", v0map::apply(m, 26, "21", 10) && m.controls["roomTarget"] == 210 && v0map::apply(m, 24, "2", 10) && m.controls["mode"] == 2);
+    CH("text and unknown codes are not stored", !v0map::apply(m, 901, "SUMO", 11) && !v0map::apply(m, 6, "0", 11) && m.sensors.count("in006") == 0);
+    CH("negative values parse", v0map::apply(m, 7, "-3", 12) && m.sensors["idFanMeas"] == -3);
+    CH("the text link stays not acknowledged", !m.version_ack && !m.controls_synced);
+  }
+  {
+    std::string w2; uint32_t c2 = 1000; LinkV0Probe pr([&](const uint8_t* b, size_t n) { w2.append((const char*)b, n); }, [&]() { return c2; });
+    std::vector<std::pair<int, std::string>> got;
+    pr.onValue([&](int c, const std::string& t) { got.push_back({c, t}); });
+    pr.onByte(0x16); c2 += LinkV0Probe::ENGAGE_MS; pr.poll(false);
+    c2 += LinkV0Probe::READ_GAP_MS; pr.poll(false);
+    for (int b : std::initializer_list<int>{0x02, '1', '2', 0x03}) pr.onByte((uint8_t)b);
+    CH("a reply is delivered with the code that was asked", got.size() == 1 && got[0].first == 27 && got[0].second == "12");
+  }
 
   std::cout << "link_v0_test: " << ok << " ok, " << ko << " ko\n";
   return ko ? 1 : 0;

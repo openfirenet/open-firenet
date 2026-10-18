@@ -85,7 +85,9 @@ public:
   }
 
   LinkV0Probe(TxFn tx, NowFn now) : tx_(tx), now_(now), dec_([this](v0::Decoder::Kind k, const std::string& f) { onFrame(k, f); }) {}
+  using ValFn = std::function<void(int, const std::string&)>;
   void onDebug(DbgFn f) { dbg_ = f; }
+  void onValue(ValFn f) { val_ = f; }   // every value answered (code, text), changed or not
 
   // Every byte from the stove, before or after the text link has seen it.
   void onByte(uint8_t b) {
@@ -124,6 +126,7 @@ private:
   }
   void onFrame(v0::Decoder::Kind k, const std::string& f) {
     replies_++;
+    if (k == v0::Decoder::Kind::Frame && last_code_ >= 0 && val_) val_(last_code_, f);
     if (!dbg_) return;
     if (k == v0::Decoder::Kind::Ack) dbg_("v0 rx", "ACK");
     else if (k == v0::Decoder::Kind::Nak) dbg_("v0 rx", "NAK");
@@ -142,7 +145,7 @@ private:
     for (unsigned char c : s) { snprintf(t, sizeof t, "%02X ", c); o += t; }
     return o;
   }
-  TxFn tx_; NowFn now_; DbgFn dbg_;
+  TxFn tx_; NowFn now_; DbgFn dbg_; ValFn val_;
   v0::Decoder dec_;
   bool syn_seen_ = false, started_ = false, engaged_ = false;
   uint32_t first_syn_ms_ = 0, last_ms_ = 0, replies_ = 0;
