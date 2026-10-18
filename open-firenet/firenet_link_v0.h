@@ -10,6 +10,7 @@
 #pragma once
 #include <cstdint>
 #include <cstdio>
+#include <map>
 #include <functional>
 #include <string>
 
@@ -52,7 +53,7 @@ private:
 }  // namespace v0
 
 // Read-only trial: when the stove has sent its 0x16 probe and the usual text dialect has not been acknowledged
-// for ENGAGE_MS, answer with one ACK then read the codes of CODES in turn, a few rounds, and log every reply.
+// for ENGAGE_MS, answer with one ACK then read the live codes and a few settings per cycle, and log every reply.
 class LinkV0Probe {
 public:
   using TxFn  = std::function<void(const uint8_t*, size_t)>;
@@ -61,13 +62,27 @@ public:
   static constexpr uint32_t ENGAGE_MS = 8000;   // after the first 0x16 with no text ACK
   static constexpr uint32_t READ_GAP_MS = 1500;
   static constexpr int ROUNDS = 3;              // all codes per round, then stop until the next 0x16
-  // Codes worth reading, from the stove's own application (SUMO 2.25 disassembly) and from what it answered on a stove (issue #110):
-  // 001 = 11 then 12 and 000 = 17 while its display showed flame temperature 11 and room temperature 17.9; 002 to 010 were all 0.
-  // 012, 013, 016, 017, 029 and 032 read digital inputs of the stove's processor (0 or 1): three of them should follow the
-  // external request, pressure switch and grate contact shown on its display. 002 to 005 and 007 read counters and values, and
-  // 019, 028 and 040 single bytes: read to see which ones move.
+  // Live codes, read in every cycle. From the stove's own application (SUMO 2.25 disassembly) and from what it answered on a stove
+  // (issue #110): 001 = flame temperature and 000 = room temperature (integers), 012 = grate contact (very probable), 016/017 = external
+  // request and pressure switch, 027/028 = main state and sub state, 005 = auger in per mille, 019 = auger current, 007 = flue fan.
+  // 013, 029 and 032 are digital inputs not identified yet; 002 to 004 are error values (0 at rest).
   static constexpr int CODE_COUNT = 16;
-  static constexpr int CODES[CODE_COUNT] = {1, 0, 12, 13, 16, 17, 29, 32, 2, 3, 4, 5, 7, 19, 28, 40};
+  static constexpr int CODES[CODE_COUNT] = {27, 28, 1, 0, 12, 13, 16, 17, 29, 32, 2, 3, 4, 5, 7, 19};
+  // Settings and texts of the stove, read a few at a time after the live codes, from the first to the last and again (they do not
+  // change by themselves; only a change is logged): 023 to 026, 034 to 046 (struct fields), 047 to 092 (parameters, with seven pairs of
+  // shorts that look like one time range per weekday), 900 to 917 (texts such as versions and the stove clock).
+  static constexpr int CFG_PER_CYCLE = 8;
+  static constexpr int CFG_COUNT = 77;
+  static constexpr int CFG[CFG_COUNT] = {
+    23, 24, 25, 26, 34, 35, 37, 38, 39, 41, 43, 44, 46,
+    47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
+    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92,
+    900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917};
+  static constexpr int CYCLE_STEPS = CODE_COUNT + CFG_PER_CYCLE;
+  static int codeAt(int step) {
+    int cycle = step / CYCLE_STEPS, p = step % CYCLE_STEPS;
+    return p < CODE_COUNT ? CODES[p] : CFG[(cycle * CFG_PER_CYCLE + (p - CODE_COUNT)) % CFG_COUNT];
+  }
 
   LinkV0Probe(TxFn tx, NowFn now) : tx_(tx), now_(now), dec_([this](v0::Decoder::Kind k, const std::string& f) { onFrame(k, f); }) {}
   void onDebug(DbgFn f) { dbg_ = f; }
@@ -92,10 +107,10 @@ public:
       return;
     }
     // Without any reply, give up after ROUNDS. Once the stove answers, keep reading in turn so that the log follows the stove.
-    if (steps_ >= CODE_COUNT * ROUNDS && replies_ == 0) { engaged_ = false; syn_seen_ = false; return; }
+    if (steps_ >= CYCLE_STEPS * ROUNDS && replies_ == 0) { engaged_ = false; syn_seen_ = false; return; }
     if ((now - last_ms_) >= READ_GAP_MS) {
       last_ms_ = now;
-      last_code_ = CODES[steps_ % CODE_COUNT];
+      last_code_ = codeAt(steps_);
       send(v0::readFrame(last_code_), "read", false);
       steps_++;
     }
@@ -115,11 +130,9 @@ private:
     else {
       // Log a value only when it differs from the last one of that code, so the exchange log (a small ring) keeps the whole
       // start-up of the stove instead of filling with identical lines.
-      int i = 0;
-      while (i < CODE_COUNT && CODES[i] != last_code_) i++;
-      if (i == CODE_COUNT) { dbg_("v0 rx", "FRAME " + f); return; }
-      if (seen_[i] && last_[i] == f) return;
-      seen_[i] = true; last_[i] = f;
+      auto it = last_.find(last_code_);
+      if (it != last_.end() && it->second == f) return;
+      last_[last_code_] = f;
       char h[16]; snprintf(h, sizeof h, "%03d=", last_code_);
       dbg_("v0 rx", std::string(h) + f);
     }
@@ -135,8 +148,7 @@ private:
   uint32_t first_syn_ms_ = 0, last_ms_ = 0, replies_ = 0;
   int steps_ = 0;
   int last_code_ = -1;
-  bool seen_[CODE_COUNT] = {};
-  std::string last_[CODE_COUNT];
+  std::map<int, std::string> last_;
 };
 
 }  // namespace firenet
