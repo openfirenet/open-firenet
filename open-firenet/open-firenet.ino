@@ -30,6 +30,20 @@
 #include "mbedtls/sha256.h"
 #include "firenet_mqtt.h"
 #include <deque>
+#include "firenet_display_config.h"
+static firenet::DisplayConfig g_dispCfg;   // which screens the small display shows, and in which order
+#include "firenet_display.h"
+static firenet::Display g_display;
+// The screen is driven only on the board the owner chose ("tdongle"), never by guesswork: other boards may have something
+// else on those pins. Stored in flash, applied at the next restart. A build with -DFIRENET_DISPLAY_TDONGLE=1 starts with it on.
+#if defined(FIRENET_DISPLAY_TDONGLE)
+static const char* const kDefaultBoard = "tdongle";
+#else
+static const char* const kDefaultBoard = "none";
+#endif
+static String g_dispBoard = kDefaultBoard;   // the stored choice
+static bool g_dispActive = false;            // the display task is running (decided at boot)
+static String g_dispBootBoard = kDefaultBoard; // the choice the running firmware started with
 #include "mqtt_client.h"   // esp-mqtt, Espressif's MQTT client shipped with the ESP32 core
 #include "esp_crt_bundle.h" // public certificate authorities, to verify a broker reached over TLS
 #include "web_ui.h"
@@ -162,7 +176,7 @@ static void txToStove(const uint8_t* d, size_t n) {
 }
 static uint32_t nowMs() { return millis(); }
 
-static const char* getStoveModelName(long modelId) {
+static const char* rikaModelName(long modelId) {
   switch (modelId) {
     case 1:  return "INDUO";
     case 2:  return "TOPO";
@@ -194,6 +208,13 @@ static const char* getStoveModelName(long modelId) {
     default: return "RIKA";
   }
 }
+// fabNumber is the make the stove is set to ("Fabrikat": 1 = RIKA, 2 = ANIMO). Model 5 sold by ANIMO is the PURE (seen on a
+// 2.29 stove, issue #112); the other ANIMO models are not known by name yet, so they keep the RIKA name of their number.
+static const char* getStoveModelName(long modelId, long make = 1) {
+  if (make == 2 && modelId == 5) return "PURE";
+  return rikaModelName(modelId);
+}
+static const char* getStoveBrand(long make) { return make == 2 ? "ANIMO" : "RIKA"; }
 
 // ------------------------------------------------------------------- API web V2
 // Name, label and "is burning" of a main state code (with its sub-state, which tells "off" from "standby").
@@ -276,10 +297,12 @@ static String jsonStoveSections() {
   // disassembly: record 0 is set to 0x400 when no sensor is present); publish null instead of 102.4 °C.
   bool roomSensor = (rTemp != 1024);
 
-  char modelS[12] = "null", modelNameS[40] = "null", mbVerS[16] = "null", buildS[16] = "null";
+  char modelS[12] = "null", modelNameS[40] = "null", brandS[16] = "null", mbVerS[16] = "null", buildS[16] = "null";
   if (modelId >= 0) {
     snprintf(modelS, sizeof modelS, "%ld", modelId);
-    snprintf(modelNameS, sizeof modelNameS, "\"%s\"", getStoveModelName(modelId));
+    long make = sensorValue(m, "fabNumber", 1);
+    snprintf(modelNameS, sizeof modelNameS, "\"%s\"", getStoveModelName(modelId, make));
+    snprintf(brandS, sizeof brandS, "\"%s\"", getStoveBrand(make));
   }
   if (appVer >= 0) snprintf(mbVerS, sizeof mbVerS, "\"%ld.%02ld\"", appVer / 100, appVer % 100);
   if (buildVer >= 0) snprintf(buildS, sizeof buildS, "\"%ld\"", buildVer);
@@ -340,6 +363,7 @@ static String jsonStoveSections() {
       "\"warning_code\":%ld,"
       "\"model\":%s,"
       "\"model_name\":%s,"
+      "\"brand\":%s,"
       "\"mainboard_version\":%s,"
       "\"firmware_build\":%s"
     "},"
@@ -382,7 +406,7 @@ static String jsonStoveSections() {
     isBurning ? "true" : "false",
     errMask != 0 ? "true" : "false",
     errMask, errSub, warnCode,
-    modelS, modelNameS, mbVerS, buildS,
+    modelS, modelNameS, brandS, mbVerS, buildS,
     roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, sCount, idFan, auger, powerNow,
     airFlapsS, airFlapsTgtS,
     (curOn == 1) ? "true" : "false",
@@ -618,6 +642,48 @@ static void handleRestart() {
 
 // ---- Self-update (see firenet_update_task.h). Installing needs an explicit POST; the stove must be off. ----
 static firenet::Updater* g_updater = nullptr;
+
+// What the small screen shows, from the same values as /api/state. Called from loop() once a second.
+static void updateDisplay() {
+  using firenet::DisplaySnapshot;
+  const auto& m = g_link->model();
+  DisplaySnapshot d;
+  d.linked = m.rx_bytes > 0 && m.version_ack;
+  d.silent = d.linked && (millis() - m.last_rx_ms) > 180000UL;
+  if (d.linked) {
+    long mainSt = sensorValue(m, "mainState", 1);
+    const char* stName; const char* stLabel; bool burning;
+    mainStateNames(mainSt, sensorValue(m, "subState", 0), sensorValue(m, "flame", 0), stName, stLabel, burning);
+    // Main state 1 is "Off" or "Standby" according to the sub-state: until the stove has sent the sub-state, say nothing
+    // rather than "Off" (seen after a restart of the bridge: Off for one screen, then Standby).
+    bool subKnown = m.sensors.count("subState") || (size_t)firenet::sensIndexByName("subState") < m.sensors_pos.size();
+    if (mainSt != 1 || subKnown) {
+      d.mainState = (int)mainSt; d.burning = burning;
+      snprintf(d.stateLabel, sizeof d.stateLabel, "%s", stLabel);
+    }
+    long room = sensorValue(m, "roomTemp", 1024);
+    if (room != 1024) d.room10 = (int)room;                  // tenths of a degree; 1024 = no room sensor
+    if (m.sensors.count("flame")) d.flame = (int)sensorValue(m, "flame", 0);
+    if (mainSt == 4 || mainSt == 5) d.powerPct = (int)sensorValue(m, "stageCur", 0); else d.powerPct = 0;
+    if (m.controls.count("roomTarget")) d.target10 = (int)controlValue(m, "roomTarget", 200);
+    long mode = controlValue(m, "mode", -1);
+    d.comfort = (mode == 2);
+    snprintf(d.mode, sizeof d.mode, "%s", mode == 0 ? "MANUAL" : mode == 1 ? "AUTO" : mode == 2 ? "COMFORT" : "POWER");
+    if (m.sensors.count("serviceCountdown")) d.serviceKg = (int)sensorValue(m, "serviceCountdown", 0);
+    // 0 hours is how a slow sensor group looks until the stove has sent it (seen after a restart of the bridge): not shown then.
+    if (m.sensors.count("pelletHours") && sensorValue(m, "pelletHours", 0) > 0) d.hours = (int)sensorValue(m, "pelletHours", 0);
+    d.errCode = sensorValue(m, "errMask32", 0);
+    d.hopperOpen = m.sensors.count("hopperLidClosed") && sensorValue(m, "hopperLidClosed", 1) == 0;
+  }
+  snprintf(d.ip, sizeof d.ip, "%s", (g_isApMode ? WiFi.softAPIP() : WiFi.localIP()).toString().c_str());
+  d.wifi = g_isApMode || WiFi.status() == WL_CONNECTED;
+  d.rssi = WiFi.RSSI();
+  d.mqttOn = g_mqttCfg.enabled; d.mqttUp = g_mqttConnected;
+  snprintf(d.version, sizeof d.version, "%s", OPENFIRENET_VERSION);
+  d.updateAvailable = g_updater && strcmp(g_updater->status().state, "available") == 0;
+  d.config = g_dispCfg;
+  g_display.update(d);
+}
 static bool g_imageConfirmed = false;
 
 static std::string stoveStateName() {
@@ -744,6 +810,19 @@ static bool applySetOtaPass(const String& line, Print& out) {
   return true;
 }
 
+// SETDISPLAY:none | SETDISPLAY:tdongle   chooses the board whose screen is driven; applied at the next restart. The way back
+// when a screen was switched on by mistake on a board that has none.
+static bool applySetDisplay(const String& line, Print& out) {
+  if (!line.startsWith("SETDISPLAY:")) return false;
+  String b = line.substring(11); b.trim();
+  bool ok = firenet::DisplayConfig::validBoard(b.c_str());
+  if (ok) { g_dispBoard = b; prefs.begin("firenet", false); prefs.putString("disp_board", g_dispBoard); prefs.end(); }
+  const char* msg = ok ? "[display] SETDISPLAY OK, effective after restart" : "[display] SETDISPLAY: none or tdongle";
+  DBG.println(msg);
+  if ((Print*)&out != (Print*)&DBG) { out.print(msg); out.print("\r\n"); out.flush(); }
+  return true;
+}
+
 static bool applySetWifi(const String& line, Print& out) {
   if (line.startsWith("SETWIFI:")) {
     String rest = line.substring(8);       // after "SETWIFI:"
@@ -778,7 +857,7 @@ static void handleSerialProvisioning() {
     char c = (char)DBG.read();
     if (c == '\n' || c == '\r') {
       if (dbgLine.length() > 0) {
-        if (!applySetOtaPass(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
+        if (!applySetOtaPass(dbgLine, DBG) && !applySetDisplay(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
         dbgLine = "";
       }
     } else if (dbgLine.length() < 160) {
@@ -793,7 +872,7 @@ static void handleSerialProvisioning() {
     char c = (char)b;
     if (c == '\n' || c == '\r') {
       if (stoveLine.length() > 0) {
-        if (!applySetOtaPass(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
+        if (!applySetOtaPass(stoveLine, STOVE) && !applySetDisplay(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
         stoveLine = "";
       }
     } else {
@@ -964,6 +1043,37 @@ static bool webGuard(WebServer& server, Middleware::Callback next) {
 
 // GET /api/access: the domains added by the owner, and the name this request was addressed to.
 // POST /api/access: extra_hosts (JSON or form), free text with one domain per line; an empty text removes them all.
+// GET/POST /api/display: the small display of the bridge. `board` is the board the owner says has a screen ("none" by default,
+// "tdongle" = LilyGO T-Dongle-S3); it is stored and applies at the next restart (`restart_needed`). `available` is true while the
+// display is running; then the screens (which, in which order) and the seconds per screen can be set, and apply at once.
+static void handleDisplay() {
+  if (web.method() == HTTP_POST) {
+    std::string body(web.arg("plain").c_str());
+    firenet::DisplayConfig c = g_dispCfg;
+    String board = g_dispBoard;
+    size_t k = body.find("\"board\"");
+    if (k != std::string::npos) {
+      size_t q1 = body.find('"', body.find(':', k) + 1), q2 = q1 == std::string::npos ? q1 : body.find('"', q1 + 1);
+      std::string b = q2 == std::string::npos ? std::string() : body.substr(q1 + 1, q2 - q1 - 1);
+      if (!firenet::DisplayConfig::validBoard(b)) { web.send(400, "application/json", "{\"ok\":false,\"error\":\"unknown board\"}"); return; }
+      board = b.c_str();
+    }
+    if (!c.apply(body)) {
+      web.send(400, "application/json", "{\"ok\":false,\"error\":\"unknown or repeated screen id, or seconds out of 2..30\"}"); return;
+    }
+    // Flash is written only for what changed: a write stalls the whole chip for a moment and wears the memory.
+    bool cfgChanged = c.toPrefs() != g_dispCfg.toPrefs(), boardChanged = board != g_dispBoard;
+    g_dispCfg = c; g_dispBoard = board;
+    if (cfgChanged || boardChanged) {
+      prefs.begin("firenet", false);
+      if (cfgChanged) prefs.putString("disp_cfg", g_dispCfg.toPrefs().c_str());
+      if (boardChanged) prefs.putString("disp_board", g_dispBoard);
+      prefs.end();
+    }
+    if (g_dispActive) updateDisplay();   // the screens follow at once
+  }
+  web.send(200, "application/json", g_dispCfg.json(g_dispActive, g_dispBoard.c_str(), g_dispBoard != g_dispBootBoard).c_str());
+}
 // GET/POST /api/wifi_power_saving -> the setting above; a change applies at once, without a restart.
 static void handleWifiPowerSaving() {
   if (web.method() == HTTP_POST) {
@@ -1166,6 +1276,7 @@ static uint32_t g_mqttLastStateMs = 0;
 // once, after discovery was switched off.
 static size_t g_mqttDiscNext = SIZE_MAX;      // next entity to announce; SIZE_MAX = nothing to send
 static bool g_mqttDiscRemove = false;
+static String g_mqttDiscMake = "RIKA";
 static String g_mqttDiscModel;                // model name the entities were announced with
 
 // Runs in the client's task: no access to the stove link from here.
@@ -1388,6 +1499,7 @@ static void mqttDiscoveryStep() {
   dev.id = id;
   dev.base = g_mqttBase;
   dev.model = g_mqttDiscModel.c_str();
+  dev.make = g_mqttDiscMake.c_str();
   dev.version = OPENFIRENET_VERSION;
   dev.url = std::string("http://") + WiFi.localIP().toString().c_str();
   std::string topic, payload;
@@ -1410,8 +1522,9 @@ static void mqttPublish() {
   if (g_mqttCfg.discovery) {
     // Announce again once the stove has told its model, so that the device shows it.
     long modelId = sensorValue(m, "model", -1);
-    String model = (linked && modelId >= 0) ? String(getStoveModelName(modelId)) : String();
-    if (model != g_mqttDiscModel && !g_mqttDiscRemove) { g_mqttDiscModel = model; g_mqttDiscNext = 0; }
+    String model = (linked && modelId >= 0) ? String(getStoveModelName(modelId, sensorValue(m, "fabNumber", 1))) : String();
+    String make = getStoveBrand(sensorValue(m, "fabNumber", 1));
+    if ((model != g_mqttDiscModel || make != g_mqttDiscMake) && !g_mqttDiscRemove) { g_mqttDiscModel = model; g_mqttDiscMake = make; g_mqttDiscNext = 0; }
   }
   mqttDiscoveryStep();
   char dev[160];
@@ -1598,6 +1711,14 @@ static void handleLog() {
 
 // --------------------------------------------------------------------- setup
 void setup() {
+  {
+    Preferences p; p.begin("firenet", true);
+    g_dispBoard = p.getString("disp_board", kDefaultBoard);
+    p.end();
+    g_dispBootBoard = g_dispBoard;
+    if (g_dispBoard == "tdongle") { g_dispActive = true; g_display.start(); }   // first, so that the logo shows while the rest starts
+    else if (g_dispBoard == "tdongle_off") g_display.blank();
+  }
   readRestartReason();
   DBG.begin(115200);
   DBG.println("\n[Open Firenet] boot");
@@ -1642,6 +1763,7 @@ void setup() {
   wifiSsid = prefs.getString("ssid", "");
   wifiPass = prefs.getString("pass", "");
   g_wifiPowerSaving = prefs.getBool("wifi_ps", true);   // read before the Wi-Fi starts, see applyWifiPowerSaving
+  g_dispCfg.fromPrefs(prefs.getString("disp_cfg", "").c_str());   // screens of the small display
   prefs.end();
 
   if (wifiSsid.length()) {
@@ -1721,6 +1843,7 @@ void setup() {
   web.on("/api/mqtt", handleMqtt);
   web.on("/api/access", handleAccess);
   web.on("/api/wifi_power_saving", handleWifiPowerSaving);
+  web.on("/api/display", handleDisplay);
   web.on("/api/wifi", HTTP_POST, handleWifi);
   web.on("/api/forget", HTTP_POST, handleForget);
   web.on("/api/scan", handleScan);
@@ -1756,6 +1879,7 @@ void setup() {
 
 // ---------------------------------------------------------------------- loop
 void loop() {
+  if (g_dispActive) { static uint32_t lastDisp = 0; if (millis() - lastDisp >= 1000) { lastDisp = millis(); updateDisplay(); } }
   // 0) connect WiFi différé (laisse le driver se poser après config bas niveau)
   if (g_wifiConnectAt && (int32_t)(millis() - g_wifiConnectAt) >= 0) {
     if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
