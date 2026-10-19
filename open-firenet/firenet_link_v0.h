@@ -60,8 +60,8 @@ public:
   using NowFn = std::function<uint32_t()>;
   using DbgFn = std::function<void(const char*, const std::string&)>;
   static constexpr uint32_t ENGAGE_MS = 8000;   // after the first 0x16 with no text ACK
-  static constexpr uint32_t READ_GAP_MS = 1500;
-  static constexpr int ROUNDS = 3;              // all codes per round, then stop until the next 0x16
+  static constexpr uint32_t READ_GAP_MS = 250;    // the stove answers in about 40 ms (issue #110 logs); 1500 was a cautious first value
+  static constexpr int ROUNDS = 10;             // all codes per round (about 6 s), then stop until the next 0x16 when nothing ever answered
   // Live codes, read in every cycle. From the stove's own application (SUMO 2.25 disassembly) and from what it answered on a stove
   // (issue #110): 001 = flame temperature and 000 = room temperature (integers), 012 = grate contact (very probable), 016/017 = external
   // request and pressure switch, 027/028 = main state and sub state, 005 = auger in per mille, 019 = auger current, 007 = flue fan.

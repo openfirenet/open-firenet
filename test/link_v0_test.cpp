@@ -74,13 +74,13 @@ int main() {
   for (int b : std::initializer_list<int>{0x02, '2', '1', '6', 0x03}) p.onByte((uint8_t)b);
   CH("a changed value is logged", log.size() == nlog + 1 && log.back() == "v0 rx:038=216");
   // the stove answered: reading goes on past ROUNDS, the text link stays paused
-  for (int i = 0; i < 60; i++) { clk += LinkV0Probe::READ_GAP_MS; p.poll(false); }
+  for (int i = 0; i < LinkV0Probe::CYCLE_STEPS * LinkV0Probe::ROUNDS + 60; i++) { clk += LinkV0Probe::READ_GAP_MS; p.poll(false); }
   CH("keeps reading while the stove answers", p.engaged() && wire.size() > 5u * LinkV0Probe::CYCLE_STEPS * LinkV0Probe::ROUNDS);
   // no answer at all: stops after ROUNDS
   std::string wire2; uint32_t clk2 = 1000;
   LinkV0Probe m([&](const uint8_t* b, size_t n) { wire2.append((const char*)b, n); }, [&]() { return clk2; });
   m.onByte(0x16); clk2 += LinkV0Probe::ENGAGE_MS; m.poll(false);
-  for (int i = 0; i < 80; i++) { clk2 += LinkV0Probe::READ_GAP_MS; m.poll(false); }
+  for (int i = 0; i < LinkV0Probe::CYCLE_STEPS * LinkV0Probe::ROUNDS + 80; i++) { clk2 += LinkV0Probe::READ_GAP_MS; m.poll(false); }
   CH("stops after ROUNDS without any reply", !m.engaged() && wire2.size() == 1 + 5u * LinkV0Probe::CYCLE_STEPS * LinkV0Probe::ROUNDS);
   // text dialect acknowledged: stays out of the way
   LinkV0Probe q([&](const uint8_t*, size_t) { ko++; std::cout << "ECHEC sent while acked\n"; }, [&]() { return clk; });
