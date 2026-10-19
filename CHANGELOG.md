@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.5.0 (2026-10-20)
 
 ### New
 - **Small screen support (LilyGO T-Dongle-S3).** Off by default, switched on in Bridge > Screen by choosing the board (asked twice, then a restart); a "Screen on" switch then turns the screen and its backlight off while locking the screen settings: the pins of other boards may be wired to something else, so the screen is never driven by guesswork. The key shows the animated Open Firenet logo while it waits for the stove, then one value per screen in turn (the logo itself can be one of the screens): stove state (with the flame following it), room temperature and target, flame temperature, power (or the target temperature in comfort mode), address, pellets until service, running hours, Wi-Fi, MQTT and firmware version. The BOOT button moves to the next screen; a stove error, an open hopper, a silent stove or a lost Wi-Fi takes the whole screen. The backlight level is a setting (half brightness by default), and it can be lowered after a chosen time without a press of BOOT or an alert. The serial command `SETDISPLAY:none` switches it off again without the page.
