@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Changes
+- The icons of the page (stove state, cards, tabs and buttons) are now drawn by the page itself instead of emojis, so they look the same on every phone and computer: line icons in colour, and the flame at the top follows the stove: an outline at ignition, filling at start-up, the colours of the logo when heating, fading at burn-off. Nothing is loaded from the internet, so the page looks the same on the bridge's own Wi-Fi. The language list shows FR / EN / IT / DE instead of flag emojis, which Windows does not display.
+
 ## v4.4.0 (2026-10-17)
 
 ### New

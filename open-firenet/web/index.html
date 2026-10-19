@@ -622,19 +622,59 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 }
 .input-time:focus { border-color: var(--primary); }
 .input-time:disabled { color: var(--text-muted); background: #0a0d14; cursor: not-allowed; }
+
+/* Icons (Lucide, inline SVG) */
+.ic { width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex-shrink: 0; }
+.ic-slot { display: inline-flex; align-items: center; line-height: 1; }
+.ic-lg { font-size: 1.6rem; }
+.ic-lg .ic { width: 1.6rem; height: 1.6rem; }
+.subtab-btn .ic-slot, .tab-btn .ic-slot, .btn-lang .ic-slot, .btn-lock .ic-slot, .power-btn .ic-slot { margin-right: 2px; }
+.state-icon-box { color: var(--text-muted); }
+.state-icon-box .ic { width: 30px; height: 30px; }
+.state-icon-box.active { color: #f97316; }
+.mode-btn .m-icon .ic { width: 1.5rem; height: 1.5rem; }
+#refusedBanner .ic, #linkHintBanner .ic, #hopperLidBanner .ic { color: var(--amber); }
+#apBanner .ic { color: var(--blue); }
+/* Colour trial: one hue per icon, filled for the "solid" shapes */
+.ic-flame { color: #f97316; fill: color-mix(in srgb, #f97316 45%, transparent); }
+.ic-thermometer { color: #fb7185; }
+.ic-fan, .ic-snowflake { color: #38bdf8; }
+.ic-snowflake { fill: none; }
+.ic-wifi, .ic-plug, .ic-leaf { color: #34d399; }
+.ic-leaf { fill: color-mix(in srgb, #34d399 40%, transparent); }
+.ic-timer, .ic-package, .ic-soup { color: #fbbf24; }
+.ic-zap, .ic-sparkles { color: #facc15; fill: color-mix(in srgb, #facc15 45%, transparent); }
+.ic-triangle-alert { color: #f59e0b; fill: color-mix(in srgb, #f59e0b 25%, transparent); }
+.ic-calendar, .ic-sofa { color: #a78bfa; }
+.ic-download, .ic-refresh-cw, .ic-repeat, .ic-stethoscope { color: #2dd4bf; }
+.ic-usb, .ic-sliders-horizontal, .ic-save { color: #818cf8; }
+.ic-settings, .ic-wrench, .ic-search, .ic-eye, .ic-clipboard-copy, .ic-lock { color: #94a3b8; }
+.state-icon-box:not(.active) .ic { color: var(--text-muted); fill: none; }
+.state-icon-box.active .ic-flame { color: #f97316; fill: none; }
+/* The flame follows the stove: outline at ignition, filling at start-up, the gradient of the logo when heating, fading at burn-off */
+.state-icon-box.st-2 .ic-flame { color: #f7a81c; animation: flamePulse 1.6s ease-in-out infinite; }
+.state-icon-box.st-3 .ic-flame { stroke: url(#flameGrad); fill: url(#flameGrad); fill-opacity: 0.45; animation: flamePulse 1.2s ease-in-out infinite; }
+.state-icon-box.st-4 .ic-flame { stroke: url(#flameGrad); fill: url(#flameGrad); fill-opacity: 1; transform-origin: 50% 90%; animation: flameFlicker 1.8s ease-in-out infinite; filter: drop-shadow(0 0 4px rgba(249,115,22,0.6)); }
+.state-icon-box.st-6 .ic { color: #f9451d; opacity: 0.6; animation: flameFade 3s ease-in-out infinite; }
+@keyframes flamePulse { 50% { opacity: 0.55; } }
+@keyframes flameFlicker { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.06, 1.1); } 60% { transform: scale(0.97, 1.03); } }
+@keyframes flameFade { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .state-icon-box .ic { animation: none !important; } }
+.card-header .ic-flame { color: #f97316; }
 </style>
 </head>
 <body>
 <header>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="rgb(247,168,28)"/><stop offset="1" stop-color="rgb(249,69,29)"/></linearGradient></defs></svg>
   <div class="brand">
     <!-- The emblem of the logo (assets/brand-icon@2x.png, reduced by tools/gen_brand_logo.py --web) -->
     <img alt="" width="28" height="28" style="filter:drop-shadow(0 0 6px rgba(249,115,22,0.5));flex-shrink:0" src="data:image/png;base64,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">
     <span style="white-space:nowrap">Open <span class="brand-grad">Firenet</span> <small id="fwVersion" style="font-size:0.7rem;font-weight:500;color:var(--text-muted)"></small></span>
   </div>
   <nav class="page-tabs" aria-label="Pages">
-    <a class="tab-btn active" id="pageBtnStove" href="#stove"><span id="pageBtnStoveLbl">Stove</span> <span class="conn-dot off" id="connDot"></span></a>
-    <a class="tab-btn" id="pageBtnBridge" href="#bridge"><svg viewBox="1 5 22 14" aria-hidden="true" style="width:1.7em;height:1.08em;vertical-align:-0.18em"><rect x="2" y="8.5" width="6" height="7" rx="0.8" fill="#aab4c8"/><rect x="3.6" y="10.2" width="1.6" height="1.4" fill="#3a4358"/><rect x="3.6" y="12.6" width="1.6" height="1.4" fill="#3a4358"/><rect x="8" y="6" width="14" height="12" rx="2.5" fill="var(--primary)"/><circle cx="18" cy="12" r="1.4" fill="#fff" opacity="0.85"/></svg><span id="pageBtnBridgeLbl">Bridge</span></a>
-    <a class="tab-btn" id="pageBtnDiag" href="#diagnostics">Diagnostics</a>
+    <a class="tab-btn active" id="pageBtnStove" href="#stove"><span class="ic-slot" data-ic="flame"></span> <span id="pageBtnStoveLbl">Stove</span> <span class="conn-dot off" id="connDot"></span></a>
+    <a class="tab-btn" id="pageBtnBridge" href="#bridge"><span class="ic-slot" data-ic="usb"></span> <span id="pageBtnBridgeLbl">Bridge</span></a>
+    <a class="tab-btn" id="pageBtnDiag" href="#diagnostics"><span class="ic-slot" data-ic="stethoscope"></span> <span class="lbl">Diagnostics</span></a>
   </nav>
   <div class="header-actions">
     <select class="lang-select" id="langSelect" onchange="onSelectLang(this.value)">
@@ -643,14 +683,14 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 </header>
 <main>
   <div id="refusedBanner" style="display:none;background:rgba(245,158,11,0.15);border:1px solid var(--amber);border-radius:10px;padding:12px 16px;font-size:0.9rem;align-items:center;gap:12px">
-    <span style="font-size:1.5rem">🔒</span>
+    <span class="ic-slot ic-lg" data-ic="lock"></span>
     <div>
       <b id="refusedTitle"></b>
       <p style="font-size:0.85rem;color:var(--text-dim)"><span id="refusedDesc"></span> <a id="refusedLink" href="#" style="color:var(--blue)"></a></p>
     </div>
   </div>
   <div id="apBanner" style="display:none;background:rgba(56,189,248,0.15);border:1px solid var(--blue);border-radius:10px;padding:12px 16px;font-size:0.9rem;align-items:center;gap:12px">
-    <span style="font-size:1.5rem">📶</span>
+    <span class="ic-slot ic-lg" data-ic="wifi"></span>
     <div>
       <b id="apBannerTitle">Mode Point d'Accès actif</b>
       <p id="apBannerDesc" style="font-size:0.8rem;color:var(--text-dim)">Sélectionnez votre réseau WiFi ci-dessous pour connecter Open Firenet à votre box.</p>
@@ -658,7 +698,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   </div>
 
   <div id="linkHintBanner" style="display:none;background:rgba(245,158,11,0.15);border:1px solid var(--amber);border-radius:10px;padding:12px 16px;font-size:0.9rem;align-items:center;gap:12px">
-    <span style="font-size:1.5rem">🔌</span>
+    <span class="ic-slot ic-lg" data-ic="plug"></span>
     <div>
       <b id="linkHintTitle"></b>
       <p id="linkHintDesc" style="font-size:0.8rem;color:var(--text-dim);margin-top:2px"></p>
@@ -667,7 +707,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   </div>
 
   <div id="hopperLidBanner" style="display:none;background:rgba(245,158,11,0.15);border:1px solid var(--amber);border-radius:10px;padding:12px 16px;font-size:0.9rem;align-items:center;gap:12px">
-    <span style="font-size:1.5rem">⚠️</span>
+    <span class="ic-slot ic-lg" data-ic="triangle-alert"></span>
     <div>
       <b id="hopperLidBannerTitle">Trappe du réservoir à pellets ouverte</b>
     </div>
@@ -678,7 +718,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   <!-- Hero Card: Main Stove State -->
   <div class="hero-card">
     <div class="hero-state">
-      <div class="state-icon-box" id="stateIconBox">⚪</div>
+      <div class="state-icon-box" id="stateIconBox"><span class="ic-slot" data-ic="circle"></span></div>
       <div class="hero-labels">
         <h2 id="mainStateTitle">Veille (Standby)</h2>
         <p id="subStateDesc">Poêle en attente de consigne</p>
@@ -697,7 +737,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card">
       <div class="card-header">
         <span id="lblRoomHeader">T° ambiante</span>
-        <span>🌡️</span>
+        <span class="ic-slot" data-ic="thermometer"></span>
       </div>
       <div class="card-val">
         <span id="roomTemp">--</span><span class="unit">°C</span><span class="card-target" id="roomTarget"></span>
@@ -707,7 +747,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card">
       <div class="card-header">
         <span id="lblFlameHeader">T° flamme</span>
-        <span>🔥</span>
+        <span class="ic-slot" data-ic="flame"></span>
       </div>
       <div class="card-val">
         <span id="flameTemp">--</span><span class="unit">°C</span>
@@ -717,7 +757,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card">
       <div class="card-header">
         <span id="lblPowerHeader">Puissance</span>
-        <span>⚡</span>
+        <span class="ic-slot" data-ic="zap"></span>
       </div>
       <div class="card-val">
         <span id="stageCur">--</span><span class="unit">%</span>
@@ -727,7 +767,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card">
       <div class="card-header">
         <span id="lblPelletsHeader">Granulés</span>
-        <span>📦</span>
+        <span class="ic-slot" data-ic="package"></span>
       </div>
       <div class="card-val">
         <span id="pelletsTotal">--</span><span class="unit">kg</span>
@@ -739,7 +779,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card">
       <div class="card-header">
         <span id="lblRuntimeHeader">Fonctionnement</span>
-        <span>⏱️</span>
+        <span class="ic-slot" data-ic="timer"></span>
       </div>
       <div class="card-val">
         <span id="pelletHours">--</span><span class="unit">h</span>
@@ -749,7 +789,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card card-gauge">
       <div class="card-header">
         <span id="lblServiceHeader">Entretien dans</span>
-        <span>🧰</span>
+        <span class="ic-slot" data-ic="wrench"></span>
       </div>
       <div class="card-val">
         <span id="serviceCount">--</span><span class="unit">kg</span>
@@ -760,7 +800,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card">
       <div class="card-header">
         <span id="lblIgnitionsHeader">Allumages</span>
-        <span>✨</span>
+        <span class="ic-slot" data-ic="sparkles"></span>
       </div>
       <div class="card-val">
         <span id="ignitionCount">--</span>
@@ -772,12 +812,12 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   <div class="control-deck">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px">
       <div class="deck-title" style="margin:0">
-        <span>🎛️</span> <span id="lblDeckTitle">Pilotage du Poêle</span>
+        <span class="ic-slot" data-ic="sliders-horizontal"></span> <span id="lblDeckTitle">Pilotage du Poêle</span>
       </div>
       <div class="subtabs" style="display:flex;gap:6px;background:#10141e;padding:4px;border-radius:10px;border:1px solid var(--border)">
-        <button type="button" class="subtab-btn active" id="subtabBtnDirect" onclick="showCtrlTab('ctrl-direct')">🔥 <span id="lblSubtabDirect">Commandes directes</span></button>
-        <button type="button" class="subtab-btn" id="subtabBtnSched" onclick="showCtrlTab('ctrl-sched')">📅 <span id="lblSubtabSched">Programmation</span></button>
-        <button type="button" class="subtab-btn" id="subtabBtnParams" onclick="showCtrlTab('ctrl-params')">⚙️ <span id="lblSubtabParams">Paramètres</span></button>
+        <button type="button" class="subtab-btn active" id="subtabBtnDirect" onclick="showCtrlTab('ctrl-direct')"><span class="ic-slot" data-ic="flame"></span> <span id="lblSubtabDirect">Commandes directes</span></button>
+        <button type="button" class="subtab-btn" id="subtabBtnSched" onclick="showCtrlTab('ctrl-sched')"><span class="ic-slot" data-ic="calendar"></span> <span id="lblSubtabSched">Programmation</span></button>
+        <button type="button" class="subtab-btn" id="subtabBtnParams" onclick="showCtrlTab('ctrl-params')"><span class="ic-slot" data-ic="settings"></span> <span id="lblSubtabParams">Paramètres</span></button>
       </div>
     </div>
 
@@ -788,15 +828,15 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <label id="lblRegulationMode" style="font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;display:block">MODE DE RÉGULATION</label>
         <div class="mode-selector">
           <div class="mode-btn" id="modeBtn2" onclick="setMode(2)">
-            <div class="m-icon">🛋️</div>
+            <div class="m-icon"><span class="ic-slot" data-ic="sofa"></span></div>
             <div class="m-title" id="lblModeTitle2">Confort</div>
           </div>
           <div class="mode-btn" id="modeBtn1" onclick="setMode(1)">
-            <div class="m-icon">⏱️</div>
+            <div class="m-icon"><span class="ic-slot" data-ic="timer"></span></div>
             <div class="m-title" id="lblModeTitle1">Auto</div>
           </div>
           <div class="mode-btn" id="modeBtn0" onclick="setMode(0)">
-            <div class="m-icon">⚙️</div>
+            <div class="m-icon"><span class="ic-slot" data-ic="settings"></span></div>
             <div class="m-title" id="lblModeTitle0">Manuel</div>
           </div>
         </div>
@@ -846,7 +886,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           <div class="fan-card" id="fanCard1">
             <div style="display:flex;justify-content:space-between;align-items:center">
               <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-                <span>🌀</span> <span id="lblFan1Title">MultiAir 1</span>
+                <span class="ic-slot" data-ic="fan"></span> <span id="lblFan1Title">MultiAir 1</span>
               </div>
               <button class="fan-toggle" id="fan1ToggleBtn" onclick="toggleFan(1)">
                 <span class="dot" style="display:inline-block"></span>
@@ -887,7 +927,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           <div class="fan-card" id="fanCard2">
             <div style="display:flex;justify-content:space-between;align-items:center">
               <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-                <span>🌀</span> <span id="lblFan2Title">MultiAir 2</span>
+                <span class="ic-slot" data-ic="fan"></span> <span id="lblFan2Title">MultiAir 2</span>
               </div>
               <button class="fan-toggle" id="fan2ToggleBtn" onclick="toggleFan(2)">
                 <span class="dot" style="display:inline-block"></span>
@@ -934,7 +974,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <div class="fan-card" style="padding:16px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-              <span style="font-size:1.2rem">🍲</span> <span id="lblBakeSubTitle">Consigne température de cuisson</span>
+              <span class="ic-slot" data-ic="soup"></span> <span id="lblBakeSubTitle">Consigne température de cuisson</span>
             </div>
           </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
@@ -983,8 +1023,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <!-- Quick Actions -->
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <span style="font-size:0.85rem;color:var(--text-dim)" id="lblQuickCopy">Actions rapides :</span>
-        <button type="button" class="btn-lock" id="btnCopyWeekdays" onclick="copyMonday(false)">📋 Lun ➔ Lun-Ven</button>
-        <button type="button" class="btn-lock" id="btnCopyAll" onclick="copyMonday(true)">📋 Lun ➔ Semaine</button>
+        <button type="button" class="btn-lock" id="btnCopyWeekdays" onclick="copyMonday(false)"><span class="ic-slot" data-ic="clipboard-copy"></span> <span class="lbl">Lun ➔ Lun-Ven</span></button>
+        <button type="button" class="btn-lock" id="btnCopyAll" onclick="copyMonday(true)"><span class="ic-slot" data-ic="clipboard-copy"></span> <span class="lbl">Lun ➔ Semaine</span></button>
       </div>
 
       <!-- Days Rows -->
@@ -993,7 +1033,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <!-- Save Button -->
       <div style="display:flex;justify-content:flex-end;margin-top:8px">
         <button class="power-btn" id="btnSaveSchedule" onclick="saveSchedule()" style="width:100%;justify-content:center">
-          💾 Enregistrer la programmation
+          <span class="ic-slot" data-ic="save"></span> <span class="lbl">Enregistrer la programmation</span>
         </button>
       </div>
     </div>
@@ -1009,7 +1049,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <div class="fan-card" id="frostCard" style="padding:16px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-              <span style="font-size:1.2rem">❄️</span> <span id="lblFrostToggle">Protection hors-gel</span>
+              <span class="ic-slot" data-ic="snowflake"></span> <span id="lblFrostToggle">Protection hors-gel</span>
             </div>
             <button class="fan-toggle" id="frostToggleBtn" onclick="toggleFrost()">
               <span class="dot" style="display:inline-block"></span>
@@ -1034,7 +1074,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <div class="fan-card" id="offsetCard" style="padding:16px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-              <span style="font-size:1.2rem">🌡️</span> <span id="lblOffsetSubTitle">Calibrage sonde ambiance</span>
+              <span class="ic-slot" data-ic="thermometer"></span> <span id="lblOffsetSubTitle">Calibrage sonde ambiance</span>
             </div>
           </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
@@ -1055,7 +1095,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <div class="fan-card" id="ecoCard" style="padding:16px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="display:flex;align-items:center;gap:8px;font-weight:700">
-              <span style="font-size:1.2rem">🌿</span> <span id="lblEcoToggle">Mode éco</span>
+              <span class="ic-slot" data-ic="leaf"></span> <span id="lblEcoToggle">Mode éco</span>
             </div>
             <button class="fan-toggle" id="ecoToggleBtn" onclick="toggleEco()">
               <span class="dot" style="display:inline-block"></span>
@@ -1073,9 +1113,9 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
   <div class="page" id="page-bridge">
     <!-- Three tabs instead of one long page: network, MQTT, the bridge itself -->
     <div class="subtabs" style="display:flex;gap:6px;background:#10141e;padding:4px;border-radius:10px;border:1px solid var(--border);align-self:flex-start">
-      <button type="button" class="subtab-btn bridge-tab active" id="bridgeTabBtnNet" onclick="showBridgeTab('bridge-net')">📶 <span id="lblBridgeTabNet">Réseau</span></button>
-      <button type="button" class="subtab-btn bridge-tab" id="bridgeTabBtnMqtt" onclick="showBridgeTab('bridge-mqtt')">🔁 <span id="lblBridgeTabMqtt">MQTT</span></button>
-      <button type="button" class="subtab-btn bridge-tab" id="bridgeTabBtnSystem" onclick="showBridgeTab('bridge-system')">⚙️ <span id="lblBridgeTabSystem">Système</span></button>
+      <button type="button" class="subtab-btn bridge-tab active" id="bridgeTabBtnNet" onclick="showBridgeTab('bridge-net')"><span class="ic-slot" data-ic="wifi"></span> <span id="lblBridgeTabNet">Réseau</span></button>
+      <button type="button" class="subtab-btn bridge-tab" id="bridgeTabBtnMqtt" onclick="showBridgeTab('bridge-mqtt')"><span class="ic-slot" data-ic="repeat"></span> <span id="lblBridgeTabMqtt">MQTT</span></button>
+      <button type="button" class="subtab-btn bridge-tab" id="bridgeTabBtnSystem" onclick="showBridgeTab('bridge-system')"><span class="ic-slot" data-ic="settings"></span> <span id="lblBridgeTabSystem">Système</span></button>
     </div>
     <div class="bridge-panel" id="bridge-net">
     <div class="card" style="gap:16px">
@@ -1087,7 +1127,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <label id="lblJoinWifi" style="font-size:0.9rem;font-weight:600">Rejoindre un réseau WiFi (2.4 GHz) :</label>
-        <button class="btn-lang" id="btnScan" style="padding:4px 10px;font-size:0.8rem" onclick="scanWifi()">🔄 Scanner</button>
+        <button class="btn-lang" id="btnScan" style="padding:4px 10px;font-size:0.8rem" onclick="scanWifi()"><span class="ic-slot" data-ic="refresh-cw"></span> <span class="lbl">Scanner</span></button>
       </div>
       <!-- Native HTML form POST (no fetch/confirm/alert): works inside captive
            portal browsers (macOS/iOS) that block XHR to local IPs. -->
@@ -1099,7 +1139,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           <input class="input-text" id="newSsid" name="ssid" placeholder="Nom du réseau (SSID)" style="flex:1;min-width:180px" required>
           <div style="flex:1;min-width:180px;position:relative;display:flex;align-items:center">
             <input class="input-text" id="newPass" name="pass" type="password" placeholder="Mot de passe" style="width:100%;padding-right:36px">
-            <span style="position:absolute;right:10px;cursor:pointer;user-select:none;font-size:1.1rem" onclick="togglePassView()" title="Afficher/Masquer">👁️</span>
+            <span style="position:absolute;right:10px;cursor:pointer;user-select:none;font-size:1.1rem" onclick="togglePassView()" title="Afficher/Masquer"><span class="ic-slot" data-ic="eye"></span></span>
           </div>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -1186,8 +1226,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           </span>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" class="btn-lang" id="btnFwCheck" style="padding:6px 12px;font-size:0.85rem" onclick="checkFwUpdate()">🔍 <span id="lblBtnFwCheck">Vérifier</span></button>
-          <button type="button" class="power-btn" id="btnFwInstall" style="display:none;padding:6px 14px;font-size:0.85rem;background:var(--green)" onclick="installFwUpdate()">⬇ <span id="lblBtnFwInstall">Installer</span></button>
+          <button type="button" class="btn-lang" id="btnFwCheck" style="padding:6px 12px;font-size:0.85rem" onclick="checkFwUpdate()"><span class="ic-slot" data-ic="search"></span> <span id="lblBtnFwCheck">Vérifier</span></button>
+          <button type="button" class="power-btn" id="btnFwInstall" style="display:none;padding:6px 14px;font-size:0.85rem;background:var(--green)" onclick="installFwUpdate()"><span class="ic-slot" data-ic="download"></span> <span id="lblBtnFwInstall">Installer</span></button>
         </div>
       </div>
       <div id="fwUpdateMsg" style="font-size:0.8rem;color:var(--text-dim);min-height:1.2em"></div>
@@ -1227,7 +1267,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <h3 id="lblBridgeRestart"></h3>
       <p id="lblBridgeRestartDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
       <div style="display:flex;justify-content:flex-end">
-        <button class="btn-lock" id="btnRestart" style="color:var(--amber);border-color:var(--amber)" onclick="restartDongle()">🔄 Redémarrer la clef</button>
+        <button class="btn-lock" id="btnRestart" style="color:var(--amber);border-color:var(--amber)" onclick="restartDongle()"><span class="ic-slot" data-ic="refresh-cw"></span> <span class="lbl">Redémarrer la clef</span></button>
       </div>
     </div>
     </div>
@@ -1239,7 +1279,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <h3 id="lblDiagHealth"></h3>
       <table id="healthTable"><tbody id="healthRows"></tbody></table>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px">
-        <button class="btn-lang" id="btnDiagFile" style="padding:6px 12px;font-size:0.85rem" onclick="downloadDiagFile()"></button>
+        <button class="btn-lang" id="btnDiagFile" style="padding:6px 12px;font-size:0.85rem" onclick="downloadDiagFile()"><span class="ic-slot" data-ic="download"></span> <span class="lbl"></span></button>
         <span id="lblDiagFileHint" style="font-size:0.8rem;color:var(--text-dim);flex:1;min-width:220px"></span>
       </div>
     </div>
@@ -1266,7 +1306,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         </div>
         <div style="display:flex;gap:12px;align-items:center">
           <label style="font-size:0.8rem;color:var(--text-dim);cursor:pointer"><input type="checkbox" id="logAuto" checked> <span id="lblLogAuto">Auto</span></label>
-          <button class="btn-lang" id="btnLogDownload" style="padding:4px 10px;font-size:0.8rem" onclick="downloadLog()">⬇ Télécharger</button>
+          <button class="btn-lang" id="btnLogDownload" style="padding:4px 10px;font-size:0.8rem" onclick="downloadLog()"><span class="ic-slot" data-ic="download"></span> <span class="lbl">Télécharger</span></button>
           <button class="btn-lang" id="btnLogClear" style="padding:4px 10px;font-size:0.8rem" onclick="clearLog()">Effacer</button>
         </div>
       </div>
@@ -1296,6 +1336,59 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 </div>
 
 <script>
+// Icons: Lucide (ISC license, https://lucide.dev), only the ones the page uses, embedded so that the page needs nothing from the network.
+const IC_PATHS = {
+  "usb": '<circle cx="10" cy="7" r="1" /><circle cx="4" cy="20" r="1" /><path d="M4.7 19.3 19 5" /><path d="m21 3-3 1 2 2Z" /><path d="M9.26 7.68 5 12l2 5" /><path d="m10 14 5 2 3.5-3.5" /><path d="m18 12 1-1 1 1-1 1Z" />',
+  "arrow-right": '<path d="M5 12h14" /><path d="m12 5 7 7-7 7" />',
+  "brush-cleaning": '<path d="m16 22-1-4" /><path d="M19 14a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v1a1 1 0 0 0 1 1" /><path d="M19 14H5l-1.973 6.767A1 1 0 0 0 4 22h16a1 1 0 0 0 .973-1.233z" /><path d="m8 22 1-4" />',
+  "calendar": '<path d="M8 2v3" /><path d="M16 2v3" /><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" />',
+  "circle": '<circle cx="12" cy="12" r="10" />',
+  "circle-help": '<circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" />',
+  "clipboard-copy": '<rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /><path d="M16 4h2a2 2 0 0 1 2 2v4" /><path d="M21 14H11" /><path d="m15 10-4 4 4 4" />',
+  "download": '<path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" />',
+  "eye": '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />',
+  "fan": '<path d="M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618l1.45-5.412Z" /><path d="M12 12v.01" />',
+  "flame": '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4" />',
+  "hourglass": '<path d="M5 22h14" /><path d="M5 2h14" /><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />',
+  "leaf": '<path d="M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20" /><path d="M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13" />',
+  "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />',
+  "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z" /><path d="M12 22V12" /><polyline points="3.29 7 12 12 20.71 7" /><path d="m7.5 4.27 9 5.15" />',
+  "plug": '<path d="M12 22v-5" /><path d="M15 8V2" /><path d="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z" /><path d="M9 8V2" />',
+  "power-off": '<path d="M18.36 6.64A9 9 0 0 1 20.77 15" /><path d="M6.16 6.16a9 9 0 1 0 12.68 12.68" /><path d="M12 2v4" /><path d="m2 2 20 20" />',
+  "refresh-cw": '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" />',
+  "repeat": '<path d="m17 2 4 4-4 4" /><path d="M3 11v-1a4 4 0 0 1 4-4h14" /><path d="m7 22-4-4 4-4" /><path d="M21 13v1a4 4 0 0 1-4 4H3" />',
+  "save": '<path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7" /><path d="M7 3v4a1 1 0 0 0 1 1h7" />',
+  "search": '<path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" />',
+  "settings": '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /><circle cx="12" cy="12" r="3" />',
+  "sliders-horizontal": '<path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" />',
+  "snowflake": '<path d="m10 20-1.25-2.5L6 18" /><path d="M10 4 8.75 6.5 6 6" /><path d="m14 20 1.25-2.5L18 18" /><path d="m14 4 1.25 2.5L18 6" /><path d="m17 21-3-6h-4" /><path d="m17 3-3 6 1.5 3" /><path d="M2 12h6.5L10 9" /><path d="m20 10-1.5 2 1.5 2" /><path d="M22 12h-6.5L14 15" /><path d="m4 10 1.5 2L4 14" /><path d="m7 21 3-6-1.5-3" /><path d="m7 3 3 6h4" />',
+  "sofa": '<path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3" /><path d="M2 16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z" /><path d="M4 18v2" /><path d="M20 18v2" /><path d="M12 4v9" />',
+  "soup": '<path d="M12 21a9 9 0 0 0 9-9H3a9 9 0 0 0 9 9Z" /><path d="M7 21h10" /><path d="M19.5 12 22 6" /><path d="M16.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.73 1.62" /><path d="M11.25 3c.27.1.8.53.74 1.36-.05.83-.93 1.2-.98 2.02-.06.78.33 1.24.72 1.62" /><path d="M6.25 3c.27.1.8.53.75 1.36-.06.83-.93 1.2-1 2.02-.05.78.34 1.24.74 1.62" />',
+  "sparkles": '<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /><path d="M20 2v4" /><path d="M22 4h-4" /><circle cx="4" cy="20" r="2" />',
+  "stethoscope": '<path d="M11 2v2" /><path d="M5 2v2" /><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1" /><path d="M8 15a6 6 0 0 0 12 0v-3" /><circle cx="20" cy="10" r="2" />',
+  "thermometer": '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />',
+  "timer": '<line x1="10" x2="14" y1="2" y2="2" /><line x1="12" x2="15" y1="14" y2="11" /><circle cx="12" cy="14" r="8" />',
+  "trees": '<path d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z" /><path d="M7 16v6" /><path d="M13 19v3" /><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5" />',
+  "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" />',
+  "wifi": '<path d="M12 20h.01" /><path d="M2 8.82a15 15 0 0 1 20 0" /><path d="M5 12.859a10 10 0 0 1 14 0" /><path d="M8.5 16.429a5 5 0 0 1 7 0" />',
+  "wind": '<path d="M12.8 19.6A2 2 0 1 0 14 16H2" /><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2" /><path d="M9.8 4.4A2 2 0 1 1 11 8H2" />',
+  "wrench": '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" />',
+  "zap": '<path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" />',
+};
+function ic(name) {
+  const p = IC_PATHS[name] || IC_PATHS['circle'];
+  return '<svg class="ic ic-' + name + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+}
+function hydrateIcons(root) {
+  (root || document).querySelectorAll('[data-ic]').forEach(el => { el.innerHTML = ic(el.getAttribute('data-ic')); });
+}
+// Sets the text of a button that carries an icon: its label sits in a span.lbl, the icon stays.
+function setLbl(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const l = el.querySelector('.lbl');
+  (l || el).textContent = text;
+}
 let lastState = null;
 let userInteracting = false;
 let userInteractTimer = null;
@@ -1308,7 +1401,7 @@ let curLang = 'en';   // set once I18N is defined, see below
 const I18N = {
   fr: {
     langName: "Français",
-    langFlag: "🇫🇷",
+    langFlag: "FR",
     dayUnit: "j",
     modelFallback: "Modèle",
     bcpLanguageTag: 'fr-FR',
@@ -1375,9 +1468,9 @@ const I18N = {
     offsetTitle: "CALIBRAGE SONDE D'AMBIANCE",
     offsetSubTitle: "Correction température ambiante",
     offsetDesc: "Décalage appliqué",
-    pageStove: "🔥 Poêle",
+    pageStove: "Poêle",
     pageBridge: "Clé",
-    pageDiag: "🩺 Diagnostic",
+    pageDiag: "Diagnostic",
     diagLink: "Liaison avec le poêle",
     diagLogs: "Journal des échanges",
     diagValues: "Toutes les valeurs",
@@ -1410,11 +1503,11 @@ const I18N = {
     schedActiveDesc: "Active ou désactive le planning des plages horaires de chauffe.",
     setbackTemp: "Température de maintien (Éco)",
     quickCopy: "Actions rapides :",
-    btnCopyWeekdays: "📋 Lun ➔ Lun-Ven",
-    btnCopyAll: "📋 Lun ➔ Semaine",
+    btnCopyWeekdays: "Lun ➔ Lun-Ven",
+    btnCopyAll: "Lun ➔ Semaine",
     copiedWeekdays: "Horaires copiés du Lundi au Vendredi",
     copiedAll: "Horaires copiés sur toute la semaine",
-    btnSaveSchedule: "💾 Enregistrer la programmation",
+    btnSaveSchedule: "Enregistrer la programmation",
     schedSaved: "Programmation enregistrée avec succès !",
     days: { Mon: "Lundi", Tue: "Mardi", Wed: "Mercredi", Thu: "Jeudi", Fri: "Vendredi", Sat: "Samedi", Sun: "Dimanche" },
     logRx: "Poêle → Clef (RX)",
@@ -1423,12 +1516,12 @@ const I18N = {
     txGapDefault: "Défaut (150)",
     txGapHelp: "Appliqué immédiatement et conservé après redémarrage. Trop bas : le poêle peut ne traiter qu'une trame sur deux.",
     logAuto: "Auto",
-    logDownload: "⬇ Télécharger",
+    logDownload: "Télécharger",
     logClear: "Effacer",
-    btnRestart: "🔄 Redémarrer la clef",
+    btnRestart: "Redémarrer la clef",
     confirmRestart: "Redémarrer la clef ? La liaison avec le poêle sera coupée quelques secondes.",
     restartToast: "Redémarrage en cours…",
-    sensorSearchPlaceholder: "🔍 Filtrer les 53 capteurs...",
+    sensorSearchPlaceholder: "Filtrer les 53 capteurs...",
     thSensorName: "Capteur",
     thSensorId: "Identifiant",
     thSensorVal: "Valeur",
@@ -1471,7 +1564,7 @@ const I18N = {
     netModePrefix: "Mode : ",
     netRssiPrefix: "Signal RSSI : ",
     joinWifi: "Rejoindre un réseau WiFi (2.4 GHz) :",
-    btnScan: "🔄 Scanner",
+    btnScan: "Scanner",
     selectNetwork: "-- Choisir un réseau détecté --",
     scanning: "Recherche des réseaux 2.4 GHz...",
     scanError: "Erreur lors du scan WiFi",
@@ -1495,7 +1588,7 @@ const I18N = {
     cdcSpeed: "Opérationnelle (Full Speed)",
     lblUptime: "Temps d'activité (Uptime)",
     diagHealth: "État de la clé",
-    diagFile: "⬇ Fichier de diagnostic",
+    diagFile: "Fichier de diagnostic",
     diagFileHint: "Un seul fichier à joindre à un signalement : état, liaison, toutes les valeurs et journal. Le nom du Wi-Fi et l'adresse MAC y sont masqués.",
     healthRestart: "Dernier redémarrage",
     healthMemory: "Mémoire libre",
@@ -1535,24 +1628,24 @@ const I18N = {
     errorPrefix: "Erreur : ",
     netError: "Erreur réseau",
     stateMap: {
-      0: { title: "Arrêt", desc: "Poêle complètement éteint", icon: "🛑", active: false },
-      1: { title: "Veille (Standby)", desc: "En attente de consigne", icon: "⚪", active: false },
-      2: { title: "Allumage (Ignition)", desc: "Préchauffage bougie & granulés", icon: "🔥", active: true },
-      3: { title: "Démarrage flamme", desc: "Stabilisation de la combustion", icon: "🔥", active: true },
-      4: { title: "En régulation (Chauffe)", desc: "Combustion active normale", icon: "🔥", active: true },
-      5: { title: "Nettoyage grille", desc: "Cycle de décrassage automatique", icon: "🧹", active: true },
-      6: { title: "Extinction (Burn off)", desc: "Fin de combustion & ventilation", icon: "💨", active: true },
-      7: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true },
-      11: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
-      13: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
-      14: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
-      16: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
-      17: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
-      50: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "🪵", active: false },
-      20: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true },
-      21: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "🪵", active: true },
-      splitlog_refuel: { title: "Recharger en bûches", desc: "Le poêle demande de remettre des bûches", icon: "🪵", active: true },
-      splitlog_no_refuel: { title: "Ne pas recharger", desc: "Le foyer est trop froid pour remettre des bûches", icon: "🪵", active: true }
+      0: { title: "Arrêt", desc: "Poêle complètement éteint", icon: "power-off", active: false },
+      1: { title: "Veille (Standby)", desc: "En attente de consigne", icon: "circle", active: false },
+      2: { title: "Allumage (Ignition)", desc: "Préchauffage bougie & granulés", icon: "flame", active: true },
+      3: { title: "Démarrage flamme", desc: "Stabilisation de la combustion", icon: "flame", active: true },
+      4: { title: "En régulation (Chauffe)", desc: "Combustion active normale", icon: "flame", active: true },
+      5: { title: "Nettoyage grille", desc: "Cycle de décrassage automatique", icon: "brush-cleaning", active: true },
+      6: { title: "Extinction (Burn off)", desc: "Fin de combustion & ventilation", icon: "wind", active: true },
+      7: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "trees", active: true },
+      11: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "trees", active: false },
+      13: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "trees", active: false },
+      14: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "trees", active: false },
+      16: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "trees", active: false },
+      17: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "trees", active: false },
+      50: { title: "Contrôle bûches", desc: "Le poêle vérifie si des bûches brûlent", icon: "trees", active: false },
+      20: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "trees", active: true },
+      21: { title: "Mode Bûches", desc: "Combustion bois / bûches en cours", icon: "trees", active: true },
+      splitlog_refuel: { title: "Recharger en bûches", desc: "Le poêle demande de remettre des bûches", icon: "trees", active: true },
+      splitlog_no_refuel: { title: "Ne pas recharger", desc: "Le foyer est trop froid pour remettre des bûches", icon: "trees", active: true }
     },
     sensorDesc: {
       roomTemp: "Température ambiante (°C)",
@@ -1601,7 +1694,7 @@ const I18N = {
   },
   en: {
     langName: "English",
-    langFlag: "🇬🇧",
+    langFlag: "EN",
     dayUnit: "d",
     modelFallback: "Model",
     bcpLanguageTag: 'en-US',
@@ -1668,9 +1761,9 @@ const I18N = {
     offsetTitle: "ROOM SENSOR CALIBRATION",
     offsetSubTitle: "Room temperature offset",
     offsetDesc: "Applied calibration offset",
-    pageStove: "🔥 Stove",
+    pageStove: "Stove",
     pageBridge: "Bridge",
-    pageDiag: "🩺 Diagnostics",
+    pageDiag: "Diagnostics",
     diagLink: "Link with the stove",
     diagLogs: "Exchange log",
     diagValues: "All values",
@@ -1703,11 +1796,11 @@ const I18N = {
     schedActiveDesc: "Enables or disables the weekly heating schedule.",
     setbackTemp: "Setback temperature (Eco)",
     quickCopy: "Quick actions:",
-    btnCopyWeekdays: "📋 Mon ➔ Mon-Fri",
-    btnCopyAll: "📋 Mon ➔ All week",
+    btnCopyWeekdays: "Mon ➔ Mon-Fri",
+    btnCopyAll: "Mon ➔ All week",
     copiedWeekdays: "Schedule copied to Monday-Friday",
     copiedAll: "Schedule copied to entire week",
-    btnSaveSchedule: "💾 Save Heating Schedule",
+    btnSaveSchedule: "Save Heating Schedule",
     schedSaved: "Schedule saved successfully!",
     days: { Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday", Thu: "Thursday", Fri: "Friday", Sat: "Saturday", Sun: "Sunday" },
     logRx: "Stove → Dongle (RX)",
@@ -1716,12 +1809,12 @@ const I18N = {
     txGapDefault: "Default (150)",
     txGapHelp: "Applied immediately and kept after a reboot. Too low: the stove may only process one frame out of two.",
     logAuto: "Auto",
-    logDownload: "⬇ Download",
+    logDownload: "Download",
     logClear: "Clear",
-    btnRestart: "🔄 Restart dongle",
+    btnRestart: "Restart dongle",
     confirmRestart: "Restart the dongle? The link with the stove will drop for a few seconds.",
     restartToast: "Restarting…",
-    sensorSearchPlaceholder: "🔍 Filter 53 sensors...",
+    sensorSearchPlaceholder: "Filter 53 sensors...",
     thSensorName: "Sensor",
     thSensorId: "Internal ID",
     thSensorVal: "Value",
@@ -1764,7 +1857,7 @@ const I18N = {
     netModePrefix: "Mode: ",
     netRssiPrefix: "RSSI Signal: ",
     joinWifi: "Join a WiFi network (2.4 GHz):",
-    btnScan: "🔄 Scan",
+    btnScan: "Scan",
     selectNetwork: "-- Select detected network --",
     scanning: "Scanning 2.4 GHz networks...",
     scanError: "Error scanning WiFi",
@@ -1788,7 +1881,7 @@ const I18N = {
     cdcSpeed: "Operational (Full Speed)",
     lblUptime: "Dongle Uptime",
     diagHealth: "Bridge health",
-    diagFile: "⬇ Diagnostic file",
+    diagFile: "Diagnostic file",
     diagFileHint: "One file to attach to a report: health, link, all values and log. The Wi-Fi name and the MAC address are masked in it.",
     healthRestart: "Last restart",
     healthMemory: "Free memory",
@@ -1828,24 +1921,24 @@ const I18N = {
     errorPrefix: "Error: ",
     netError: "Network error",
     stateMap: {
-      0: { title: "Off", desc: "Stove completely turned off", icon: "🛑", active: false },
-      1: { title: "Standby", desc: "Waiting for heat demand", icon: "⚪", active: false },
-      2: { title: "Ignition", desc: "Preheating plug & pellets", icon: "🔥", active: true },
-      3: { title: "Flame Start", desc: "Stabilizing flame combustion", icon: "🔥", active: true },
-      4: { title: "Heating", desc: "Regulated active combustion", icon: "🔥", active: true },
-      5: { title: "Grate Cleaning", desc: "Automatic de-ashing cycle", icon: "🧹", active: true },
-      6: { title: "Burn off", desc: "Cooling down & post-ventilation", icon: "💨", active: true },
-      7: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true },
-      11: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
-      13: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
-      14: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
-      16: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
-      17: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
-      50: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "🪵", active: false },
-      20: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true },
-      21: { title: "Split Log", desc: "Wood log combustion active", icon: "🪵", active: true },
-      splitlog_refuel: { title: "Put on split logs", desc: "The stove asks for more logs", icon: "🪵", active: true },
-      splitlog_no_refuel: { title: "DO NOT put logs", desc: "The fire is too low to add logs", icon: "🪵", active: true }
+      0: { title: "Off", desc: "Stove completely turned off", icon: "power-off", active: false },
+      1: { title: "Standby", desc: "Waiting for heat demand", icon: "circle", active: false },
+      2: { title: "Ignition", desc: "Preheating plug & pellets", icon: "flame", active: true },
+      3: { title: "Flame Start", desc: "Stabilizing flame combustion", icon: "flame", active: true },
+      4: { title: "Heating", desc: "Regulated active combustion", icon: "flame", active: true },
+      5: { title: "Grate Cleaning", desc: "Automatic de-ashing cycle", icon: "brush-cleaning", active: true },
+      6: { title: "Burn off", desc: "Cooling down & post-ventilation", icon: "wind", active: true },
+      7: { title: "Split Log", desc: "Wood log combustion active", icon: "trees", active: true },
+      11: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "trees", active: false },
+      13: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "trees", active: false },
+      14: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "trees", active: false },
+      16: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "trees", active: false },
+      17: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "trees", active: false },
+      50: { title: "Split Log Check", desc: "The stove checks whether logs are burning", icon: "trees", active: false },
+      20: { title: "Split Log", desc: "Wood log combustion active", icon: "trees", active: true },
+      21: { title: "Split Log", desc: "Wood log combustion active", icon: "trees", active: true },
+      splitlog_refuel: { title: "Put on split logs", desc: "The stove asks for more logs", icon: "trees", active: true },
+      splitlog_no_refuel: { title: "DO NOT put logs", desc: "The fire is too low to add logs", icon: "trees", active: true }
     },
     sensorDesc: {
       roomTemp: "Measured room temperature (°C)",
@@ -1894,7 +1987,7 @@ const I18N = {
   },
   it: {
     "langName": "Italiano",
-    "langFlag": "🇮🇹",
+    "langFlag": "IT",
     "dayUnit": "g",
     "modelFallback": "Modello",
     "bcpLanguageTag": "it-IT",
@@ -1961,9 +2054,9 @@ const I18N = {
     "offsetTitle": "CALIBRAZIONE SENSORE AMBIENTE",
     "offsetSubTitle": "Correzione della temperatura ambiente",
     "offsetDesc": "Correzione di calibrazione applicata",
-    "pageStove": "🔥 Stufa",
+    "pageStove": "Stufa",
     "pageBridge": "Bridge",
-    "pageDiag": "🩺 Diagnostica",
+    "pageDiag": "Diagnostica",
     "diagLink": "Collegamento con la stufa",
     "diagLogs": "Registro degli scambi",
     "diagValues": "Tutti i valori",
@@ -1996,11 +2089,11 @@ const I18N = {
     "schedActiveDesc": "Abilita o disabilita la programmazione settimanale del riscaldamento.",
     "setbackTemp": "Temperatura ridotta (Eco)",
     "quickCopy": "Azioni rapide:",
-    "btnCopyWeekdays": "📋 Lun ➔ Lun-Ven",
-    "btnCopyAll": "📋 Lun ➔ Tutta la settimana",
+    "btnCopyWeekdays": "Lun ➔ Lun-Ven",
+    "btnCopyAll": "Lun ➔ Tutta la settimana",
     "copiedWeekdays": "Programmazione copiata da lunedì a venerdì",
     "copiedAll": "Programmazione copiata su tutta la settimana",
-    "btnSaveSchedule": "💾 Salva programmazione",
+    "btnSaveSchedule": "Salva programmazione",
     "schedSaved": "Programmazione salvata!",
     "days": {
       "Mon": "Lunedì",
@@ -2017,12 +2110,12 @@ const I18N = {
     "txGapDefault": "Predefinito (150)",
     "txGapHelp": "Applicato subito e mantenuto dopo il riavvio. Se troppo basso, la stufa potrebbe elaborare solo un frame su due.",
     "logAuto": "Auto",
-    "logDownload": "⬇ Scarica",
+    "logDownload": "Scarica",
     "logClear": "Svuota",
-    "btnRestart": "🔄 Riavvia dongle",
+    "btnRestart": "Riavvia dongle",
     "confirmRestart": "Riavviare il dongle? Il collegamento con la stufa si interromperà per alcuni secondi.",
     "restartToast": "Riavvio…",
-    "sensorSearchPlaceholder": "🔍 Filtra 53 sensori...",
+    "sensorSearchPlaceholder": "Filtra 53 sensori...",
     "thSensorName": "Sensore",
     "thSensorId": "ID interno",
     "thSensorVal": "Valore",
@@ -2077,7 +2170,7 @@ const I18N = {
     "netModePrefix": "Modalità: ",
     "netRssiPrefix": "Segnale RSSI: ",
     "joinWifi": "Connetti a una rete Wi-Fi (2.4 GHz):",
-    "btnScan": "🔄 Cerca",
+    "btnScan": "Cerca",
     "selectNetwork": "-- Seleziona una rete rilevata --",
     "scanning": "Ricerca reti a 2.4 GHz...",
     "scanError": "Errore nella ricerca Wi-Fi",
@@ -2101,7 +2194,7 @@ const I18N = {
     "cdcSpeed": "Operativo (Full Speed)",
     "lblUptime": "Tempo di attività del dongle",
     "diagHealth": "Stato del bridge",
-    "diagFile": "⬇ File di diagnostica",
+    "diagFile": "File di diagnostica",
     "diagFileHint": "Un solo file da allegare a una segnalazione: stato, collegamento, tutti i valori e registro. Il nome del Wi-Fi e l'indirizzo MAC vi sono mascherati.",
     "healthRestart": "Ultimo riavvio",
     "healthMemory": "Memoria libera",
@@ -2144,61 +2237,61 @@ const I18N = {
       "0": {
         "title": "Spenta",
         "desc": "Stufa completamente spenta",
-        "icon": "🛑",
+        "icon": "power-off",
         "active": false
       },
       "1": {
         "title": "Standby",
         "desc": "In attesa di una richiesta di calore",
-        "icon": "⚪",
+        "icon": "circle",
         "active": false
       },
       "2": {
         "title": "Accensione",
         "desc": "Preriscaldamento della candeletta e del pellet",
-        "icon": "🔥",
+        "icon": "flame",
         "active": true
       },
       "3": {
         "title": "Avvio fiamma",
         "desc": "Stabilizzazione della combustione",
-        "icon": "🔥",
+        "icon": "flame",
         "active": true
       },
       "4": {
         "title": "Riscaldamento",
         "desc": "Combustione attiva regolata",
-        "icon": "🔥",
+        "icon": "flame",
         "active": true
       },
       "5": {
         "title": "Pulizia griglia",
         "desc": "Ciclo automatico di rimozione della cenere",
-        "icon": "🧹",
+        "icon": "brush-cleaning",
         "active": true
       },
       "6": {
         "title": "Spegnimento",
         "desc": "Raffreddamento e post-ventilazione",
-        "icon": "💨",
+        "icon": "wind",
         "active": true
       },
       "7": {
         "title": "Legna",
         "desc": "Combustione a legna attiva",
-        "icon": "🪵",
+        "icon": "trees",
         "active": true
       },
-      "11": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
-      "13": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
-      "14": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
-      "16": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
-      "17": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
-      "50": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "🪵", "active": false },
-      "20": { "title": "Legna", "desc": "Combustione a legna attiva", "icon": "🪵", "active": true },
-      "21": { "title": "Legna", "desc": "Combustione a legna attiva", "icon": "🪵", "active": true },
-      "splitlog_refuel": { "title": "Aggiungere legna", "desc": "La stufa chiede altra legna", "icon": "🪵", "active": true },
-      "splitlog_no_refuel": { "title": "NON aggiungere legna", "desc": "Il fuoco è troppo basso per aggiungere legna", "icon": "🪵", "active": true }
+      "11": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "trees", "active": false },
+      "13": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "trees", "active": false },
+      "14": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "trees", "active": false },
+      "16": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "trees", "active": false },
+      "17": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "trees", "active": false },
+      "50": { "title": "Controllo legna", "desc": "La stufa verifica se la legna brucia", "icon": "trees", "active": false },
+      "20": { "title": "Legna", "desc": "Combustione a legna attiva", "icon": "trees", "active": true },
+      "21": { "title": "Legna", "desc": "Combustione a legna attiva", "icon": "trees", "active": true },
+      "splitlog_refuel": { "title": "Aggiungere legna", "desc": "La stufa chiede altra legna", "icon": "trees", "active": true },
+      "splitlog_no_refuel": { "title": "NON aggiungere legna", "desc": "Il fuoco è troppo basso per aggiungere legna", "icon": "trees", "active": true }
     },
     "sensorDesc": {
       "roomTemp": "Temperatura ambiente rilevata (°C)",
@@ -2247,7 +2340,7 @@ const I18N = {
   },
   de: {
     langName: "Deutsch",
-    langFlag: "🇩🇪",
+    langFlag: "DE",
     dayUnit: "d",
     modelFallback: "Modell",
     bcpLanguageTag: 'de-DE',
@@ -2314,9 +2407,9 @@ const I18N = {
     offsetTitle: "RAUMFÜHLER-KALIBRIERUNG",
     offsetSubTitle: "Raumtemperatur-Korrektur",
     offsetDesc: "Angewendeter Offset",
-    pageStove: "🔥 Ofen",
+    pageStove: "Ofen",
     pageBridge: "Stick",
-    pageDiag: "🩺 Diagnose",
+    pageDiag: "Diagnose",
     diagLink: "Verbindung zum Ofen",
     diagLogs: "Kommunikationsprotokoll",
     diagValues: "Alle Werte",
@@ -2349,11 +2442,11 @@ const I18N = {
     schedActiveDesc: "Aktiviert oder deaktiviert den wöchentlichen Heizzeitplan.",
     setbackTemp: "Absenktemperatur (Eco)",
     quickCopy: "Schnellaktionen:",
-    btnCopyWeekdays: "📋 Mo ➔ Mo-Fr",
-    btnCopyAll: "📋 Mo ➔ Ganze Woche",
+    btnCopyWeekdays: "Mo ➔ Mo-Fr",
+    btnCopyAll: "Mo ➔ Ganze Woche",
     copiedWeekdays: "Heizzeiten auf Montag-Freitag kopiert",
     copiedAll: "Heizzeiten auf ganze Woche kopiert",
-    btnSaveSchedule: "💾 Heizzeiten speichern",
+    btnSaveSchedule: "Heizzeiten speichern",
     schedSaved: "Heizzeiten erfolgreich gespeichert!",
     days: { Mon: "Montag", Tue: "Dienstag", Wed: "Mittwoch", Thu: "Donnerstag", Fri: "Freitag", Sat: "Samstag", Sun: "Sonntag" },
     logRx: "Ofen → Dongle (RX)",
@@ -2362,12 +2455,12 @@ const I18N = {
     txGapDefault: "Standard (150)",
     txGapHelp: "Sofort wirksam und nach einem Neustart erhalten. Zu niedrig: Der Ofen verarbeitet eventuell nur jeden zweiten Frame.",
     logAuto: "Auto",
-    logDownload: "⬇ Herunterladen",
+    logDownload: "Herunterladen",
     logClear: "Löschen",
-    btnRestart: "🔄 Dongle neustarten",
+    btnRestart: "Dongle neustarten",
     confirmRestart: "Dongle neustarten? Die Verbindung zum Ofen wird für einige Sekunden unterbrochen.",
     restartToast: "Neustart läuft…",
-    sensorSearchPlaceholder: "🔍 53 Sensoren filtern...",
+    sensorSearchPlaceholder: "53 Sensoren filtern...",
     thSensorName: "Sensor",
     thSensorId: "Kennung",
     thSensorVal: "Wert",
@@ -2410,7 +2503,7 @@ const I18N = {
     netModePrefix: "Modus: ",
     netRssiPrefix: "RSSI Signal: ",
     joinWifi: "WLAN-Netzwerk beitreten (2,4 GHz):",
-    btnScan: "🔄 Scannen",
+    btnScan: "Scannen",
     selectNetwork: "-- Erkanntes Netzwerk auswählen --",
     scanning: "2,4 GHz Netzwerke werden gescannt...",
     scanError: "Fehler beim WLAN-Scan",
@@ -2434,7 +2527,7 @@ const I18N = {
     cdcSpeed: "Betriebsbereit (Full Speed)",
     lblUptime: "Dongle Betriebszeit",
     diagHealth: "Zustand des Sticks",
-    diagFile: "⬇ Diagnosedatei",
+    diagFile: "Diagnosedatei",
     diagFileHint: "Eine einzige Datei für eine Meldung: Zustand, Verbindung, alle Werte und Protokoll. WLAN-Name und MAC-Adresse sind darin unkenntlich gemacht.",
     healthRestart: "Letzter Neustart",
     healthMemory: "Freier Speicher",
@@ -2474,24 +2567,24 @@ const I18N = {
     errorPrefix: "Fehler: ",
     netError: "Netzwerkfehler",
     stateMap: {
-      0: { title: "Aus", desc: "Ofen komplett ausgeschaltet", icon: "🛑", active: false },
-      1: { title: "Bereitschaft (Standby)", desc: "Wartet auf Wärmeanforderung", icon: "⚪", active: false },
-      2: { title: "Zündung", desc: "Glühkerze & Pellets werden vorgeheizt", icon: "🔥", active: true },
-      3: { title: "Flammenstart", desc: "Verbrennung wird stabilisiert", icon: "🔥", active: true },
-      4: { title: "Heizen", desc: "Aktive geregelte Verbrennung", icon: "🔥", active: true },
-      5: { title: "Rostreinigung", desc: "Automatischer Entaschungszyklus", icon: "🧹", active: true },
-      6: { title: "Abbrand (Burn off)", desc: "Abkühlung & Nachbelüftung", icon: "💨", active: true },
-      7: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true },
-      11: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
-      13: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
-      14: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
-      16: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
-      17: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
-      50: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "🪵", active: false },
-      20: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true },
-      21: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "🪵", active: true },
-      splitlog_refuel: { title: "Bitte Nachlegen", desc: "Der Ofen bittet um weiteres Scheitholz", icon: "🪵", active: true },
-      splitlog_no_refuel: { title: "NICHT Nachlegen", desc: "Das Feuer ist zu schwach zum Nachlegen", icon: "🪵", active: true }
+      0: { title: "Aus", desc: "Ofen komplett ausgeschaltet", icon: "power-off", active: false },
+      1: { title: "Bereitschaft (Standby)", desc: "Wartet auf Wärmeanforderung", icon: "circle", active: false },
+      2: { title: "Zündung", desc: "Glühkerze & Pellets werden vorgeheizt", icon: "flame", active: true },
+      3: { title: "Flammenstart", desc: "Verbrennung wird stabilisiert", icon: "flame", active: true },
+      4: { title: "Heizen", desc: "Aktive geregelte Verbrennung", icon: "flame", active: true },
+      5: { title: "Rostreinigung", desc: "Automatischer Entaschungszyklus", icon: "brush-cleaning", active: true },
+      6: { title: "Abbrand (Burn off)", desc: "Abkühlung & Nachbelüftung", icon: "wind", active: true },
+      7: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "trees", active: true },
+      11: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "trees", active: false },
+      13: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "trees", active: false },
+      14: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "trees", active: false },
+      16: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "trees", active: false },
+      17: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "trees", active: false },
+      50: { title: "Scheitholz-Check", desc: "Der Ofen prüft, ob Scheitholz brennt", icon: "trees", active: false },
+      20: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "trees", active: true },
+      21: { title: "Scheitholzbetrieb", desc: "Holzbrand / Scheitholz aktiv", icon: "trees", active: true },
+      splitlog_refuel: { title: "Bitte Nachlegen", desc: "Der Ofen bittet um weiteres Scheitholz", icon: "trees", active: true },
+      splitlog_no_refuel: { title: "NICHT Nachlegen", desc: "Das Feuer ist zu schwach zum Nachlegen", icon: "trees", active: true }
     },
     sensorDesc: {
       roomTemp: "Gemessene Raumtemperatur (°C)",
@@ -2598,7 +2691,7 @@ function applyLang() {
   if (document.getElementById('lblOffsetDesc')) document.getElementById('lblOffsetDesc').textContent = t.offsetDesc;
   document.getElementById('pageBtnStoveLbl').textContent = t.pageStove;
   document.getElementById('pageBtnBridgeLbl').textContent = t.pageBridge;
-  document.getElementById('pageBtnDiag').textContent = t.pageDiag;
+  setLbl('pageBtnDiag', t.pageDiag);
   document.getElementById('lblDiagLink').textContent = t.diagLink;
   document.getElementById('lblDiagHealth').textContent = t.diagHealth;
   document.getElementById('lblWifiPsTitle').textContent = t.wifiPsTitle;
@@ -2609,7 +2702,7 @@ function applyLang() {
   document.getElementById('lblAccessHosts').textContent = t.accessHosts;
   document.getElementById('btnSaveAccess').textContent = t.accessSave;
   if (lastRefusal) showRefused(lastRefusal);
-  document.getElementById('btnDiagFile').textContent = t.diagFile;
+  setLbl('btnDiagFile', t.diagFile);
   document.getElementById('lblDiagFileHint').textContent = t.diagFileHint;
   renderHealth(lastHealthState);
   document.getElementById('lblDiagLogs').textContent = t.diagLogs;
@@ -2633,9 +2726,9 @@ function applyLang() {
   if (document.getElementById('lblSchedActiveDesc')) document.getElementById('lblSchedActiveDesc').textContent = t.schedActiveDesc;
   if (document.getElementById('lblSetbackTemp')) document.getElementById('lblSetbackTemp').textContent = t.setbackTemp;
   if (document.getElementById('lblQuickCopy')) document.getElementById('lblQuickCopy').textContent = t.quickCopy;
-  if (document.getElementById('btnCopyWeekdays')) document.getElementById('btnCopyWeekdays').textContent = t.btnCopyWeekdays;
-  if (document.getElementById('btnCopyAll')) document.getElementById('btnCopyAll').textContent = t.btnCopyAll;
-  if (document.getElementById('btnSaveSchedule')) document.getElementById('btnSaveSchedule').textContent = t.btnSaveSchedule;
+  if (document.getElementById('btnCopyWeekdays')) setLbl('btnCopyWeekdays', t.btnCopyWeekdays);
+  if (document.getElementById('btnCopyAll')) setLbl('btnCopyAll', t.btnCopyAll);
+  if (document.getElementById('btnSaveSchedule')) setLbl('btnSaveSchedule', t.btnSaveSchedule);
   if (t.days) {
     for (const k in t.days) {
       const el = document.getElementById('dayName_' + k);
@@ -2648,9 +2741,9 @@ function applyLang() {
   document.getElementById('lblTxGap').textContent = t.txGapTitle;
   document.getElementById('btnTxGapDefault').textContent = t.txGapDefault;
   document.getElementById('lblTxGapHelp').textContent = t.txGapHelp;
-  document.getElementById('btnLogDownload').textContent = t.logDownload;
+  setLbl('btnLogDownload', t.logDownload);
   document.getElementById('btnLogClear').textContent = t.logClear;
-  document.getElementById('btnRestart').textContent = t.btnRestart;
+  setLbl('btnRestart', t.btnRestart);
   document.getElementById('sensorSearch').placeholder = t.sensorSearchPlaceholder;
   document.getElementById('thSensorName').textContent = t.thSensorName;
   document.getElementById('thSensorId').textContent = t.thSensorId;
@@ -2674,7 +2767,7 @@ function applyLang() {
   document.getElementById('lblNetModePrefix').textContent = t.netModePrefix;
   document.getElementById('lblNetRssiPrefix').textContent = t.netRssiPrefix;
   document.getElementById('lblJoinWifi').textContent = t.joinWifi;
-  if (document.getElementById('btnScan')) document.getElementById('btnScan').textContent = t.btnScan;
+  if (document.getElementById('btnScan')) setLbl('btnScan', t.btnScan);
   if (document.getElementById('apBannerTitle')) document.getElementById('apBannerTitle').textContent = t.apBannerTitle;
   if (document.getElementById('apBannerDesc')) document.getElementById('apBannerDesc').textContent = t.apBannerDesc;
   if (document.getElementById('hopperLidBannerTitle')) document.getElementById('hopperLidBannerTitle').textContent = t.hopperLidBannerTitle;
@@ -3814,7 +3907,7 @@ async function scanWifi() {
       let h = '<option value="">' + t.selectNetwork + ' (' + data.length + ')</option>';
       data.sort((a,b) => b.rssi - a.rssi);
       data.forEach(net => {
-        let stars = net.rssi > -60 ? '🟢' : (net.rssi > -75 ? '🟡' : '🔴');
+        let stars = net.rssi > -60 ? '▂▄▆' : (net.rssi > -75 ? '▂▄ ' : '▂  ');
         h += '<option value="' + encodeURIComponent(net.ssid) + '">' + stars + ' ' + escHtml(net.ssid) + ' (' + escHtml(net.rssi) + ' dBm)</option>';
       });
       sel.innerHTML = h;
@@ -3992,11 +4085,11 @@ async function tick() {
     // Main state 1 covers both "switched off" (sub-state 0) and "standby": the bridge tells them apart in `state`.
     const stKey = (mainSt === 1 && stObj.state === 'off') ? 0
                 : (stObj.state === 'splitlog_refuel' || stObj.state === 'splitlog_no_refuel') ? stObj.state : mainSt;
-    const stInfo = (t.stateMap && t.stateMap[stKey]) || { title: stObj.state_label || ("State " + mainSt), desc: stObj.state || "Unknown", icon: "❓", active: stObj.is_burning || false };
+    const stInfo = (t.stateMap && t.stateMap[stKey]) || { title: stObj.state_label || ("State " + mainSt), desc: stObj.state || "Unknown", icon: "circle-help", active: stObj.is_burning || false };
     document.getElementById('mainStateTitle').textContent = stInfo.title;
     document.getElementById('subStateDesc').textContent = stInfo.desc;
-    document.getElementById('stateIconBox').textContent = stInfo.icon;
-    document.getElementById('stateIconBox').className = 'state-icon-box ' + (stInfo.active ? 'active' : '');
+    document.getElementById('stateIconBox').innerHTML = ic(stInfo.icon);
+    document.getElementById('stateIconBox').className = 'state-icon-box ' + (stInfo.active ? 'active' : '') + (typeof stKey === 'number' ? ' st-' + stKey : '');
 
     const onOffVal = (ctrl.on !== undefined) ? (ctrl.on ? 1 : 0) : ((ctrl.onOff !== undefined) ? ctrl.onOff : (s.controls_pos && s.controls_pos.length > 1 ? s.controls_pos[1] : 0));
     const pBtn = document.getElementById('powerBtn');
@@ -4272,7 +4365,7 @@ async function tick() {
     if (noData) {
       document.getElementById('mainStateTitle').textContent = t.noDataTitle;
       document.getElementById('subStateDesc').textContent = t.noDataDesc;
-      document.getElementById('stateIconBox').textContent = '⏳';
+      document.getElementById('stateIconBox').innerHTML = ic('hourglass');
       document.getElementById('stateIconBox').className = 'state-icon-box';
     }
 
@@ -4292,6 +4385,7 @@ showPage(currentPage());
 setInterval(tick, 2000);
 setInterval(fetchLogs, 1500);
 tick();
+hydrateIcons();
 </script>
 </body>
 </html>
