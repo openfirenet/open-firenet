@@ -185,6 +185,9 @@ SETWIFI:YourSSID:YourPassword
 ```
 The SSID ends at the first `:`; everything after it is the password (so a password containing `:` is accepted). Credentials are saved to NVS and the bridge reboots into STA mode.
 
+### Small screen (LilyGO T-Dongle-S3)
+The firmware can drive the 160x80 screen of the LilyGO T-Dongle-S3 (animated logo, then one value per screen). It is **off by default**: other boards may have something else on the pins it uses. Switch it on in **Bridge > Screen** by choosing the board (the page asks twice, then restarts the key); there you also choose which screens are shown, in which order and for how long. The BOOT button shows the next screen. A T-Dongle-S3 whose owner does not want the screen should turn the "Screen on" switch off (`tdongle_off`): the backlight goes off too and the screen settings are locked. With `none` the firmware leaves the pins alone and the panel stays lit grey. To change the choice without the page, send `SETDISPLAY:none`, `SETDISPLAY:tdongle` or `SETDISPLAY:tdongle_off` on the serial port and restart.
+
 ---
 
 ## Web interface
@@ -309,6 +312,7 @@ Open Firenet V2 provides a clean, unified REST JSON API with natural units (temp
 | `/api/wifi_power_saving` | GET / POST | Wi-Fi power saving, on or off |
 | `/api/mqtt` | GET / POST | MQTT settings and connection status |
 | `/api/txgap` | GET / POST | Delay between frames sent to the stove, in ms (50–600, default 150) |
+| `/api/display` | GET / POST | Screens of the bridge's small display (boards that have one): which ones, in which order, seconds per screen |
 | `/api/forget` | POST | Erase Wi-Fi credentials from NVS and reboot into provisioning AP |
 | `/log` | GET | Plain-text live USB CDC debug log |
 

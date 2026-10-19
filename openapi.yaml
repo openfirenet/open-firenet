@@ -289,6 +289,50 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Access" }
+  /api/display:
+    get:
+      tags: [Bridge]
+      summary: Screens of the bridge's small display
+      description: "The small display of boards that have one: which board the owner says it is (`board`, default `none`), and, while it runs, which screens it shows, in which order, and for how long each."
+      responses:
+        "200":
+          description: The setting
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Display" }
+    post:
+      tags: [Bridge]
+      summary: Choose the board of the display, and order its screens
+      description: "Saved and kept after a restart. `screens` and `seconds` apply at once: the screens listed come first, in that order; those left out follow in their previous order. `board` applies at the next restart. Any field may be left out."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                board: { type: string, enum: [none, tdongle, tdongle_off] }
+                seconds: { type: integer, minimum: 2, maximum: 30, description: Seconds each screen stays }
+                brightness: { type: integer, minimum: 5, maximum: 100 }
+                dim: { type: boolean }
+                dim_after: { type: integer, minimum: 30, maximum: 3600 }
+                dim_level: { type: integer, minimum: 0, maximum: 50 }
+                screens:
+                  type: array
+                  items:
+                    type: object
+                    required: [id]
+                    properties:
+                      id: { type: string, enum: [state, room, flame, power, ip, pellets, hours, wifi, mqtt, version, logo] }
+                      enabled: { type: boolean, description: "Left out: the screen keeps its current state" }
+      responses:
+        "200":
+          description: The setting as saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Display" }
+        "400":
+          description: Unknown board, unknown or repeated screen id, or seconds out of range
   /api/wifi_power_saving:
     get:
       tags: [Bridge]
@@ -427,6 +471,26 @@ components:
       type: string
       enum: [manual, auto, comfort]
       description: "`manual`: fixed power. `auto`: follows the weekly schedule. `comfort`: follows the room temperature."
+    Display:
+      type: object
+      properties:
+        available: { type: boolean, description: "True while the display is running (decided at boot by `board`); the screens below can then be set" }
+        board: { type: string, enum: [none, tdongle, tdongle_off], description: "The board the owner says has a screen: `none` (default), `tdongle` (LilyGO T-Dongle-S3, screen running) or `tdongle_off` (the same board, screen and backlight switched off). Stored; applies at the next restart" }
+        boards: { type: array, items: { type: string }, description: Boards this firmware can drive }
+        restart_needed: { type: boolean, description: "True when `board` differs from what is running now" }
+        seconds: { type: integer, minimum: 2, maximum: 30 }
+        brightness: { type: integer, minimum: 5, maximum: 100, description: "Backlight, in percent" }
+        dim: { type: boolean, description: Lower the backlight after a while without a press of BOOT or an alert }
+        dim_after: { type: integer, minimum: 30, maximum: 3600, description: Seconds without activity before dimming }
+        dim_level: { type: integer, minimum: 0, maximum: 50, description: "Backlight while dimmed, percent (0 = off)" }
+        screens:
+          type: array
+          description: Every screen once, in the order they are shown
+          items:
+            type: object
+            properties:
+              id: { type: string, enum: [state, room, flame, power, ip, pellets, hours, wifi, mqtt, version, logo] }
+              enabled: { type: boolean }
     WifiPowerSaving:
       type: object
       properties:

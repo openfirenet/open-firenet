@@ -1,5 +1,20 @@
 # Changelog
 
+## Non publié
+
+### New
+- **Small screen support (LilyGO T-Dongle-S3).** Off by default, switched on in Bridge > Screen by choosing the board (asked twice, then a restart); a "Screen on" switch then turns the screen and its backlight off while locking the screen settings: the pins of other boards may be wired to something else, so the screen is never driven by guesswork. The key shows the animated Open Firenet logo while it waits for the stove, then one value per screen in turn (the logo itself can be one of the screens): stove state (with the flame following it), room temperature and target, flame temperature, power (or the target temperature in comfort mode), address, pellets until service, running hours, Wi-Fi, MQTT and firmware version. The BOOT button moves to the next screen; a stove error, an open hopper, a silent stove or a lost Wi-Fi takes the whole screen. The backlight level is a setting (half brightness by default), and it can be lowered after a chosen time without a press of BOOT or an alert. The serial command `SETDISPLAY:none` switches it off again without the page.
+- **Bridge > Screen** (after System): choose which screens are shown, drag them or use the arrows to put them in order, and set the time per screen. Each card is drawn as the key draws it. Changes are applied together with the Apply button. The choice is kept after a restart (`/api/display`).
+
+### Changes
+- The icons of the page (stove state, cards, tabs and buttons) are now drawn by the page itself instead of emojis, so they look the same on every phone and computer: line icons in colour, and the flame at the top follows the stove: an outline at ignition, filling at start-up, the colours of the logo when heating, fading at burn-off. Nothing is loaded from the internet, so the page looks the same on the bridge's own Wi-Fi. The language list shows FR / EN / IT / DE instead of flag emojis, which Windows does not display.
+
+### Fixes
+- Bridge > System: the update interval is greyed out and empty while "Check automatically for updates" is off; ticking the box fills it with the last choice (24 h at first) and saves it. Before, the interval box could be empty and the choice was refused.
+- Bridge > System: "Checking GitHub for updates..." now appears at once when you click "Check", instead of a short flash of the previous message first.
+- Bridge > System: the automatic update settings and the delay between frames now show "Saved" (or "Could not save") next to the setting, as the Wi-Fi power saving does.
+- Diagnostics: the sensor filter shows the real number of sensors the stove reports instead of a fixed "53".
+
 ## v4.4.0 (2026-10-17)
 
 ### New
