@@ -176,7 +176,7 @@ static void txToStove(const uint8_t* d, size_t n) {
 }
 static uint32_t nowMs() { return millis(); }
 
-static const char* getStoveModelName(long modelId) {
+static const char* rikaModelName(long modelId) {
   switch (modelId) {
     case 1:  return "INDUO";
     case 2:  return "TOPO";
@@ -208,6 +208,13 @@ static const char* getStoveModelName(long modelId) {
     default: return "RIKA";
   }
 }
+// fabNumber is the make the stove is set to ("Fabrikat": 1 = RIKA, 2 = ANIMO). Model 5 sold by ANIMO is the PURE (seen on a
+// 2.29 stove, issue #112); the other ANIMO models are not known by name yet, so they keep the RIKA name of their number.
+static const char* getStoveModelName(long modelId, long make = 1) {
+  if (make == 2 && modelId == 5) return "PURE";
+  return rikaModelName(modelId);
+}
+static const char* getStoveBrand(long make) { return make == 2 ? "ANIMO" : "RIKA"; }
 
 // ------------------------------------------------------------------- API web V2
 // Name, label and "is burning" of a main state code (with its sub-state, which tells "off" from "standby").
@@ -290,10 +297,12 @@ static String jsonStoveSections() {
   // disassembly: record 0 is set to 0x400 when no sensor is present); publish null instead of 102.4 °C.
   bool roomSensor = (rTemp != 1024);
 
-  char modelS[12] = "null", modelNameS[40] = "null", mbVerS[16] = "null", buildS[16] = "null";
+  char modelS[12] = "null", modelNameS[40] = "null", brandS[16] = "null", mbVerS[16] = "null", buildS[16] = "null";
   if (modelId >= 0) {
     snprintf(modelS, sizeof modelS, "%ld", modelId);
-    snprintf(modelNameS, sizeof modelNameS, "\"%s\"", getStoveModelName(modelId));
+    long make = sensorValue(m, "fabNumber", 1);
+    snprintf(modelNameS, sizeof modelNameS, "\"%s\"", getStoveModelName(modelId, make));
+    snprintf(brandS, sizeof brandS, "\"%s\"", getStoveBrand(make));
   }
   if (appVer >= 0) snprintf(mbVerS, sizeof mbVerS, "\"%ld.%02ld\"", appVer / 100, appVer % 100);
   if (buildVer >= 0) snprintf(buildS, sizeof buildS, "\"%ld\"", buildVer);
@@ -354,6 +363,7 @@ static String jsonStoveSections() {
       "\"warning_code\":%ld,"
       "\"model\":%s,"
       "\"model_name\":%s,"
+      "\"brand\":%s,"
       "\"mainboard_version\":%s,"
       "\"firmware_build\":%s"
     "},"
@@ -396,7 +406,7 @@ static String jsonStoveSections() {
     isBurning ? "true" : "false",
     errMask != 0 ? "true" : "false",
     errMask, errSub, warnCode,
-    modelS, modelNameS, mbVerS, buildS,
+    modelS, modelNameS, brandS, mbVerS, buildS,
     roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, sCount, idFan, auger, powerNow,
     airFlapsS, airFlapsTgtS,
     (curOn == 1) ? "true" : "false",
@@ -1266,6 +1276,7 @@ static uint32_t g_mqttLastStateMs = 0;
 // once, after discovery was switched off.
 static size_t g_mqttDiscNext = SIZE_MAX;      // next entity to announce; SIZE_MAX = nothing to send
 static bool g_mqttDiscRemove = false;
+static String g_mqttDiscMake = "RIKA";
 static String g_mqttDiscModel;                // model name the entities were announced with
 
 // Runs in the client's task: no access to the stove link from here.
@@ -1488,6 +1499,7 @@ static void mqttDiscoveryStep() {
   dev.id = id;
   dev.base = g_mqttBase;
   dev.model = g_mqttDiscModel.c_str();
+  dev.make = g_mqttDiscMake.c_str();
   dev.version = OPENFIRENET_VERSION;
   dev.url = std::string("http://") + WiFi.localIP().toString().c_str();
   std::string topic, payload;
@@ -1510,8 +1522,9 @@ static void mqttPublish() {
   if (g_mqttCfg.discovery) {
     // Announce again once the stove has told its model, so that the device shows it.
     long modelId = sensorValue(m, "model", -1);
-    String model = (linked && modelId >= 0) ? String(getStoveModelName(modelId)) : String();
-    if (model != g_mqttDiscModel && !g_mqttDiscRemove) { g_mqttDiscModel = model; g_mqttDiscNext = 0; }
+    String model = (linked && modelId >= 0) ? String(getStoveModelName(modelId, sensorValue(m, "fabNumber", 1))) : String();
+    String make = getStoveBrand(sensorValue(m, "fabNumber", 1));
+    if ((model != g_mqttDiscModel || make != g_mqttDiscMake) && !g_mqttDiscRemove) { g_mqttDiscModel = model; g_mqttDiscMake = make; g_mqttDiscNext = 0; }
   }
   mqttDiscoveryStep();
   char dev[160];

@@ -351,6 +351,7 @@ Since firmware 4.0 the bridge answers its own page and programs on your network 
     "warning_code": 0,
     "model": 13,
     "model_name": "DOMO",
+    "brand": "RIKA",
     "mainboard_version": "2.29",
     "firmware_build": "58512"
   },
@@ -397,7 +398,7 @@ Since firmware 4.0 the bridge answers its own page and programs on your network 
 ```
 
 - `room_temperature` is `null` and `room_sensor_connected` is `false` when no RIKA room sensor is connected.
-- `stove.model`, `stove.model_name`, `stove.mainboard_version` and `stove.firmware_build` are `null` until the stove has sent them (the bridge is not linked yet).
+- `stove.model`, `stove.model_name`, `stove.brand`, `stove.mainboard_version` and `stove.firmware_build` are `null` until the stove has sent them (the bridge is not linked yet).
 - `usb.host_connected` is `true` once a USB host (the stove) has detected the bridge on the board's native USB port, and `usb.rx_bytes` counts the bytes received from the stove since boot. `false` / `0` usually means the stove is plugged into the wrong port of the board (UART / COM), a charge-only cable, or a stove that is off.
 - `version_frame` tells which protocol variant the stove answered: `V3` (firmware 2.29), `V28` (2.28), `V1` (2.26 / 2.27).
 - `raw_sensors` holds every value reported by the stove under its name; the names follow the official RIKA ones (`statusWarning`, `airFlaps`, `errCount0`...), see [PROTOCOL.md](PROTOCOL.md).

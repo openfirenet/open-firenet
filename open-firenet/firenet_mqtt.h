@@ -55,6 +55,7 @@ struct DiscoveryDevice {
   std::string model;     // stove model name, empty while unknown
   std::string version;   // bridge firmware version
   std::string url;       // configuration URL, e.g. "http://192.168.1.50"
+  std::string make = "RIKA";   // "RIKA" or "ANIMO"
 };
 
 namespace detail {
@@ -181,7 +182,7 @@ inline bool discoveryEntity(size_t i, const DiscoveryDevice& dev, bool remove, s
   if (!linkEntity) payload += ",{\"topic\":\"~/device/connected\",\"payload_available\":\"true\",\"payload_not_available\":\"false\"}";
   payload += "],\"availability_mode\":\"all\",";
   // The device is described in every message: Home Assistant may read them in any order.
-  payload += "\"device\":{\"identifiers\":[\"" + dev.id + "\"],\"name\":\"Open Firenet\",\"manufacturer\":\"RIKA\",\"model\":\"" +
+  payload += "\"device\":{\"identifiers\":[\"" + dev.id + "\"],\"name\":\"Open Firenet\",\"manufacturer\":\"" + detail::jsonEscape(dev.make) + "\",\"model\":\"" +
              detail::jsonEscape(dev.model.empty() ? "Pellet stove" : dev.model) + "\"";
   if (!dev.version.empty()) payload += ",\"sw_version\":\"" + detail::jsonEscape(dev.version) + "\"";
   if (!dev.url.empty()) payload += ",\"configuration_url\":\"" + detail::jsonEscape(dev.url) + "\"";

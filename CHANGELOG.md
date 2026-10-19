@@ -10,6 +10,7 @@
 - The icons of the page (stove state, cards, tabs and buttons) are now drawn by the page itself instead of emojis, so they look the same on every phone and computer: line icons in colour, and the flame at the top follows the stove: an outline at ignition, filling at start-up, the colours of the logo when heating, fading at burn-off. Nothing is loaded from the internet, so the page looks the same on the bridge's own Wi-Fi. The language list shows FR / EN / IT / DE instead of flag emojis, which Windows does not display.
 
 ### Fixes
+- A stove set to the ANIMO make (sensor "fabNumber" = 2) and reporting model 5 is now shown as "ANIMO PURE" instead of "ROCO RAO" (#112). The API has a new `stove.brand` (`RIKA` or `ANIMO`) next to `model_name` (`PURE`); for an ANIMO model the bridge does not know yet, the model name stays the RIKA one.
 - Bridge > System: the update interval is greyed out and empty while "Check automatically for updates" is off; ticking the box fills it with the last choice (24 h at first) and saves it. Before, the interval box could be empty and the choice was refused.
 - Bridge > System: "Checking GitHub for updates..." now appears at once when you click "Check", instead of a short flash of the previous message first.
 - Bridge > System: the automatic update settings and the delay between frames now show "Saved" (or "Could not save") next to the setting, as the Wi-Fi power saving does.

@@ -4528,7 +4528,7 @@ function renderSensors(sObj, filterText) {
         23: 'DOMO BACK (23)', 24: 'PK E (24)', 25: 'SUMO MULTIAIR (25)', 26: 'CONNECT (26)', 29: 'PRIMO MULTIAIR (29)'
       };
       const mFallback = ((I18N[curLang] || I18N.en).modelFallback + ' ') + v;
-      v = mNames[v] || mFallback;
+      v = (v === 5 && sObj.fabNumber === 2) ? 'ANIMO PURE (5)' : (mNames[v] || mFallback);   // fabNumber 2 = ANIMO make
     }
     h += '<tr><td>' + escHtml(label) + '</td><td style="color:var(--text-dim)">' + escHtml(k) + '</td><td>' + escHtml(v) + '</td></tr>';
   }
@@ -4670,7 +4670,7 @@ async function tick() {
     // model is null until the stove has posted it (no more DOMO default): show plain "RIKA" meanwhile.
     const mId = stObj.model != null ? stObj.model : (rawS.model != null ? rawS.model : null);
     const mFallback = ((I18N[curLang] || I18N.en).modelFallback + ' ') + mId;
-    const mName = stObj.model_name || modelNames[mId] || (mId != null ? mFallback : 'RIKA');
+    const mName = (stObj.brand === 'ANIMO' ? 'ANIMO ' : '') + (stObj.model_name || modelNames[mId] || (mId != null ? mFallback : 'RIKA'));
     const vStr = stObj.mainboard_version ? (' v' + stObj.mainboard_version) : '';
     // One badge in the dashboard: stove model and mainboard firmware once linked, e.g. "DOMO v2.29 connecté".
     if (s.version_ack) document.getElementById('connState').textContent = mName + vStr + ' ' + t.connectedShort;

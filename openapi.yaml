@@ -607,6 +607,7 @@ components:
         warning_code: { type: integer, description: 0 when there is no warning }
         model: { type: integer, nullable: true, description: "RIKA model number, null until the stove has sent it" }
         model_name: { type: string, nullable: true, description: "For example `DOMO`; null until the stove has sent it" }
+        brand: { type: string, nullable: true, enum: [RIKA, ANIMO], description: "Make the stove is set to (sensor `fabNumber`: 1 = RIKA, 2 = ANIMO); null until the stove has sent its model" }
         mainboard_version: { type: string, nullable: true, description: "Stove firmware, for example `2.29`; null until the stove has sent it" }
         firmware_build: { type: string, nullable: true }
     Sensors:
