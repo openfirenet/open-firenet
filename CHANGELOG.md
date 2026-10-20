@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.6.0 (2026-10-20)
 
 ### New
 - The screen of the LilyGO T-Dongle-S3 speaks English, French, Italian or German: choose it in Bridge > Screen. The first time, it takes the language of the page.
