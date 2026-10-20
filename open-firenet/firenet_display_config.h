@@ -28,7 +28,7 @@ public:
   DisplayConfig() { reset(); }
   void reset() {
     for (int i = 0; i < COUNT; i++) { order[i] = (uint8_t)i; on[i] = true; }
-    seconds = SECONDS_DEFAULT; brightness = BRIGHT_DEFAULT; dim = false; dimAfter = DIM_AFTER_DEFAULT; dimLevel = DIM_LEVEL_DEFAULT;
+    seconds = SECONDS_DEFAULT; brightness = BRIGHT_DEFAULT; dim = false; dimAfter = DIM_AFTER_DEFAULT; dimLevel = DIM_LEVEL_DEFAULT; rotate = false; language = 0;
   }
 
   uint8_t order[COUNT];     // every screen once, in the order they are shown
@@ -38,6 +38,9 @@ public:
   bool dim;                 // dim the backlight after a while without a press or an alert
   uint16_t dimAfter;        // seconds
   uint8_t dimLevel;         // backlight while dimmed, percent (0 = off)
+  bool rotate;              // the screen is rotated by 180 degrees
+  uint8_t language;         // 0 = not chosen yet (English), 1 en, 2 fr, 3 it, 4 de
+  static const char* languageName(int l) { static const char* const N[5] = {"", "en", "fr", "it", "de"}; return l >= 0 && l <= 4 ? N[l] : ""; }
 
   // {"seconds":4,"screens":[{"id":"state","enabled":true}, ...]}; `seconds` and `screens` are both optional. The screens
   // listed come first, in that order; the ones left out follow in their previous order, unchanged. Returns false (and
@@ -65,11 +68,25 @@ public:
     v = c.brightness; if (!number("brightness", BRIGHT_MIN, BRIGHT_MAX, v)) return false; c.brightness = (uint8_t)v;
     v = c.dimAfter;   if (!number("dim_after", DIM_AFTER_MIN, DIM_AFTER_MAX, v)) return false; c.dimAfter = (uint16_t)v;
     v = c.dimLevel;   if (!number("dim_level", 0, DIM_LEVEL_MAX, v)) return false; c.dimLevel = (uint8_t)v;
-    size_t d = body.find("\"dim\"");
-    if (d != std::string::npos) {
+    auto flag = [&](const char* key, bool& out) {         // false only when present and neither true nor false
+      size_t d = body.find(std::string("\"") + key + "\"");
+      if (d == std::string::npos) return true;
       size_t colon = body.find(':', d), val = colon == std::string::npos ? colon : body.find_first_not_of(" \t\r\n", colon + 1);
       if (val == std::string::npos) return false;
-      if (body.compare(val, 4, "true") == 0) c.dim = true; else if (body.compare(val, 5, "false") == 0) c.dim = false; else return false;
+      if (body.compare(val, 4, "true") == 0) out = true; else if (body.compare(val, 5, "false") == 0) out = false; else return false;
+      return true;
+    };
+    if (!flag("dim", c.dim) || !flag("rotate", c.rotate)) return false;
+    size_t lk = body.find("\"language\"");
+    if (lk != std::string::npos) {                         // "en", "fr", "it" or "de"
+      size_t colon = body.find(':', lk), q1 = colon == std::string::npos ? colon : body.find('"', colon + 1);
+      if (q1 == std::string::npos) return false;
+      size_t q2 = body.find('"', q1 + 1);
+      if (q2 == std::string::npos) return false;
+      std::string v = body.substr(q1 + 1, q2 - q1 - 1);
+      int l = 0; for (int i = 1; i <= 4; i++) if (v == languageName(i)) l = i;
+      if (!l) return false;
+      c.language = (uint8_t)l;
     }
     std::vector<uint8_t> listed;
     size_t pos = 0;
@@ -112,7 +129,7 @@ public:
   std::string json(bool active, const std::string& board = "none", bool restartNeeded = false) const {
     std::string j = std::string("{\"available\":") + (active ? "true" : "false") + ",\"board\":\"" + board + "\",\"boards\":[\"none\",\"tdongle\",\"tdongle_off\"],\"restart_needed\":" +
                     (restartNeeded ? "true" : "false") + ",\"seconds\":" + std::to_string(seconds) + ",\"brightness\":" + std::to_string(brightness) +
-                    ",\"dim\":" + (dim ? "true" : "false") + ",\"dim_after\":" + std::to_string(dimAfter) + ",\"dim_level\":" + std::to_string(dimLevel) + ",\"screens\":[";
+                    ",\"dim\":" + (dim ? "true" : "false") + ",\"dim_after\":" + std::to_string(dimAfter) + ",\"dim_level\":" + std::to_string(dimLevel) + ",\"rotate\":" + (rotate ? "true" : "false") + ",\"language\":\"" + languageName(language) + "\"" + ",\"screens\":[";
     for (int i = 0; i < COUNT; i++) {
       if (i) j += ",";
       j += std::string("{\"id\":\"") + idName(order[i]) + "\",\"enabled\":" + (on[order[i]] ? "true" : "false") + "}";
@@ -124,20 +141,22 @@ public:
   std::string toPrefs() const {
     std::string s;
     for (int i = 0; i < COUNT; i++) { if (i) s += ","; s += idName(order[i]); s += on[order[i]] ? ":1" : ":0"; }
-    return s + ";" + std::to_string(seconds) + ";" + std::to_string(brightness) + ";" + (dim ? "1" : "0") + ";" + std::to_string(dimAfter) + ";" + std::to_string(dimLevel);
+    return s + ";" + std::to_string(seconds) + ";" + std::to_string(brightness) + ";" + (dim ? "1" : "0") + ";" + std::to_string(dimAfter) + ";" + std::to_string(dimLevel) + ";" + (rotate ? "1" : "0") + ";" + std::to_string(language);
   }
   void fromPrefs(const std::string& s) {
     DisplayConfig c;
     size_t semi = s.find(';');
     std::string list = s.substr(0, semi);
-    if (semi != std::string::npos) {                       // ";seconds;brightness;dim;dimAfter;dimLevel", the last four absent in an older text
+    if (semi != std::string::npos) {                       // ";seconds;brightness;dim;dimAfter;dimLevel;rotate;language", the last six absent in an older text
       std::vector<long> f; size_t p = semi + 1;
-      while (p <= s.size() && f.size() < 5) { size_t e = s.find(';', p); if (e == std::string::npos) e = s.size(); f.push_back(atol(s.substr(p, e - p).c_str())); p = e + 1; }
+      while (p <= s.size() && f.size() < 7) { size_t e = s.find(';', p); if (e == std::string::npos) e = s.size(); f.push_back(atol(s.substr(p, e - p).c_str())); p = e + 1; }
       if (f.size() > 0 && f[0] >= SECONDS_MIN && f[0] <= SECONDS_MAX) c.seconds = (uint8_t)f[0];
       if (f.size() > 1 && f[1] >= BRIGHT_MIN && f[1] <= BRIGHT_MAX) c.brightness = (uint8_t)f[1];
       if (f.size() > 2) c.dim = f[2] != 0;
       if (f.size() > 3 && f[3] >= DIM_AFTER_MIN && f[3] <= DIM_AFTER_MAX) c.dimAfter = (uint16_t)f[3];
       if (f.size() > 4 && f[4] >= 0 && f[4] <= DIM_LEVEL_MAX) c.dimLevel = (uint8_t)f[4];
+      if (f.size() > 5) c.rotate = f[5] != 0;
+      if (f.size() > 6 && f[6] >= 0 && f[6] <= 4) c.language = (uint8_t)f[6];
     }
     std::vector<uint8_t> seen; size_t p = 0; int n = 0;
     while (p < list.size()) {

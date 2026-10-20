@@ -239,7 +239,7 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
   - **Network**: IP, signal strength, Wi-Fi scan, Wi-Fi reconfiguration & reset; **Wi-Fi power saving** (on by default; switch it off if the bridge often loses the Wi-Fi or should answer faster); **access to the page**, the extra names under which the bridge accepts to answer (see [Who can call the API](#who-can-call-the-api))
   - **MQTT**: broker settings and connection status (see [MQTT](#mqtt))
   - **System**: firmware version, uptime, cause of the last restart, free memory and chip temperature; delay between frames sent to the stove (50 – 600 ms, default 150 ms); **restart** of the bridge
-  - **Screen** (after System): the board with a screen (LilyGO T-Dongle-S3), the screens shown and their order, the time per screen, the backlight level and its dimming after inactivity (see [Small screen](#small-screen-lilygo-t-dongle-s3))
+  - **Screen** (after System): the board with a screen (LilyGO T-Dongle-S3), the screens shown and their order, the time per screen, rotating the picture by 180°, the language of the texts, the backlight level and its dimming after inactivity (see [Small screen](#small-screen-lilygo-t-dongle-s3))
 
 <p align="center">
   <img src="assets/ui-desktop-bridge-screen.png" alt="Open Firenet Web UI - Bridge tab, Screen: hardware, display settings and the screens shown" width="760">

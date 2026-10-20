@@ -1,5 +1,12 @@
 # Changelog
 
+## Non publié
+
+### New
+- The screen of the LilyGO T-Dongle-S3 speaks English, French, Italian or German: choose it in Bridge > Screen. The first time, it takes the language of the page.
+- The screen of the LilyGO T-Dongle-S3 can be rotated by 180 degrees: tick "Rotate the screen by 180°" in Bridge > Screen (#114).
+- The screen of the LilyGO T-Dongle-S3 wakes up when the stove changes state (it starts, stops...), not only on a press or an alert.
+
 ## v4.5.0 (2026-10-20)
 
 ### New

@@ -660,6 +660,7 @@ static void updateDisplay() {
     if (mainSt != 1 || subKnown) {
       d.mainState = (int)mainSt; d.burning = burning;
       snprintf(d.stateLabel, sizeof d.stateLabel, "%s", stLabel);
+      snprintf(d.stateKey, sizeof d.stateKey, "%s", stName);
     }
     long room = sensorValue(m, "roomTemp", 1024);
     if (room != 1024) d.room10 = (int)room;                  // tenths of a degree; 1024 = no room sensor
@@ -668,7 +669,7 @@ static void updateDisplay() {
     if (m.controls.count("roomTarget")) d.target10 = (int)controlValue(m, "roomTarget", 200);
     long mode = controlValue(m, "mode", -1);
     d.comfort = (mode == 2);
-    snprintf(d.mode, sizeof d.mode, "%s", mode == 0 ? "MANUAL" : mode == 1 ? "AUTO" : mode == 2 ? "COMFORT" : "POWER");
+    d.mode = (int)mode;
     if (m.sensors.count("serviceCountdown")) d.serviceKg = (int)sensorValue(m, "serviceCountdown", 0);
     // 0 hours is how a slow sensor group looks until the stove has sent it (seen after a restart of the bridge): not shown then.
     if (m.sensors.count("pelletHours") && sensorValue(m, "pelletHours", 0) > 0) d.hours = (int)sensorValue(m, "pelletHours", 0);
