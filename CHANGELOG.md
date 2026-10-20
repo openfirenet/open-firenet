@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Fixes
+- Installing an update from the page on a bridge with the screen switched on no longer ends in a restart or a "download interrupted" error: the screen is paused during the download, which needs the memory it uses. It comes back when the update fails.
+
 ## v4.6.0 (2026-10-20)
 
 ### New
