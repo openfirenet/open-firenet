@@ -1387,6 +1387,16 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
       <div style="font-size:0.75rem;color:var(--text-dim)" id="lblTxGapHelp">Appliqué immédiatement et conservé après redémarrage. Trop bas : le poêle peut ne traiter qu'une trame sur deux.</div>
     </div>
+    <div class="card" style="gap:12px" id="logSizeCard">
+      <h3 id="lblLogSizeTitle"></h3>
+      <p id="lblLogSizeDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <select class="lang-select" id="logSizeSelect" style="padding:4px 24px 4px 8px;font-size:0.8rem" onchange="saveLogSize()">
+          <option value="16">16 kB</option><option value="32">32 kB</option>
+        </select>
+        <span id="logSizeStatus" style="font-size:0.8rem;color:var(--text-dim)"></span>
+      </div>
+    </div>
     <div class="card" style="gap:12px">
       <h3 id="lblBridgeRestart"></h3>
       <p id="lblBridgeRestartDesc" style="font-size:0.85rem;color:var(--text-dim);margin:0"></p>
@@ -1723,6 +1733,9 @@ const I18N = {
     wifiPsToggle: "Économie d'énergie",
     wifiPsSaved: "Enregistré ✓",
     wifiPsError: "Échec de l'enregistrement",
+    logSizeTitle: "Historique des échanges avec le poêle",
+    logSizeDesc: "Garde les derniers messages échangés avec le poêle, pour le journal de la page Diagnostics et le fichier de diagnostic. 16 ko laissent plus de mémoire libre ; 32 ko gardent un historique deux fois plus long, utile pour chercher un problème. Pris en compte au prochain redémarrage.",
+    logSizeSaved: "Enregistré ✓ — redémarrez la clé pour l'appliquer",
     accessTitle: "Accès à la page",
     accessDesc: "La clé répond à son adresse IP et à open-firenet.local. Si vous l'ouvrez sous un autre nom, par exemple celui que lui donne votre box, ajoutez-le ici. Elle ne répond jamais à une page d'un autre site web.",
     accessHosts: "Noms supplémentaires (un par ligne, 8 au plus)",
@@ -2055,6 +2068,9 @@ const I18N = {
     wifiPsToggle: "Power saving",
     wifiPsSaved: "Saved ✓",
     wifiPsError: "Could not save",
+    logSizeTitle: "History of the exchanges with the stove",
+    logSizeDesc: "Keeps the latest messages exchanged with the stove, for the log of the Diagnostics tab and the diagnostic file. 16 kB leaves more memory free; 32 kB keeps twice as much history, useful when looking for a problem. Applied at the next restart.",
+    logSizeSaved: "Saved ✓ - restart the bridge to apply it",
     accessTitle: "Access to the page",
     accessDesc: "The bridge answers at its IP address and at open-firenet.local. If you open it under another name, for example the one your router gives it, add it here. It never answers a page of another website.",
     accessHosts: "Extra names (one per line, 8 at most)",
@@ -2395,6 +2411,9 @@ const I18N = {
     "wifiPsToggle": "Risparmio energetico",
     "wifiPsSaved": "Salvato ✓",
     "wifiPsError": "Salvataggio non riuscito",
+    "logSizeTitle": "Cronologia degli scambi con la stufa",
+    "logSizeDesc": "Conserva gli ultimi messaggi scambiati con la stufa, per il registro della scheda Diagnostica e il file di diagnostica. 16 kB lasciano più memoria libera; 32 kB conservano una cronologia doppia, utile per cercare un problema. Applicato al prossimo riavvio.",
+    "logSizeSaved": "Salvato ✓ - riavvia il bridge per applicarlo",
     "accessTitle": "Accesso alla pagina",
     "accessDesc": "Il bridge risponde al suo indirizzo IP e a open-firenet.local. Se lo apri con un altro nome, per esempio quello assegnato dal tuo router, aggiungilo qui. Non risponde mai a una pagina di un altro sito web.",
     "accessHosts": "Nomi aggiuntivi (uno per riga, al massimo 8)",
@@ -2779,6 +2798,9 @@ const I18N = {
     wifiPsToggle: "Energiesparen",
     wifiPsSaved: "Gespeichert ✓",
     wifiPsError: "Speichern fehlgeschlagen",
+    logSizeTitle: "Verlauf des Austauschs mit dem Ofen",
+    logSizeDesc: "Speichert die letzten mit dem Ofen ausgetauschten Nachrichten, für das Protokoll im Diagnose-Tab und die Diagnosedatei. 16 kB lassen mehr Speicher frei; 32 kB speichern doppelt so viel Verlauf, nützlich bei der Fehlersuche. Gilt nach dem nächsten Neustart.",
+    logSizeSaved: "Gespeichert ✓ - Bridge neu starten, um es zu übernehmen",
     accessTitle: "Zugriff auf die Seite",
     accessDesc: "Der Stick antwortet unter seiner IP-Adresse und unter open-firenet.local. Wenn Sie ihn unter einem anderen Namen öffnen, zum Beispiel dem von Ihrem Router vergebenen, tragen Sie diesen hier ein. Einer Seite einer anderen Website antwortet er nie.",
     accessHosts: "Zusätzliche Namen (einer pro Zeile, höchstens 8)",
@@ -3039,6 +3061,8 @@ function applyLang() {
   document.getElementById('lblDiagLink').textContent = t.diagLink;
   document.getElementById('lblDiagHealth').textContent = t.diagHealth;
   document.getElementById('lblWifiPsTitle').textContent = t.wifiPsTitle;
+  document.getElementById('lblLogSizeTitle').textContent = t.logSizeTitle;
+  document.getElementById('lblLogSizeDesc').textContent = t.logSizeDesc;
   document.getElementById('lblWifiPsDesc').textContent = t.wifiPsDesc;
   document.getElementById('lblWifiPsToggle').textContent = t.wifiPsToggle;
   document.getElementById('lblAccessTitle').textContent = t.accessTitle;
@@ -3376,6 +3400,28 @@ async function saveWifiPowerSaving() {
   note.style.color = ok ? 'var(--green)' : 'var(--amber)';
   _wifiPsTimer = setTimeout(() => { note.textContent = ''; }, 2500);
 }
+async function loadLogSize() {
+  try {
+    const r = await fetch('/api/log_size');
+    if (!r.ok) return;
+    document.getElementById('logSizeSelect').value = String((await r.json()).kb);
+  } catch (e) { /* the page keeps working without it */ }
+}
+let _logSizeTimer = null;
+async function saveLogSize() {
+  const t = I18N[curLang] || I18N.en, sel = document.getElementById('logSizeSelect'), note = document.getElementById('logSizeStatus');
+  let ok = false;
+  try {
+    const r = await fetch('/api/log_size', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kb: parseInt(sel.value, 10)})});
+    const d = r.ok ? await r.json() : null;
+    ok = !!d && d.kb === parseInt(sel.value, 10);
+    if (d && !ok) sel.value = String(d.kb);
+  } catch (e) { ok = false; }
+  clearTimeout(_logSizeTimer);
+  note.textContent = ok ? t.logSizeSaved : t.wifiPsError;
+  note.style.color = ok ? 'var(--green)' : 'var(--amber)';
+  _logSizeTimer = setTimeout(() => { note.textContent = ''; }, 6000);
+}
 let _accessSaveTimer = null;
 async function saveAccess() {
   const t = I18N[curLang] || I18N.en, btn = document.getElementById('btnSaveAccess');
@@ -3449,6 +3495,7 @@ document.getElementById('mqttTls').addEventListener('change', () => syncMqttTls(
 loadMqtt(true);
 loadAccess();
 loadWifiPowerSaving();
+loadLogSize();
 setInterval(() => { if (currentPage() === 'bridge') loadMqtt(false); }, 3000);
 
 // Short "Saved" / "Could not save" note beside a setting, with the texts of the Wi-Fi power saving card.

@@ -77,6 +77,8 @@ struct MqttCommand { std::string topic, payload; };
 // on instancie le CDC et on fixe VID/PID AVANT USB.begin(). Serial = UART0 (debug).
 USBCDC USBSerial;
 
+SET_LOOP_TASK_STACK_SIZE(12 * 1024);   // loop() was left with 1.3 kB of its 8 kB at rest, measured on the T-Dongle-S3
+
 // --------------------------------------------------------- version & config USB
 #ifndef OPENFIRENET_VERSION
 #define OPENFIRENET_VERSION "4.6.0"
@@ -952,18 +954,33 @@ static void handleScan() {
 // 32 KB: the ring is reserved in RAM at boot, so it is taken from the free memory at all times. 96 KB left a DOMO
 // 2.29 with only ~25 KB of free heap at its lowest; 48 KB left 14 KB during a TLS connection to an MQTT broker.
 // Repeated lines are merged, so 32 KB still holds a few minutes of normal traffic.
-static const size_t LOG_RING_BYTES = 32 * 1024;
-static char     g_logRing[LOG_RING_BYTES];
+// The history of the exchanges with the stove: 16 kB by default, 32 kB when the owner asks for it (Bridge > System). It is allocated
+// at start, so a change applies at the next restart; when the memory is not there, the smaller size is used.
+static const size_t LOG_RING_SMALL = 16 * 1024, LOG_RING_LARGE = 32 * 1024;
+static char*    g_logRing = nullptr;
+static size_t   g_logSize = 0;               // bytes of g_logRing, 0 until allocated
+static size_t   g_logWantedKb = 16;          // the stored choice
 static uint64_t g_logTotal = 0;             // octets écrits depuis le boot (position absolue)
 static std::mutex g_logMx;                  // logEntry() est aussi appelé depuis des callbacks USB
 static String   g_pendKey;                  // "dir\x01msg" de la ligne en attente de regroupement
 static String   g_pendLine;                 // "[ms][dir] msg" de sa première occurrence
 static uint32_t g_pendCount = 0, g_pendLastMs = 0;
 
+static void logRingBegin() {
+  Preferences lp; lp.begin("firenet", true);
+  g_logWantedKb = lp.getUChar("log_kb", 16) == 32 ? 32 : 16;
+  lp.end();
+  size_t want = g_logWantedKb == 32 ? LOG_RING_LARGE : LOG_RING_SMALL;
+  g_logRing = (char*)malloc(want);
+  g_logSize = g_logRing ? want : 0;
+  if (!g_logRing && want != LOG_RING_SMALL) { g_logRing = (char*)malloc(LOG_RING_SMALL); g_logSize = g_logRing ? LOG_RING_SMALL : 0; }
+}
+
 static void logRingWrite(const char* p, size_t n) {
+  if (!g_logSize) return;
   for (size_t i = 0; i < n; ) {
-    size_t at = (size_t)(g_logTotal % LOG_RING_BYTES);
-    size_t k = LOG_RING_BYTES - at; if (k > n - i) k = n - i;
+    size_t at = (size_t)(g_logTotal % g_logSize);
+    size_t k = g_logSize - at; if (k > n - i) k = n - i;
     memcpy(g_logRing + at, p + i, k);
     g_logTotal += k; i += k;
   }
@@ -1678,7 +1695,7 @@ static void handleLog() {
     std::lock_guard<std::mutex> lk(g_logMx);
     logFlushPendingLocked();
     total = g_logTotal;
-    pos = total > LOG_RING_BYTES ? total - LOG_RING_BYTES : 0;
+    pos = total > g_logSize ? total - g_logSize : 0;
   }
   char hdr[160];
   int hn = snprintf(hdr, sizeof hdr,
@@ -1695,10 +1712,10 @@ static void handleLog() {
     size_t n;
     {
       std::lock_guard<std::mutex> lk(g_logMx);
-      if (g_logTotal > LOG_RING_BYTES && pos < g_logTotal - LOG_RING_BYTES) pos = g_logTotal - LOG_RING_BYTES;
+      if (g_logTotal > g_logSize && pos < g_logTotal - g_logSize) pos = g_logTotal - g_logSize;
       n = (size_t)(total - pos); if (n > sizeof chunk) n = sizeof chunk;
-      size_t at = (size_t)(pos % LOG_RING_BYTES);
-      if (n > LOG_RING_BYTES - at) n = LOG_RING_BYTES - at;
+      size_t at = (size_t)(pos % g_logSize);
+      if (n > g_logSize - at) n = g_logSize - at;
       memcpy(chunk, g_logRing + at, n);
     }
     pos += n;
@@ -1710,8 +1727,27 @@ static void handleLog() {
   web.sendContent("");
 }
 
+// GET/POST /api/log_size {"kb":16|32} -> the size of the history of the exchanges with the stove. Stored; applied at the next restart.
+static void handleLogSize() {
+  if (web.method() == HTTP_POST) {
+    std::vector<std::pair<std::string, std::string>> kv;
+    firenet::jsonPairs(web.hasArg("plain") ? web.arg("plain").c_str() : "", kv);
+    for (int i = 0; i < web.args(); i++) if (web.argName(i) != "plain") kv.push_back({web.argName(i).c_str(), web.arg(i).c_str()});
+    for (const auto& p : kv) if (p.first == "kb") {
+      int kb = atoi(p.second.c_str());
+      if (kb != 16 && kb != 32) { web.send(400, "application/json", "{\"ok\":false,\"error\":\"kb must be 16 or 32\"}"); return; }
+      g_logWantedKb = (size_t)kb;
+      Preferences lp; lp.begin("firenet", false); lp.putUChar("log_kb", (uint8_t)kb); lp.end();
+    }
+  }
+  size_t running = g_logSize / 1024;
+  web.send(200, "application/json", String("{\"ok\":true,\"kb\":") + (unsigned)g_logWantedKb + ",\"running_kb\":" + (unsigned)running +
+           ",\"options\":[16,32],\"restart_needed\":" + (running != g_logWantedKb ? "true" : "false") + "}");
+}
+
 // --------------------------------------------------------------------- setup
 void setup() {
+  logRingBegin();   // first: the largest block of memory is still whole
   {
     Preferences p; p.begin("firenet", true);
     g_dispBoard = p.getString("disp_board", kDefaultBoard);
@@ -1845,6 +1881,7 @@ void setup() {
   web.on("/api/mqtt", handleMqtt);
   web.on("/api/access", handleAccess);
   web.on("/api/wifi_power_saving", handleWifiPowerSaving);
+  web.on("/api/log_size", handleLogSize);
   web.on("/api/display", handleDisplay);
   web.on("/api/wifi", HTTP_POST, handleWifi);
   web.on("/api/forget", HTTP_POST, handleForget);

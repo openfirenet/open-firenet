@@ -2,6 +2,12 @@
 
 ## Non publié
 
+### New
+- Bridge > System: choose the size of the history of the exchanges with the stove, 16 kB (new default) or 32 kB. 16 kB leaves 16 kB more memory free, which matters on the LilyGO T-Dongle-S3 with its screen; 32 kB keeps twice as much history when you look for a problem. Applied at the next restart.
+
+### Changes
+- The main loop of the bridge has a larger stack (12 kB instead of 8 kB): it had only 1.3 kB left at rest on the LilyGO T-Dongle-S3.
+
 ### Fixes
 - Installing an update from the page on a bridge with the screen switched on no longer ends in a restart or a "download interrupted" error: the screen is paused during the download, which needs the memory it uses. It comes back when the update fails.
 
