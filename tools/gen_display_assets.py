@@ -12,8 +12,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 # The icons come from the installer's lucide-static package (npm install there); LUCIDE_ICONS overrides the folder.
 LUCIDE = pathlib.Path(os.environ.get("LUCIDE_ICONS", ROOT.parent.parent / "open-firenet-installer" / "node_modules" / "lucide-static" / "icons"))
-FIRST, LAST = 32, 127
+FIRST, LAST = 32, 255
 BIG_PX, MED_PX, SMALL_PX, ADDR_PX = 34, 22, 13, 14      # ADDR: the IP address, as large as fits beside an icon
+LATIN = set("àâäçéèêëîïôöùûüÀÂÄÇÉÈÊËÎÏÔÖÙÛÜßìòÌÒ")   # the accents of the screen languages (French, Italian, German); every other character above 127 stays empty
 BIG_CHARS = set("0123456789.,-+°%:/ ")      # the figures only; the rest of the big font stays empty
 ICON_PX = 34
 ICONS = ["flame", "thermometer", "zap", "gauge", "wifi", "wifi-off", "plug-zap", "triangle-alert", "circle-alert",
@@ -26,6 +27,7 @@ def glyphs(px, chars=None):
     out = []
     for cp in range(FIRST, LAST + 1):
         ch = chr(cp)
+        if cp > 127 and ch not in LATIN: out.append((0, 0, 0, 0, round(f.getlength(" ") / big), b"")); continue
         if cp == 127: ch = "→"               # DEL slot: the arrow, written "\x7f" in the screen text
         if cp == 126: ch = "°"               # the screen text writes "~" for the degree sign
         if chars is not None and ch not in chars:

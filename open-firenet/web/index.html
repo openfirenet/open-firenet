@@ -96,6 +96,14 @@ header {
   color: #f1f5f9;
   font-size: 0.9rem;
 }
+.flag { width: 20px; height: 14px; border-radius: 2px; flex: none; box-shadow: 0 0 0 1px rgba(255,255,255,0.15); }
+.fsel { position: relative; display: inline-block; }
+.fsel > button { display: inline-flex; align-items: center; gap: 8px; text-align: left; }
+.fsel-list { display: none; position: absolute; z-index: 50; left: 0; min-width: 100%; margin-top: 4px; padding: 4px; background: #161b26; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.fsel.open .fsel-list { display: block; }
+.fsel-list button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 10px; background: none; border: 0; border-radius: 6px; color: #f1f5f9; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.fsel-list button:hover, .fsel-list button.sel { background: #2b364e; }
+.header-actions .fsel-list { left: auto; right: 0; }
 .btn-lock {
   background: transparent;
   color: var(--text-dim);
@@ -1286,6 +1294,15 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <input type="range" id="screenBright" min="5" max="100" step="5" value="50" style="flex:1;min-width:160px" oninput="onScreenBright(this.value)">
         <b><span id="screenBrightVal">50</span> %</b>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:0.85rem">
+        <span id="lblScreenLanguage" style="color:var(--text-dim)">Langue de l'écran :</span>
+        <select class="lang-select" id="screenLanguage" style="padding:4px 24px 4px 8px;font-size:0.8rem" onchange="onScreenLanguage(this.value)">
+          <option value="en">English</option><option value="fr">Français</option><option value="it">Italiano</option><option value="de">Deutsch</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem">
+        <input type="checkbox" id="screenRotate" onchange="onScreenRotate()"> <span id="lblScreenRotate">Pivoter l'écran de 180°</span>
+      </label>
       <div style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <input type="checkbox" id="screenDim" onchange="onScreenDim()" aria-labelledby="lblScreenDim">
@@ -1608,6 +1625,8 @@ const I18N = {
     screenDim: "Réduire la luminosité à",
     screenDimAfter: "après",
     screenDimEnd: "sans appui",
+    screenRotate: "Pivoter l'écran de 180°",
+    screenLanguage: "Langue de l'écran :",
     screenDimHelp: "0 % éteint l'écran. Un appui sur le bouton BOOT de la clé ou une alerte le rallume.",
     screenApply: "Valider",
     screenCancel: "Annuler",
@@ -1938,6 +1957,8 @@ const I18N = {
     screenDim: "Dim the backlight to",
     screenDimAfter: "after",
     screenDimEnd: "without a press",
+    screenRotate: "Rotate the screen by 180°",
+    screenLanguage: "Screen language:",
     screenDimHelp: "0 % turns the screen off. A press on the key's BOOT button or an alert lights it up again.",
     screenApply: "Apply",
     screenCancel: "Cancel",
@@ -2268,6 +2289,8 @@ const I18N = {
     "screenDim": "Riduci la luminosità a",
     "screenDimAfter": "dopo",
     "screenDimEnd": "senza pressione",
+    "screenRotate": "Ruota lo schermo di 180°",
+    "screenLanguage": "Lingua dello schermo:",
     "screenDimHelp": "0 % spegne lo schermo. Premere il pulsante BOOT della chiave o un allarme lo riaccende.",
     "screenApply": "Applica",
     "screenCancel": "Annulla",
@@ -2658,6 +2681,8 @@ const I18N = {
     screenDim: "Helligkeit reduzieren auf",
     screenDimAfter: "nach",
     screenDimEnd: "ohne Tastendruck",
+    screenRotate: "Display um 180° drehen",
+    screenLanguage: "Sprache des Displays:",
     screenDimHelp: "0 % schaltet das Display aus. Ein Druck auf die BOOT-Taste des Sticks oder ein Alarm schaltet es wieder ein.",
     screenApply: "Übernehmen",
     screenCancel: "Abbrechen",
@@ -2901,10 +2926,44 @@ curLang = knownLang(localStorage.getItem('lang')) || browserLang();
   const sel = document.getElementById('langSelect');
   Object.keys(I18N).sort((a, b) => I18N[a].langName.localeCompare(I18N[b].langName)).forEach(l => {
     const o = document.createElement('option');
-    o.value = l; o.textContent = I18N[l].langFlag + ' ' + I18N[l].langName;
+    o.value = l; o.textContent = I18N[l].langName;
     sel.appendChild(o);
   });
 })();
+
+
+// Flags drawn as SVG: the emoji flags show as "FR", "EN"... on Windows.
+const FLAGS = {
+  fr: '<rect width="1" height="2" fill="#0055a4"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ef4135"/>',
+  it: '<rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ce2b37"/>',
+  de: '<rect width="3" height="0.67" fill="#000"/><rect y="0.67" width="3" height="0.67" fill="#dd0000"/><rect y="1.33" width="3" height="0.67" fill="#ffce00"/>',
+  en: '<rect width="3" height="2" fill="#012169"/><path d="M0 0L3 2M3 0L0 2" stroke="#fff" stroke-width="0.4"/><path d="M0 0L3 2M3 0L0 2" stroke="#c8102e" stroke-width="0.14"/><path d="M1.5 0V2M0 1H3" stroke="#fff" stroke-width="0.66"/><path d="M1.5 0V2M0 1H3" stroke="#c8102e" stroke-width="0.4"/>'
+};
+function flagSvg(l) { return '<svg class="flag" viewBox="0 0 3 2" preserveAspectRatio="none" aria-hidden="true">' + (FLAGS[l] || '<rect width="3" height="2" fill="#475569"/>') + '</svg>'; }
+// Replaces a <select> of languages by a menu with flags (a native menu cannot show images). The <select> stays, hidden, and keeps the value.
+function flagMenu(sel) {
+  const box = document.createElement('div'); box.className = 'fsel';
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = sel.className; btn.style.cssText = sel.style.cssText;
+  const list = document.createElement('div'); list.className = 'fsel-list';
+  box.append(btn, list); sel.after(box); sel.style.display = 'none';
+  const refresh = () => {
+    const cur = sel.options[sel.selectedIndex];
+    btn.innerHTML = flagSvg(sel.value) + '<span>' + (cur ? cur.textContent : '') + '</span>';
+    list.querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.v === sel.value));
+  };
+  Array.from(sel.options).forEach(o => {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.v = o.value; b.innerHTML = flagSvg(o.value) + '<span>' + o.textContent + '</span>';
+    b.onclick = () => { box.classList.remove('open'); sel.value = o.value; refresh(); if (sel.onchange) sel.onchange(); };
+    list.appendChild(b);
+  });
+  btn.onclick = (e) => { e.stopPropagation(); const o = !box.classList.contains('open'); document.querySelectorAll('.fsel.open').forEach(x => x.classList.remove('open')); box.classList.toggle('open', o); };
+  document.addEventListener('click', () => box.classList.remove('open'));
+  const d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+  Object.defineProperty(sel, 'value', { get() { return d.get.call(sel); }, set(v) { d.set.call(sel, v); refresh(); } });
+  refresh();
+}
+flagMenu(document.getElementById('langSelect'));
+flagMenu(document.getElementById('screenLanguage'));
 
 function applyLang() {
   const t = I18N[curLang] || I18N.en;
@@ -2960,6 +3019,8 @@ function applyLang() {
   document.getElementById('lblScreenDim').textContent = t.screenDim;
   document.getElementById('lblScreenDimAfter').textContent = t.screenDimAfter;
   document.getElementById('lblScreenDimEnd').textContent = t.screenDimEnd;
+  document.getElementById('lblScreenRotate').textContent = t.screenRotate;
+  document.getElementById('lblScreenLanguage').textContent = t.screenLanguage;
   document.getElementById('lblScreenListTitle').textContent = t.screenListTitle;
   document.getElementById('lblScreenDimHelp').textContent = t.screenDimHelp;
   document.getElementById('btnScreenSave').textContent = t.screenApply;
@@ -3456,7 +3517,7 @@ function screenPreview(id) {
 // Changes are kept in a draft and sent once, with "Apply": each save writes the key's flash, and several in a row made it lag.
 let _screenDraft = null;
 function ensureScreenDraft() {
-  if (!_screenDraft) _screenDraft = { seconds: _screenCfg.seconds, brightness: _screenCfg.brightness, dim: !!_screenCfg.dim, dim_after: _screenCfg.dim_after, dim_level: _screenCfg.dim_level,
+  if (!_screenDraft) _screenDraft = { seconds: _screenCfg.seconds, brightness: _screenCfg.brightness, dim: !!_screenCfg.dim, dim_after: _screenCfg.dim_after, dim_level: _screenCfg.dim_level, rotate: !!_screenCfg.rotate, language: _screenCfg.language || curLang,
                                       screens: _screenCfg.screens.map(s => ({ id: s.id, enabled: !!s.enabled })) };
   return _screenDraft;
 }
@@ -3480,8 +3541,12 @@ function syncScreenBacklight() {
   g('screenDim').checked = !!cfg.dim;
   g('screenDimAfter').value = String(cfg.dim_after);
   g('screenDimLevel').value = String(cfg.dim_level);
+  g('screenRotate').checked = !!cfg.rotate;
+  g('screenLanguage').value = cfg.language || curLang;
   g('screenDimAfter').disabled = g('screenDimLevel').disabled = !cfg.dim;
 }
+function onScreenLanguage(v) { ensureScreenDraft().language = v; updateScreenDirty(); }
+function onScreenRotate() { ensureScreenDraft().rotate = document.getElementById('screenRotate').checked; updateScreenDirty(); }
 function onScreenSeconds(v) { ensureScreenDraft().seconds = Number(v); updateScreenDirty(); }
 function cancelScreens() { _screenDraft = null; updateScreenDirty(); renderScreenCards(); }
 function renderScreenCards() {
@@ -3536,7 +3601,7 @@ async function saveScreens() {
   let ok = false;
   try {
     const r = await fetch('/api/display', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ seconds: d.seconds, brightness: d.brightness, dim: d.dim, dim_after: d.dim_after, dim_level: d.dim_level, screens: d.screens.map(s => ({ id: s.id, enabled: !!s.enabled })) }) });
+      body: JSON.stringify({ seconds: d.seconds, brightness: d.brightness, dim: d.dim, dim_after: d.dim_after, dim_level: d.dim_level, rotate: d.rotate, language: d.language, screens: d.screens.map(s => ({ id: s.id, enabled: !!s.enabled })) }) });
     if (r.ok) { const j = await r.json(); ok = JSON.stringify(j.screens) === JSON.stringify(d.screens.map(s => ({ id: s.id, enabled: !!s.enabled }))); _screenCfg = j; }
   } catch (e) { ok = false; }
   flashNote('screenNote', ok);
@@ -3554,7 +3619,14 @@ function renderScreenBoard() {
   card.classList.toggle('scr-disabled', board !== 'tdongle');
   document.getElementById('screenRestartRow').style.display = c.restart_needed && !_screenAsking ? 'flex' : 'none';
   if (board !== 'none') renderScreenCards();
+  // First time with a screen: it speaks the language of the page, until the owner chooses another.
+  if (board === 'tdongle' && !c.language && !_screenLangSeeded) {
+    _screenLangSeeded = true;
+    fetch('/api/display', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: curLang }) })
+      .then(r => r.ok ? r.json() : null).then(j => { if (j && !_screenDraft) { _screenCfg = j; syncScreenBacklight(); } }).catch(() => {});
+  }
 }
+var _screenLangSeeded = false;   // var: renderScreenBoard may run before this line
 async function postScreenBoard(board) {
   let ok = false;
   try {

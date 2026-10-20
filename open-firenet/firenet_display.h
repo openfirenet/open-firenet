@@ -16,6 +16,7 @@
 #include "firenet_display_config.h"
 #include "firenet_display_logo.h"
 #include "firenet_display_assets.h"
+#include "firenet_display_text.h"
 
 namespace firenet {
 
@@ -25,11 +26,12 @@ struct DisplaySnapshot {
   bool linked = false;            // the stove has answered at least once since boot
   bool silent = false;            // ... but nothing has come from it for a while
   int  mainState = NONE;
-  char stateLabel[24] = "";
+  char stateLabel[24] = "";       // English name, shown when the language has no word for this state
+  char stateKey[20] = "";         // the state as the API names it ("heating"): translated by the screen
   bool burning = false;
   int  room10 = NONE, target10 = NONE;   // tenths of a degree
   int  flame = NONE, powerPct = NONE;
-  char mode[12] = "";
+  int  mode = -1;                 // 0 manual, 1 auto, 2 comfort
   bool comfort = false;           // comfort mode: the stove sets its own power
   int  serviceKg = NONE, hours = NONE;
   long errCode = 0;
@@ -91,6 +93,7 @@ private:
   static constexpr int SCK = 5, MOSI = 3, CS = 4, DC = 2, RST = 1, BL = 38, BUTTON = 0;
   static constexpr int X_OFF = 1, Y_OFF = 26;               // glass offsets in landscape
   static constexpr uint8_t MADCTL = 0x08 | 0x20 | 0x80;     // BGR, swap x/y, mirror y
+  static constexpr uint8_t MADCTL_TURNED = 0x08 | 0x20 | 0x40;   // the same turned by 180 degrees: mirror x instead of y (the glass offsets are the same both ways)
 
   struct Rgb { uint8_t r, g, b; };
   static constexpr Rgb C_BG{12, 15, 23}, C_WHITE{241, 245, 249}, C_DIM{148, 163, 184}, C_ORANGE{249, 115, 22},
@@ -126,7 +129,17 @@ private:
     cmdData(0xE1, {0x10, 0x0E, 0x03, 0x03, 0x0F, 0x06, 0x02, 0x08, 0x0A, 0x13, 0x26, 0x36, 0x00, 0x0D, 0x0E, 0x10});
     cmd(0x13); delay(10);                                   // normal display mode
     cmdData(0x36, {MADCTL});                                // landscape, BGR
+    turned_ = false;
     cmd(0x29); delay(100);                                  // display on
+    spi_.endTransaction();
+  }
+
+  // Rotates the picture by 180 degrees (or back) without redrawing anything: only the scan direction of the panel changes.
+  void setTurned(bool turned) {
+    if (turned == turned_) return;
+    turned_ = turned;
+    spi_.beginTransaction(SPISettings(27000000, MSBFIRST, SPI_MODE0));
+    cmdData(0x36, {turned ? MADCTL_TURNED : MADCTL});
     spi_.endTransaction();
   }
 
@@ -175,16 +188,21 @@ private:
   }
   void icon(const uint8_t* m, int x, int y, Rgb c) { mask(x, y, screen::ICON_SIZE, screen::ICON_SIZE, m, c); }
 
-  static const screen::Glyph* glyph(const screen::Font& f, char ch) {
-    unsigned char u = (unsigned char)ch;
+  // Texts are UTF-8 in the source; the fonts hold Latin-1 (the accents), so a two-byte sequence C3 xx is read as one character.
+  static unsigned char nextChar(const char*& s) {
+    unsigned char u = (unsigned char)*s++;
+    if (u == 0xC3 && *s) return (unsigned char)(0xC0 + ((unsigned char)*s++ - 0x80));
+    return u;
+  }
+  static const screen::Glyph* glyph(const screen::Font& f, unsigned char u) {
     if (u < f.first || u > f.last) u = ' ';
     return &f.glyphs[u - f.first];
   }
-  int textWidth(const screen::Font& f, const char* s) { int w = 0; for (; *s; s++) w += glyph(f, *s)->adv; return w; }
+  int textWidth(const screen::Font& f, const char* s) { int w = 0; while (*s) w += glyph(f, nextChar(s))->adv; return w; }
   // x is the left edge of the text, top the top of the line (ascender).
   void text(const screen::Font& f, int x, int top, const char* s, Rgb c) {
-    for (; *s; s++) {
-      const screen::Glyph* g = glyph(f, *s);
+    while (*s) {
+      const screen::Glyph* g = glyph(f, nextChar(s));
       if (g->w) mask(x + g->x, top + g->y, g->w, g->h, f.data + g->off, c);
       x += g->adv;
     }
@@ -194,6 +212,30 @@ private:
     using namespace screen;
     if (textWidth(FONT_MEDIUM, s) <= avail) text(FONT_MEDIUM, x, top, s, c);
     else text(FONT_SMALL, x, top + (FONT_MEDIUM.height - FONT_SMALL.height) / 2, s, c);
+  }
+  // Cuts `t` into lines of the small font no wider than `w`, at spaces; returns the number of lines (at most `max`).
+  int wrapText(const char* t, int w, char out[][40], int max) {
+    int n = 0; char cur[40] = ""; const char* p = t;
+    while (*p) {
+      const char* q = p; while (*q && *q != ' ') q++;
+      char word[40]; int wl = (int)(q - p); if (wl > 39) wl = 39; memcpy(word, p, wl); word[wl] = 0;
+      char trial[40]; snprintf(trial, sizeof trial, "%s%s%s", cur, cur[0] ? " " : "", word);
+      if (cur[0] && textWidth(screen::FONT_SMALL, trial) > w) { if (n < max) snprintf(out[n++], 40, "%s", cur); snprintf(cur, sizeof cur, "%s", word); }
+      else snprintf(cur, sizeof cur, "%s", trial);
+      p = *q ? q + 1 : q;
+    }
+    if (cur[0] && n < max) snprintf(out[n++], 40, "%s", cur);
+    return n;
+  }
+  // A line of text beside an icon: the medium font when it fits in `avail` pixels, else the small one, else the small one on two or three lines.
+  void textBlock(int x, int top, const char* s, Rgb c, int avail) {
+    using namespace screen;
+    if (textWidth(FONT_MEDIUM, s) <= avail) { text(FONT_MEDIUM, x, top, s, c); return; }
+    if (textWidth(FONT_SMALL, s) <= avail) { text(FONT_SMALL, x, top + (FONT_MEDIUM.height - FONT_SMALL.height) / 2, s, c); return; }
+    char ln[3][40]; int n = wrapText(s, avail, ln, 3);
+    int y = top + (FONT_MEDIUM.height - (n > 1 ? n * 15 : FONT_SMALL.height)) / 2;
+    if (y < 22) y = 22;                                       // below the caption
+    for (int i = 0; i < n; i++) { text(FONT_SMALL, x, y, ln[i], c); y += 15; }
   }
   void textCentre(const screen::Font& f, int cx, int top, const char* s, Rgb c) { text(f, cx - textWidth(f, s) / 2, top, s, c); }
 
@@ -247,9 +289,10 @@ private:
     const int iy = (H - screen::ICON_SIZE) / 2, tx = 6 + screen::ICON_SIZE + 10;
     if (ic) icon(ic, 6, iy, icc);
     text(screen::FONT_SMALL, tx, 6, caption, C_DIM);
-    int top = 24 + (screen::FONT_BIG.height - vf.height) / 2;
-    text(vf, tx, top, value, vc);
-    if (unit) text(screen::FONT_SMALL, tx + textWidth(vf, value) + 3, top + vf.ascent - screen::FONT_SMALL.ascent, unit, C_DIM);
+    const screen::Font& vfit = textWidth(vf, value) > W - tx - 2 ? screen::FONT_SMALL : vf;     // a long word ("Hors ligne"): the small font
+    int top = 24 + (screen::FONT_BIG.height - vfit.height) / 2;
+    text(vfit, tx, top, value, vc);
+    if (unit) text(screen::FONT_SMALL, tx + textWidth(vfit, value) + 3, top + vfit.ascent - screen::FONT_SMALL.ascent, unit, C_DIM);
   }
 
   bool alertHolds(Alert a, const DisplaySnapshot& s) const {
@@ -282,15 +325,17 @@ private:
     fill(C_BG);
     char v[32];
     using namespace screen;
+    const int lg = s.config.language;
+    auto TXT = [lg](screentext::Word w) { return screentext::word(lg, w); };
     switch (sc) {
       case S_STATE:
         flameIcon(s, t, 6, (H - ICON_SIZE) / 2);
-        text(FONT_SMALL, 6 + ICON_SIZE + 10, 6, "STOVE", C_DIM);
-        textFit(6 + ICON_SIZE + 10, 28, s.stateLabel, C_WHITE, W - 6 - (6 + ICON_SIZE + 10));
+        text(FONT_SMALL, 6 + ICON_SIZE + 10, 6, TXT(screentext::W_STOVE), C_DIM);
+        textBlock(6 + ICON_SIZE + 10, 28, screentext::stateName(lg, s.stateKey, s.stateLabel), C_WHITE, W - 6 - (6 + ICON_SIZE + 10));
         break;
       case S_ROOM:
         snprintf(v, sizeof v, "%d.%d~", s.room10 / 10, abs(s.room10) % 10);
-        info(ICON_THERMOMETER, C_ROSE, "ROOM", v, FONT_BIG, C_WHITE);
+        info(ICON_THERMOMETER, C_ROSE, TXT(screentext::W_ROOM), v, FONT_BIG, C_WHITE);
         if (s.target10 != DisplaySnapshot::NONE) {           // "-> 20~" at the right of the caption
           tempText(v, sizeof v, s.target10, "\x7f ");
           text(FONT_SMALL, W - 6 - textWidth(FONT_SMALL, v), 6, v, C_SKY);
@@ -298,46 +343,46 @@ private:
         break;
       case S_FLAME:
         snprintf(v, sizeof v, "%d~", s.flame);
-        info(ICON_FLAME, C_ORANGE, "FLAME", v, FONT_BIG, C_WHITE);
+        info(ICON_FLAME, C_ORANGE, TXT(screentext::W_FLAME), v, FONT_BIG, C_WHITE);
         break;
       case S_POWER:
         // Comfort mode: the stove sets its own power, so the target temperature is what makes sense; power in auto and manual.
         if (s.comfort && s.target10 != DisplaySnapshot::NONE) {
           tempText(v, sizeof v, s.target10, "");
-          info(ICON_GAUGE, C_YELLOW, "COMFORT", v, FONT_BIG, C_WHITE);
+          info(ICON_GAUGE, C_YELLOW, TXT(screentext::W_COMFORT), v, FONT_BIG, C_WHITE);
         } else {
           snprintf(v, sizeof v, "%d%%", s.powerPct);
-          info(ICON_GAUGE, C_YELLOW, s.mode[0] ? s.mode : "POWER", v, FONT_BIG, C_WHITE);
+          info(ICON_GAUGE, C_YELLOW, s.mode == 0 ? TXT(screentext::W_MANUAL) : s.mode == 1 ? TXT(screentext::W_AUTO) : TXT(screentext::W_POWER), v, FONT_BIG, C_WHITE);
         }
         break;
       case S_IP: {
         // One line beside the icon, in the largest font that fits (an address such as 192.168.100.200 is wide).
         const int ix = 4, tx = ix + ICON_SIZE + 4;
         icon(ICON_HOUSE, ix, (H - ICON_SIZE) / 2, C_INDIGO);
-        text(FONT_SMALL, tx, 6, "ADDRESS", C_DIM);
+        text(FONT_SMALL, tx, 6, TXT(screentext::W_ADDRESS), C_DIM);
         const Font& f = textWidth(FONT_ADDRESS, s.ip) <= W - tx - 1 ? FONT_ADDRESS : FONT_SMALL;
         text(f, tx, 24 + (FONT_BIG.height - f.height) / 2, s.ip, C_WHITE);
         break;
       }
       case S_PELLETS:
         snprintf(v, sizeof v, "%d", s.serviceKg);
-        info(ICON_PACKAGE, C_AMBER, "SERVICE IN", v, FONT_BIG, C_WHITE, "kg");
+        info(ICON_PACKAGE, C_AMBER, TXT(screentext::W_SERVICE_IN), v, FONT_BIG, C_WHITE, "kg");
         break;
       case S_HOURS:
         snprintf(v, sizeof v, "%d", s.hours);
-        info(ICON_TIMER, C_AMBER, "RUNNING", v, FONT_BIG, C_WHITE, "h");
+        info(ICON_TIMER, C_AMBER, TXT(screentext::W_RUNNING), v, FONT_BIG, C_WHITE, "h");
         break;
       case S_WIFI: {
         snprintf(v, sizeof v, "%d", s.rssi);
-        info(ICON_WIFI, C_GREEN, "WI-FI", v, FONT_BIG, C_WHITE, "dBm");
+        info(ICON_WIFI, C_GREEN, TXT(screentext::W_WIFI), v, FONT_BIG, C_WHITE, "dBm");
         break;
       }
       case S_MQTT:
-        info(ICON_PLUG_ZAP, s.mqttUp ? C_GREEN : C_AMBER, "MQTT", s.mqttUp ? "Online" : "Offline", FONT_MEDIUM, s.mqttUp ? C_GREEN : C_AMBER);
+        info(ICON_PLUG_ZAP, s.mqttUp ? C_GREEN : C_AMBER, TXT(screentext::W_MQTT), s.mqttUp ? TXT(screentext::W_ONLINE) : TXT(screentext::W_OFFLINE), FONT_MEDIUM, s.mqttUp ? C_GREEN : C_AMBER);
         break;
       case S_VERSION:
         snprintf(v, sizeof v, "v%s", s.version);
-        info(s.updateAvailable ? ICON_REFRESH_CW : ICON_PACKAGE, s.updateAvailable ? C_AMBER : C_INDIGO, s.updateAvailable ? "UPDATE" : "FIRMWARE", v, FONT_MEDIUM, C_WHITE);
+        info(s.updateAvailable ? ICON_REFRESH_CW : ICON_PACKAGE, s.updateAvailable ? C_AMBER : C_INDIGO, s.updateAvailable ? TXT(screentext::W_UPDATE) : TXT(screentext::W_FIRMWARE), v, FONT_MEDIUM, C_WHITE);
         break;
       case S_LOGO: drawLogo(t); break;
       default: break;
@@ -347,18 +392,19 @@ private:
   void drawAlert(Alert a, const DisplaySnapshot& s, float t) {
     using namespace screen;
     fill(Rgb{40, 14, 18});                                   // dark red, so that it cannot be taken for a normal screen
+    const int lg = s.config.language; auto TXT = [lg](screentext::Word w) { return screentext::word(lg, w); };
     const char* cap = ""; const char* line = ""; const uint8_t* ic = ICON_TRIANGLE_ALERT; Rgb col = C_RED; char v[24];
     switch (a) {
-      case A_ERROR:  cap = "STOVE ERROR"; snprintf(v, sizeof v, "Code %ld", s.errCode); line = v; ic = ICON_CIRCLE_ALERT; break;
-      case A_HOPPER: cap = "ALERT"; line = "Hopper open"; ic = ICON_LOCK_OPEN; col = C_AMBER; break;
-      case A_SILENT: cap = "ALERT"; line = "No stove"; ic = ICON_UNPLUG; col = C_AMBER; break;
-      case A_NOWIFI: cap = "ALERT"; line = "No Wi-Fi"; ic = ICON_WIFI_OFF; col = C_AMBER; break;
+      case A_ERROR:  cap = TXT(screentext::W_STOVE_ERROR); snprintf(v, sizeof v, "%s %ld", TXT(screentext::W_CODE), s.errCode); line = v; ic = ICON_CIRCLE_ALERT; break;
+      case A_HOPPER: cap = TXT(screentext::W_ALERT); line = TXT(screentext::W_HOPPER_OPEN); ic = ICON_LOCK_OPEN; col = C_AMBER; break;
+      case A_SILENT: cap = TXT(screentext::W_ALERT); line = TXT(screentext::W_NO_STOVE); ic = ICON_UNPLUG; col = C_AMBER; break;
+      case A_NOWIFI: cap = TXT(screentext::W_ALERT); line = TXT(screentext::W_NO_WIFI); ic = ICON_WIFI_OFF; col = C_AMBER; break;
       default: break;
     }
     float k = 0.7f + 0.3f * (0.5f + 0.5f * sinf(6.2831853f * t * 2));
     icon(ic, 6, (H - ICON_SIZE) / 2, Rgb{(uint8_t)(col.r * k), (uint8_t)(col.g * k), (uint8_t)(col.b * k)});
     text(FONT_SMALL, 6 + ICON_SIZE + 10, 8, cap, C_DIM);
-    textFit(6 + ICON_SIZE + 10, 30, line, C_WHITE, W - 6 - (6 + ICON_SIZE + 10));
+    textBlock(6 + ICON_SIZE + 10, 30, line, C_WHITE, W - 6 - (6 + ICON_SIZE + 10));
   }
 
   // ---- task --------------------------------------------------------------------------------------------------------
@@ -370,8 +416,9 @@ private:
     uint32_t t0 = millis(), shown = t0, alertShown = t0;
     int cur = -1, alertIdx = 0;
     bool wasDown = false;
-    uint32_t lastActivity = t0;                              // last press, alert or change of the settings
+    uint32_t lastActivity = t0;                              // last press, alert, change of the stove's state or of the settings
     uint8_t seenBright = 0; bool seenDim = false; uint16_t seenAfter = 0;
+    char seenState[20] = "";
     for (;;) {
       uint32_t now = millis();
       float t = (now % PERIOD_MS) / (float)PERIOD_MS;
@@ -387,9 +434,12 @@ private:
       const DisplayConfig& cf = s.config;
       bool wasDimmed = cf.dim && (now - lastActivity) > (uint32_t)cf.dimAfter * 1000UL;
       if (wasDimmed && pressed) pressed = false;               // the press that wakes the screen is only a wake-up, it does not skip a screen
-      if (pressedRaw || alertNow || cf.brightness != seenBright || cf.dim != seenDim || cf.dimAfter != seenAfter) lastActivity = now;
+      bool stateChanged = seenState[0] && s.stateKey[0] && strcmp(seenState, s.stateKey) != 0;   // the stove starts, stops...
+      if (s.stateKey[0]) { strncpy(seenState, s.stateKey, sizeof seenState - 1); seenState[sizeof seenState - 1] = 0; }
+      if (pressedRaw || alertNow || stateChanged || cf.brightness != seenBright || cf.dim != seenDim || cf.dimAfter != seenAfter) lastActivity = now;
       seenBright = cf.brightness; seenDim = cf.dim; seenAfter = cf.dimAfter;
       bool dimmed = cf.dim && (now - lastActivity) > (uint32_t)cf.dimAfter * 1000UL;
+      setTurned(cf.rotate);
       setBacklight(dimmed ? (cf.dimLevel < cf.brightness ? cf.dimLevel : cf.brightness) : cf.brightness);
 
       // The logo stays until the stove has told its state (at most WAIT_MS after start: a bridge with no stove shows its
@@ -425,6 +475,7 @@ private:
   SPIClass spi_{FSPI};
   uint16_t* fb_ = nullptr;                                  // allocated when the display starts: a board without one pays nothing
   TaskHandle_t task_ = nullptr;
+  bool turned_ = false;                                     // the panel scans for the 180 degrees picture
   uint8_t pct_ = 255;                                       // backlight now, percent (255 = not set yet)
   portMUX_TYPE mux_ = portMUX_INITIALIZER_UNLOCKED;
   DisplaySnapshot snap_;

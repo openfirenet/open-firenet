@@ -48,6 +48,22 @@ int main() {
     CH("backlight settings survive storage", r.brightness == 80 && !r.dim && r.dimAfter == 300 && r.dimLevel == 0);
     DisplayConfig o; o.fromPrefs("ip:1,wifi:0;6");
     CH("an older stored text keeps the backlight defaults", o.seconds == 6 && o.brightness == 50 && !o.dim && o.dimAfter == 120);
+    DisplayConfig ro;
+    CH("rotation is off by default and can be turned on", !ro.rotate && ro.apply("{\"rotate\":true}") && ro.rotate && ro.json(true).find("\"rotate\":true") != std::string::npos);
+    DisplayConfig ro2; ro2.fromPrefs(ro.toPrefs());
+    CH("rotation survives storage", ro2.rotate);
+    CH("a bad rotate value is refused and changes nothing", !ro.apply("{\"rotate\":maybe}") && ro.rotate);
+    CH("rotating off again", ro.apply("{\"rotate\":false}") && !ro.rotate);
+    DisplayConfig ro3; ro3.fromPrefs("ip:1;4;50;0;120;10");
+    CH("an older stored text is not rotated", !ro3.rotate);
+    DisplayConfig lg;
+    CH("no language chosen at first", lg.language == 0 && lg.json(true).find("\"language\":\"\"") != std::string::npos);
+    CH("a language is taken", lg.apply("{\"language\":\"fr\"}") && lg.language == 2 && lg.json(true).find("\"language\":\"fr\"") != std::string::npos);
+    CH("an unknown language is refused and changes nothing", !lg.apply("{\"language\":\"xx\"}") && !lg.apply("{\"language\":fr}") && lg.language == 2);
+    DisplayConfig lg2; lg2.fromPrefs(lg.toPrefs());
+    CH("the language survives storage", lg2.language == 2);
+    DisplayConfig lg3; lg3.fromPrefs("ip:1;4;50;0;120;10;1");
+    CH("an older stored text has no language", lg3.language == 0 && lg3.rotate);
     CH("json carries the backlight", b.json(true).find("\"brightness\":80,\"dim\":false,\"dim_after\":300,\"dim_level\":0") != std::string::npos);
   }
 
