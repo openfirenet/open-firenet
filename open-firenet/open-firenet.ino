@@ -1590,6 +1590,9 @@ void setup() {
       logEntry("drop", f);
       return;
     }
+    // While the numeric link of firmware 2.25 is active, the text link only sees its answers as noise; the "v0 rx" lines
+    // already hold every change, and the raw ones used to push the start of the session out of the small log ring.
+    if (g_v0 && g_v0->engaged() && strcmp(dir, "rx") == 0) return;
     std::string safe = firenet::sanitizeForLog(f);
     DBG.printf("[%s %u] ", dir, (unsigned)safe.size());
     for (char c : safe) { if (c=='\n') DBG.print("\\n"); else if (c=='\r') DBG.print("\\r");
