@@ -95,6 +95,7 @@ int main() {
     CH("main and sub state", v0map::apply(m, 27, "2", 7) && v0map::apply(m, 28, "9", 8) && m.sensors["mainState"] == 2 && m.sensors["subState"] == 9 && m.main_state == 2 && m.sub_state == 9);
     CH("pressure switch and unidentified inputs", v0map::apply(m, 12, "1", 9) && m.sensors["pressureSwitch"] == 1 && v0map::apply(m, 16, "1", 9) && m.sensors["in016"] == 1);
     CH("settings go to the controls", v0map::apply(m, 26, "21", 10) && m.controls["roomTarget"] == 210 && v0map::apply(m, 24, "2", 10) && m.controls["mode"] == 2);
+    CH("frost protection and set back", v0map::apply(m, 88, "1", 10) && m.controls["frostProtectionActive"] == 1 && v0map::apply(m, 89, "5", 10) && m.controls["frostProtectionTemp"] == 50 && v0map::apply(m, 81, "17", 10) && m.controls["setBackTemp"] == 170);
     CH("text and unknown codes are not stored", !v0map::apply(m, 901, "SUMO", 11) && !v0map::apply(m, 6, "0", 11) && m.sensors.count("in006") == 0);
     CH("negative values parse", v0map::apply(m, 7, "-3", 12) && m.sensors["idFanMeas"] == -3);
     CH("the text link stays not acknowledged", !m.version_ack && !m.controls_synced);

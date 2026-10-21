@@ -45,8 +45,11 @@ inline const char* sensorName(int code) {
   return nullptr;
 }
 
-// Settings read back from the stove's configuration (names by comparison with the other firmware versions, NOT confirmed yet by a
-// reading on a stove): 023 on / off, 024 mode, 025 power stage, 026 room set point (whole degrees), 081 reduced set point.
+// Settings read back from the stove's configuration. Confirmed against the stove display and the code of firmware 2.25 (issue #110):
+// 024 mode (0 manual, 1 automatic, 2 comfort), 026 room set point of the comfort mode, 081 reduced set point (the stove keeps it at least
+// 2 degrees under 026, code at 0x80034e5e), 088 / 089 frost protection on / switch-on temperature (whole degrees).
+// By comparison with the other firmware versions, not read on a stove yet: 023 on / off, 025 power stage.
+// 091 (room sensor offset) and 092 (power level of the comfort mode, 1 to 4) are not mapped: their unit is not known.
 inline const char* controlName(int code) {
   switch (code) {
     case 23: return "onOff";
@@ -54,12 +57,14 @@ inline const char* controlName(int code) {
     case 25: return "targetStage";
     case 26: return "roomTarget";
     case 81: return "setBackTemp";
+    case 88: return "frostProtectionActive";
+    case 89: return "frostProtectionTemp";
   }
   return nullptr;
 }
 
 // Temperatures of the other firmware versions are in tenths of a degree for the room, the stove of 2.25 gives whole degrees.
-inline long scaled(int code, long v) { return (code == 0 || code == 26 || code == 81) ? v * 10 : v; }
+inline long scaled(int code, long v) { return (code == 0 || code == 26 || code == 81 || code == 89) ? v * 10 : v; }
 
 // Returns true when the value was stored. Marks the stove as reachable through the numeric link.
 inline bool apply(StoveModel& m, int code, const std::string& text, uint32_t now) {
