@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.7.0 (2026-10-21)
 
 ### New
 - Bridge > System: choose the size of the history of the exchanges with the stove, 16 kB (new default) or 32 kB. 16 kB leaves 16 kB more memory free, which matters on the LilyGO T-Dongle-S3 with its screen; 32 kB keeps twice as much history when you look for a problem. Applied at the next restart.
