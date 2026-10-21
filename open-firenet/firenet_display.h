@@ -63,6 +63,14 @@ public:
     xTaskCreatePinnedToCore(&Display::run, "fn_display", 6144, this, 1, &task_, 0);
   }
 
+  // Stops the drawing task and gives its memory back (the picture stays on the panel); start() brings it back. The update needs
+  // that memory: with the screen running, a download ran the bridge out of heap.
+  void stop() {
+    if (!task_) return;
+    stopReq_ = true;
+    for (int i = 0; i < 200 && task_; i++) delay(10);
+  }
+
   // For a board with a screen the owner does not want lit: the backlight off and the panel asleep, nothing else. Without this the
   // panel stays lit and grey, since nothing tells it otherwise.
   void blank() {
@@ -420,6 +428,7 @@ private:
     uint8_t seenBright = 0; bool seenDim = false; uint16_t seenAfter = 0;
     char seenState[20] = "";
     for (;;) {
+      if (stopReq_) { stopReq_ = false; free(fb_); fb_ = nullptr; task_ = nullptr; vTaskDelete(nullptr); }
       uint32_t now = millis();
       float t = (now % PERIOD_MS) / (float)PERIOD_MS;
       DisplaySnapshot s;
@@ -475,6 +484,7 @@ private:
   SPIClass spi_{FSPI};
   uint16_t* fb_ = nullptr;                                  // allocated when the display starts: a board without one pays nothing
   TaskHandle_t task_ = nullptr;
+  volatile bool stopReq_ = false;
   bool turned_ = false;                                     // the panel scans for the 180 degrees picture
   uint8_t pct_ = 255;                                       // backlight now, percent (255 = not set yet)
   portMUX_TYPE mux_ = portMUX_INITIALIZER_UNLOCKED;

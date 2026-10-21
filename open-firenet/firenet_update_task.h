@@ -42,6 +42,9 @@ public:
     mx_ = xSemaphoreCreateMutex();
   }
 
+  // Called before a download and after a failed one: the caller frees memory the download needs, then takes it back.
+  void setMemoryHooks(std::function<void()> release, std::function<void()> restore) { release_ = release; restore_ = restore; }
+
   void begin() {
     Preferences p; p.begin("firenet", true);
     autoCheck_ = p.getBool("upd_auto", false);
@@ -172,6 +175,13 @@ private:
     std::string hash; lock(); hash = hash_; unlock();
     if (hash.empty() || !upd::stoveAllowsUpdate(stoveState_())) { set(State::Error, "not allowed"); return; }
     set(State::Downloading, std::string(), 0);
+    if (release_) release_();
+    bool installed = false;
+    downloadAndInstall(hash, installed);
+    if (!installed && restore_) restore_();
+  }
+
+  void downloadAndInstall(const std::string& hash, bool& installed) {
     NetworkClientSecure c; tlsSetup(c);
     HTTPClient h;
     h.setConnectTimeout(HTTP_TIMEOUT_MS); h.setTimeout(HTTP_TIMEOUT_MS);
@@ -202,6 +212,7 @@ private:
       mbedtls_sha256_update(&sha, buf, n);
       got += n;
       set(State::Downloading, std::string(), (int)((int64_t)got * 100 / total));
+      delay(1);   // let the idle task run: a download that never waits starved it and the watchdog restarted the bridge
     }
     h.end();
     set(State::Verifying, std::string(), 100);
@@ -210,6 +221,7 @@ private:
     if (hash != hex) { Update.abort(); set(State::Error, "hash mismatch"); return; }   // nothing was activated
     set(State::Installing, std::string(), 100);
     if (!Update.end(true)) { set(State::Error, "end"); return; }   // activates the new image
+    installed = true;
     set(State::Restarting, std::string(), 100);
     if (beforeRestart_) beforeRestart_();
     delay(500);
@@ -225,7 +237,7 @@ private:
 
   std::string current_, latest_, error_, hash_;
   std::function<std::string()> stoveState_;
-  std::function<void()> beforeRestart_;
+  std::function<void()> beforeRestart_, release_, restore_;
   SemaphoreHandle_t mx_;
   State state_ = State::Idle;
   Job job_ = Job::Check;

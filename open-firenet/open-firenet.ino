@@ -1825,6 +1825,7 @@ void setup() {
   ArduinoOTA.onEnd([]() { noteRestart(NOTE_UPDATE); });   // the update library restarts the chip by itself
   ArduinoOTA.begin();
   g_updater = new firenet::Updater(OPENFIRENET_VERSION, stoveStateName, []() { noteRestart(NOTE_UPDATE); });
+  g_updater->setMemoryHooks([]() { if (g_dispActive) g_display.stop(); }, []() { if (g_dispActive) g_display.start(); });
   g_updater->begin();
 
   if (MDNS.begin("open-firenet")) {
