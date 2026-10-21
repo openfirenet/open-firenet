@@ -364,6 +364,37 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/WifiPowerSaving" }
+  /api/log_size:
+    get:
+      tags: [Bridge]
+      summary: Size of the history of the exchanges with the stove
+      description: "The bridge keeps the latest messages exchanged with the stove (`/api/log`, diagnostic file). 16 kB by default; 32 kB keeps twice as much history and uses 16 kB more memory."
+      responses:
+        "200":
+          description: The setting
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogSize" }
+    post:
+      tags: [Bridge]
+      summary: Choose the size of the history
+      description: Saved; applied at the next restart (`restart_needed` tells).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kb: { type: integer, enum: [16, 32] }
+      responses:
+        "200":
+          description: The setting as saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogSize" }
+        "400":
+          description: "`kb` is neither 16 nor 32"
   /api/restart:
     post:
       tags: [Bridge]
@@ -500,6 +531,14 @@ components:
       properties:
         ok: { type: boolean }
         enabled: { type: boolean }
+    LogSize:
+      type: object
+      properties:
+        ok: { type: boolean }
+        kb: { type: integer, description: "The stored choice, in kB" }
+        running_kb: { type: integer, description: "The size in use since the last restart, in kB" }
+        options: { type: array, items: { type: integer } }
+        restart_needed: { type: boolean, description: "The stored choice is not the one in use" }
     Access:
       type: object
       properties:
