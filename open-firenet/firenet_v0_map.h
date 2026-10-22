@@ -48,8 +48,11 @@ inline const char* sensorName(int code) {
 // Settings read back from the stove's configuration. Confirmed against the stove display and the code of firmware 2.25 (issue #110):
 // 024 mode (0 manual, 1 automatic, 2 comfort), 026 room set point of the comfort mode, 081 reduced set point (the stove keeps it at least
 // 2 degrees under 026, code at 0x80034e5e), 088 / 089 frost protection on / switch-on temperature (whole degrees).
-// By comparison with the other firmware versions, not read on a stove yet: 023 on / off, 025 power stage.
-// 091 (room sensor offset) and 092 (power level of the comfort mode, 1 to 4) are not mapped: their unit is not known.
+// 023 on / off (0 to 1 when the stove was started) and 025 power in percent of the manual mode (60 to 50 when reset) were seen changing
+// with the user's actions in the log of issue #110. 092 is the power level of the comfort mode, 1 to 4 (3 to 2 seen at the time of the
+// change on the display); it is not mapped. 091 (room sensor offset, "Temperaturanpassung") was read only as 0; the room temperature 000
+// went 17, 18, 17 within 15 s of the time the offset was set to +1.0 and back, and the function at 0x800256f4 returns a signed byte
+// divided by 10, so it is probably in tenths of a degree. Not mapped until it is read at a value other than 0.
 inline const char* controlName(int code) {
   switch (code) {
     case 23: return "onOff";
