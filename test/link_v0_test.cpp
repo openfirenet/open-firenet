@@ -65,8 +65,8 @@ int main() {
   }
   for (int b : std::initializer_list<int>{0x02, '2', '1', '5', 0x03}) p.onByte((uint8_t)b);
   CH("reply is logged", p.replies() == 1 && !log.empty() && log.back() == "v0 rx:038=215");
-  // the sent bytes never contain '=' (no write frame can be built)
-  CH("never a write frame", wire.find('=') == std::string::npos);
+  // nothing was asked to be written: the sent bytes never contain '='
+  CH("no write frame unless asked", wire.find('=') == std::string::npos);
   // same value again: not logged twice; a new value is
   size_t nlog = log.size();
   for (int b : std::initializer_list<int>{0x02, '2', '1', '5', 0x03}) p.onByte((uint8_t)b);
@@ -108,6 +108,48 @@ int main() {
     c2 += LinkV0Probe::READ_GAP_MS; pr.poll(false);
     for (int b : std::initializer_list<int>{0x02, '1', '2', 0x03}) pr.onByte((uint8_t)b);
     CH("a reply is delivered with the code that was asked", got.size() == 1 && got[0].first == 27 && got[0].second == "12");
+  }
+
+  // writes: only the allowed codes and values are ever built
+  {
+    CH("write frame 026", v0::writeFrame(26, 21) == std::string("\x02" "026=21" "\x03", 8));
+    CH("write frame 025", v0::writeFrame(25, 50) == std::string("\x02" "025=50" "\x03", 8));
+    CH("write frame 024", v0::writeFrame(24, 2) == std::string("\x02" "024=2" "\x03", 7));
+    CH("write frame 023 stop", v0::writeFrame(23, 0) == std::string("\x02" "023=0" "\x03", 7));
+    CH("no start frame", v0::writeFrame(23, 1).empty() && v0::writeFrame(23, 255).empty());
+    CH("power only 30..100 in steps of 5", v0::writeFrame(25, 25).empty() && v0::writeFrame(25, 105).empty() && v0::writeFrame(25, 53).empty() && !v0::writeFrame(25, 30).empty() && !v0::writeFrame(25, 100).empty());
+    CH("mode only 0..2", v0::writeFrame(24, 3).empty() && v0::writeFrame(24, -1).empty());
+    CH("set point only 14..28", v0::writeFrame(26, 13).empty() && v0::writeFrame(26, 29).empty() && !v0::writeFrame(26, 14).empty() && !v0::writeFrame(26, 28).empty());
+    CH("dangerous and other codes are never built", v0::writeFrame(27, 1).empty() && v0::writeFrame(28, 1).empty() && v0::writeFrame(81, 17).empty() && v0::writeFrame(91, 1).empty() && v0::writeFrame(900, 1).empty() && v0::writeFrame(-1, 1).empty());
+
+    std::string w; uint32_t c = 1000; LinkV0Probe pw([&](const uint8_t* b, size_t n) { w.append((const char*)b, n); }, [&]() { return c; });
+    std::vector<std::string> lg; pw.onDebug([&](const char* d, const std::string& f) { lg.push_back(std::string(d) + ":" + f); });
+    CH("no write before the link is up", !pw.requestWrite(26, 21));
+    pw.onByte(0x16); c += LinkV0Probe::ENGAGE_MS; pw.poll(false);
+    CH("no write before the stove answered", !pw.requestWrite(26, 21));
+    c += LinkV0Probe::READ_GAP_MS; pw.poll(false);
+    for (int b : std::initializer_list<int>{0x02, '1', '2', 0x03}) pw.onByte((uint8_t)b);
+    CH("a refused value is not queued", !pw.requestWrite(25, 53) && !pw.requestWrite(23, 1));
+    CH("an allowed value is queued", pw.requestWrite(26, 21));
+    w.clear();
+    c += LinkV0Probe::READ_GAP_MS; pw.poll(false);
+    CH("the write is sent first", w == v0::writeFrame(26, 21));
+    CH("the write is logged", !lg.empty() && lg.back() == "v0 write:02 30 32 36 3D 32 31 03 ");
+    w.clear();
+    c += LinkV0Probe::READ_GAP_MS; pw.poll(false);
+    CH("then the same code is read back", w == v0::readFrame(26));
+    for (int b : std::initializer_list<int>{0x02, '2', '1', 0x03}) pw.onByte((uint8_t)b);
+    CH("the read back is logged", lg.back() == "v0 rx:026=21");
+    for (int b : std::initializer_list<int>{0x02, '2', '1', 0x03}) pw.onByte((uint8_t)b);
+    size_t before = lg.size();
+    for (int b : std::initializer_list<int>{0x02, '2', '1', 0x03}) pw.onByte((uint8_t)b);
+    CH("an unchanged value is still not logged twice", lg.size() == before);
+    // a new 0x16 (USB reconnected) drops what was waiting
+    CH("queue accepts several", pw.requestWrite(25, 60) && pw.requestWrite(24, 0));
+    pw.onByte(0x16);
+    w.clear(); c += LinkV0Probe::ENGAGE_MS; pw.poll(false);
+    c += LinkV0Probe::READ_GAP_MS; pw.poll(false);
+    CH("pending writes are dropped on reconnection", w.find('=') == std::string::npos);
   }
 
   std::cout << "link_v0_test: " << ok << " ok, " << ko << " ko\n";

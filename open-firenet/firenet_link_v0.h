@@ -5,14 +5,17 @@
 //  - its frame decoder (fn 0x80034c34) collects bytes between STX (0x02) and ETX (0x03) while its receive state is 1
 //    (probe sent) or 2 (an ACK 0x06 was seen); a frame of 3 bytes "NNN" is a READ, "NNN=value" is a WRITE;
 //  - it answers STX digits ETX (value), ACK 0x06 or NAK 0x15.
-// The meaning of the codes is NOT known (unverified labels only), so this class only reads codes and logs
-// the replies. It has no way to build a write frame on purpose.
+// The class reads codes and logs the replies. The only frames it can write are those of v0::writeFrame(): stop, mode,
+// manual power and room set point, each within the range of the stove display (nothing was sent to a stove yet).
+// The stove answers a write with nothing at all (not even an ACK / NAK, fn 0x80034c34 only empties its buffer after
+// fn 0x80034d80), so every write is followed by a read of the same code, which is the only confirmation.
 #pragma once
 #include <cstdint>
 #include <cstdio>
 #include <map>
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace firenet {
 
@@ -25,6 +28,28 @@ inline std::string readFrame(int code) {
   char b[8];
   snprintf(b, sizeof b, "%c%03d%c", (char)STX, code, (char)ETX);
   return std::string(b, 5);
+}
+
+// "STX NNN=value ETX": write of one setting. Only these codes are ever built, each with the values the stove display
+// allows (the stove itself checks almost nothing: 025 takes 0..255, 026 and 081 only keep each other 2 degrees apart):
+//   023 on / off:  0 only (stop). A start is not built: the start path of the stove does not look at its error word
+//                  (0x3594+4), so the bridge does not send it until that is known.
+//   024 mode:      0 manual, 1 automatic, 2 comfort (the stove itself refuses more than 2).
+//   025 power:     30..100 percent in steps of 5 (manual mode).
+//   026 set point: whole degrees, 14..28 (comfort mode), the range of the page and of /api/controls for the other firmware versions.
+// Returns an empty string for any other code or value.
+inline std::string writeFrame(int code, long value) {
+  bool ok = false;
+  switch (code) {
+    case 23: ok = (value == 0); break;
+    case 24: ok = (value >= 0 && value <= 2); break;
+    case 25: ok = (value >= 30 && value <= 100 && value % 5 == 0); break;
+    case 26: ok = (value >= 14 && value <= 28); break;
+  }
+  if (!ok) return std::string();
+  char b[16];
+  int n = snprintf(b, sizeof b, "%c%03d=%ld%c", (char)STX, code, value, (char)ETX);
+  return std::string(b, (size_t)n);
 }
 
 // Splits what the stove sends into ACK / NAK / STX..ETX frames. Bytes outside a frame are ignored.
@@ -91,12 +116,22 @@ public:
 
   // Every byte from the stove, before or after the text link has seen it.
   void onByte(uint8_t b) {
-    if (b == v0::SYN) { if (!syn_seen_) { syn_seen_ = true; first_syn_ms_ = now_(); } started_ = false; steps_ = 0; engaged_ = false; return; }
+    if (b == v0::SYN) { if (!syn_seen_) { syn_seen_ = true; first_syn_ms_ = now_(); } started_ = false; steps_ = 0; engaged_ = false; pending_.clear(); readback_ = -1; return; }
     if (engaged_) dec_.feed(b);
   }
   // True while the text link must stay quiet so that its frames do not mix with ours.
   bool engaged() const { return engaged_; }
   uint32_t replies() const { return replies_; }
+
+  // Queues one write (see v0::writeFrame). False when the code or value is not allowed, or when the link is not up:
+  // the stove must have answered at least one read, so that the ACK that its receiver needs has been seen.
+  bool requestWrite(int code, long value) {
+    if (!engaged_ || replies_ == 0 || pending_.size() >= MAX_PENDING) return false;
+    std::string f = v0::writeFrame(code, value);
+    if (f.empty()) return false;
+    pending_.push_back({code, f});
+    return true;
+  }
 
   // textAcked: the usual dialect got its version acknowledged (then this class stays out of the way).
   void poll(bool textAcked) {
@@ -112,9 +147,20 @@ public:
     if (steps_ >= CYCLE_STEPS * ROUNDS && replies_ == 0) { engaged_ = false; syn_seen_ = false; return; }
     if ((now - last_ms_) >= READ_GAP_MS) {
       last_ms_ = now;
-      last_code_ = codeAt(steps_);
-      send(v0::readFrame(last_code_), "read", false);
-      steps_++;
+      if (readback_ >= 0) {
+        // The read that follows a write: the answer is logged even when the value did not change.
+        last_code_ = readback_; readback_ = -1;
+        last_.erase(last_code_);
+        send(v0::readFrame(last_code_), "read", false);
+      } else if (!pending_.empty()) {
+        Pending w = pending_.front(); pending_.erase(pending_.begin());
+        send(w.frame, "write");
+        readback_ = w.code;
+      } else {
+        last_code_ = codeAt(steps_);
+        send(v0::readFrame(last_code_), "read", false);
+        steps_++;
+      }
     }
   }
 
@@ -145,6 +191,10 @@ private:
     for (unsigned char c : s) { snprintf(t, sizeof t, "%02X ", c); o += t; }
     return o;
   }
+  struct Pending { int code; std::string frame; };
+  static constexpr size_t MAX_PENDING = 8;
+  std::vector<Pending> pending_;
+  int readback_ = -1;
   TxFn tx_; NowFn now_; DbgFn dbg_; ValFn val_;
   v0::Decoder dec_;
   bool syn_seen_ = false, started_ = false, engaged_ = false;

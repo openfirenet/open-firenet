@@ -968,6 +968,24 @@ static void handleAccess() {
 // MQTT. The base settings it ends up sending are returned for the answer.
 static AppliedControls applyControlPairs(const std::vector<std::pair<std::string, std::string>>& pairs) {
   const auto& m = g_link->model();
+  if (m.v0_linked && g_v0) {
+    // Stove on firmware 2.25 (numeric link): only stop, mode, manual power and room set point are written, each one
+    // alone and read back by the link (firenet_link_v0.h). A start is refused. Whatever else was commanded is ignored.
+    const auto cmd = firenet::parseControlCommands(pairs);
+    bool queued = false;
+    auto put = [&](int code, long value, const char* name) {
+      if (g_v0->requestWrite(code, value)) { queued = true; DBG.printf("[v0] write queued: %s -> %03d=%ld\n", name, code, value); }
+      else DBG.printf("[v0] write refused: %s = %ld\n", name, value);
+    };
+    for (const auto& kv : cmd) {
+      if (kv.first == "onOff") { if (kv.second == 0) put(23, 0, "onOff"); else DBG.println("[v0] start refused: not supported on firmware 2.25"); }
+      else if (kv.first == "mode") put(24, kv.second, "mode");
+      else if (kv.first == "targetStage") put(25, kv.second, "targetStage");
+      else if (kv.first == "roomTarget") put(26, (kv.second + 5) / 10, "roomTarget");   // tenths of a degree -> whole degrees
+      else DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
+    }
+    return {controlValue(m, "onOff", 0), controlValue(m, "mode", 2), controlValue(m, "targetStage", 70), controlValue(m, "roomTarget", 200), queued};
+  }
   // A command is the stove's current settings plus the commanded ones: nothing is sent before the stove has posted
   // its settings under their names (a few seconds after the link comes up), see Model::controls_synced.
   if (!m.version_ack || !m.controls_synced) return {0, 0, 0, 0, false};
@@ -1066,6 +1084,10 @@ static void handleApiControls() {
   }
   if (web.hasArg("name") && web.hasArg("value")) pairs.push_back({web.arg("name").c_str(), web.arg("value").c_str()});
   const AppliedControls r = applyControlPairs(pairs);
+  if (!r.sent && m.v0_linked) {
+    web.send(422, "application/json", "{\"ok\":false,\"error\":\"not_accepted\",\"message\":\"Nothing was sent. For a stove on firmware 2.25 the bridge accepts only stop (on=false), mode, power (30 to 100 in steps of 5) and target temperature (14 to 28).\"}");
+    return;
+  }
   if (!r.sent) {
     web.sendHeader("Retry-After", "5");
     web.send(503, "application/json", "{\"ok\":false,\"error\":\"stove_not_ready\",\"message\":\"The stove is not linked, or has not sent its settings yet. Nothing was sent; try again in a few seconds.\"}");
