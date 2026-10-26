@@ -117,7 +117,14 @@ int main() {
     CH("write frame 025", v0::writeFrame(25, 50) == std::string("\x02" "025=50" "\x03", 8));
     CH("write frame 024", v0::writeFrame(24, 2) == std::string("\x02" "024=2" "\x03", 7));
     CH("write frame 023 stop", v0::writeFrame(23, 0) == std::string("\x02" "023=0" "\x03", 7));
-    CH("no start frame", v0::writeFrame(23, 1).empty() && v0::writeFrame(23, 255).empty());
+    CH("start frame 023=1, but no other value", v0::writeFrame(23, 1) == std::string("\x02" "023=1" "\x03", 7) && v0::writeFrame(23, 2).empty() && v0::writeFrame(23, 255).empty());
+    CH("a start is allowed only on a cold, idle stove without error",
+       v0::startAllowed(0, 1, 0, 20, 0) && v0::startAllowed(0, 11, 1, 20, 0) &&
+       !v0::startAllowed(1, 1, 0, 20, 0) &&        // an error
+       !v0::startAllowed(0, 2, 2, 20, 0) && !v0::startAllowed(0, 4, 1, 200, 0) && !v0::startAllowed(0, 6, 1, 20, 0) &&   // not off or waiting
+       !v0::startAllowed(0, 1, 2, 20, 0) &&        // sub state above 1
+       !v0::startAllowed(0, 1, 0, 100, 0) && !v0::startAllowed(0, 1, 0, 300, 0) &&   // not cold
+       !v0::startAllowed(0, 1, 0, 20, 1));         // already on
     CH("power only 30..100 in steps of 5", v0::writeFrame(25, 25).empty() && v0::writeFrame(25, 105).empty() && v0::writeFrame(25, 53).empty() && !v0::writeFrame(25, 30).empty() && !v0::writeFrame(25, 100).empty());
     CH("mode only 0..2", v0::writeFrame(24, 3).empty() && v0::writeFrame(24, -1).empty());
     CH("set point only 14..28", v0::writeFrame(26, 13).empty() && v0::writeFrame(26, 29).empty() && !v0::writeFrame(26, 14).empty() && !v0::writeFrame(26, 28).empty());
@@ -135,7 +142,7 @@ int main() {
     CH("no write before the stove answered", !pw.requestWrite(26, 21));
     c += LinkV0Probe::READ_GAP_MS; pw.poll(false);
     for (int b : std::initializer_list<int>{0x02, '1', '2', 0x03}) pw.onByte((uint8_t)b);
-    CH("a refused value is not queued", !pw.requestWrite(25, 53) && !pw.requestWrite(23, 1));
+    CH("a refused value is not queued", !pw.requestWrite(25, 53) && !pw.requestWrite(23, 2));
     CH("an allowed value is queued", pw.requestWrite(26, 21));
     w.clear();
     c += LinkV0Probe::READ_GAP_MS; pw.poll(false);

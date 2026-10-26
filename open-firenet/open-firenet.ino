@@ -1140,7 +1140,7 @@ static void handleAccess() {
 static AppliedControls applyControlPairs(const std::vector<std::pair<std::string, std::string>>& pairs) {
   const auto& m = g_link->model();
   if (m.v0_linked && g_v0) {
-    // Stove on firmware 2.25 (numeric link): only stop, mode, manual power, the set points, the frost protection and the comfort power level are written, each one
+    // Stove on firmware 2.25 (numeric link): start (only when the stove is off, cold and without error), stop, mode, manual power, the set points, the frost protection and the comfort power level are written, each one
     // alone and read back by the link (firenet_link_v0.h). A start is refused. Whatever else was commanded is ignored.
     const auto cmd = firenet::parseControlCommands(pairs);
     bool queued = false;
@@ -1149,7 +1149,12 @@ static AppliedControls applyControlPairs(const std::vector<std::pair<std::string
       else DBG.printf("[v0] write refused: %s = %ld\n", name, value);
     };
     for (const auto& kv : cmd) {
-      if (kv.first == "onOff") { if (kv.second == 0) put(23, 0, "onOff"); else DBG.println("[v0] start refused: not supported on firmware 2.25"); }
+      if (kv.first == "onOff") {
+        if (kv.second == 0) put(23, 0, "onOff");
+        else if (firenet::v0::startAllowed(sensorValue(m, "errMask32", 1), sensorValue(m, "mainState", 0), sensorValue(m, "subState", 99),
+                                           sensorValue(m, "flame", 1000), controlValue(m, "onOff", 1))) put(23, 1, "onOff");
+        else DBG.println("[v0] start refused: the stove has an error, is not off or waiting, is not cold, or is already on");
+      }
       else if (kv.first == "mode") put(24, kv.second, "mode");
       else if (kv.first == "targetStage") put(25, kv.second, "targetStage");
       else if (kv.first == "roomTarget") put(26, (kv.second + 5) / 10, "roomTarget");   // tenths of a degree -> whole degrees
@@ -1260,7 +1265,7 @@ static void handleApiControls() {
   if (web.hasArg("name") && web.hasArg("value")) pairs.push_back({web.arg("name").c_str(), web.arg("value").c_str()});
   const AppliedControls r = applyControlPairs(pairs);
   if (!r.sent && m.v0_linked) {
-    web.send(422, "application/json", "{\"ok\":false,\"error\":\"not_accepted\",\"message\":\"Nothing was sent. For a stove on firmware 2.25 the bridge accepts only stop (on=false), mode, power (30 to 100 in steps of 5), target and reduced temperature, frost protection and comfort power level.\"}");
+    web.send(422, "application/json", "{\"ok\":false,\"error\":\"not_accepted\",\"message\":\"Nothing was sent. For a stove on firmware 2.25 the bridge accepts only start (when the stove is off, cold and without error) and stop, mode, power (30 to 100 in steps of 5), target and reduced temperature, frost protection and comfort power level.\"}");
     return;
   }
   if (!r.sent) {

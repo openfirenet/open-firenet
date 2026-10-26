@@ -30,10 +30,19 @@ inline std::string readFrame(int code) {
   return std::string(b, 5);
 }
 
+// Whether a start (023=1) may be sent: the stove is off or waiting (main state 1, or 11 as the stove's own start code accepts), with no
+// error, a cold flame sensor (the stove itself refuses an ignition above 139 degrees, 0x80023022) and its "on" flag not set yet.
+// The numbers are those of the values the bridge has read back from the stove.
+inline bool startAllowed(long errMask, long mainState, long subState, long flameTemp, long onOff) {
+  return errMask == 0 && (mainState == 1 || mainState == 11) && subState <= 1 && flameTemp < 100 && onOff == 0;
+}
+
 // "STX NNN=value ETX": write of one setting. Only these codes are ever built, each with the values the stove display
 // allows (the stove itself checks almost nothing: 025 takes 0..255, 026 and 081 only keep each other 2 degrees apart):
-//   023 on / off:  0 only (stop). A start is not built: the start path of the stove does not look at its error word
-//                  (0x3594+4), so the bridge does not send it until that is known.
+//   023 on / off:  0 (stop) or 1 (start). The start path of the stove (fn 0x80024488) does not look at its error word
+//                  (0x3594+4) and sets the "on" flag before anything is checked, so a start is only sent when
+//                  startAllowed() says the stove is cold, idle and without error. With an error the stove clears the flag
+//                  at once and goes to burn-off (state 6, fn 0x800240cc, 0x800240e4 and 0x80024238), so a start made then does nothing.
 //   024 mode:      0 manual, 1 automatic, 2 comfort (the stove itself refuses more than 2).
 //   025 power:     30..100 percent in steps of 5 (manual mode).
 //   026 set point: whole degrees, 14..28 (comfort mode), the range of the page and of /api/controls for the other firmware versions.
@@ -47,7 +56,7 @@ inline std::string readFrame(int code) {
 inline std::string writeFrame(int code, long value) {
   bool ok = false;
   switch (code) {
-    case 23: ok = (value == 0); break;
+    case 23: ok = (value == 0 || value == 1); break;
     case 24: ok = (value >= 0 && value <= 2); break;
     case 25: ok = (value >= 30 && value <= 100 && value % 5 == 0); break;
     case 26: ok = (value >= 14 && value <= 28); break;
