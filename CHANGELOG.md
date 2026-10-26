@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Fixes
+- A bridge that runs out of memory while publishing to MQTT no longer restarts: it skips that publication and tries again a second later. (#121)
+
 ## v4.8.0 (2026-10-26)
 
 ### New

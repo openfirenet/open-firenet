@@ -17,6 +17,7 @@ inline void flattenSections(const std::string& json, std::vector<std::pair<std::
     v = json.substr(p + 1, e - p - 1); p = e + 1; return true;
   };
   std::string section;
+  out.reserve(out.size() + 160);                          // one allocation instead of a dozen regrowths
   int depth = 0;
   size_t p = 0;
   while (p < json.size()) {

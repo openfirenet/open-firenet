@@ -1632,7 +1632,11 @@ static void mqttLoop() {
     else if (!g_mqttDiscRemove) g_mqttDiscNext = SIZE_MAX;
   }
   static uint32_t lastPublish = 0;
-  if (g_mqttConnected && millis() - lastPublish >= 1000) { lastPublish = millis(); mqttPublish(); }
+  if (g_mqttConnected && millis() - lastPublish >= 1000) {
+    lastPublish = millis();
+    // A failed allocation here must not abort the firmware: skip this pass, the next one is a second later.
+    try { mqttPublish(); } catch (const std::bad_alloc&) { DBG.println("[mqtt] out of memory, publish skipped"); }
+  }
 }
 
 static String jsonEscape(const String& in) {
