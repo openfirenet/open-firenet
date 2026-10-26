@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.8.1 (2026-10-26)
 
 ### Fixes
 - Checking for a firmware update no longer fails with "download: net connection refused" on a bridge with the screen when MQTT is on: the screen is switched off for the few seconds of the check, which frees the memory the secure connection to GitHub needs. (#125)
