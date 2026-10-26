@@ -367,6 +367,8 @@ Since firmware 4.0 the bridge answers its own page and programs on your network 
     "board_temperature": 28.0,
     "pellets_total_kg": 7065,
     "pellet_hours": 4354,
+    "log_runtime": 0,
+    "log_runtime_hours": 0,
     "service_countdown_kg": 699,
     "fan_speed_rpm": 0,
     "auger_speed_rpm": 0,

@@ -274,6 +274,7 @@ static String jsonStoveSections() {
   long sState   = sensorValue(m, "subState", 0);
   long pTotal   = sensorValue(m, "pelletsTotal", 0);
   long pHours   = sensorValue(m, "pelletHours", 0);
+  long logMin   = sensorValue(m, "logRuntime", 0);   // minutes, unlike pelletHours (a combined stove reports both; others send 0)
   long sCount   = sensorValue(m, "serviceCountdown", 700);
   long idFan    = sensorValue(m, "idFanMeas", 0);
   long auger    = sensorValue(m, "augerSet", 0);
@@ -379,6 +380,8 @@ static String jsonStoveSections() {
       "\"board_temperature\":%.1f,"
       "\"pellets_total_kg\":%ld,"
       "\"pellet_hours\":%ld,"
+      "\"log_runtime\":%ld,"
+      "\"log_runtime_hours\":%ld,"
       "\"service_countdown_kg\":%ld,"
       "\"fan_speed_rpm\":%ld,"
       "\"auger_speed_rpm\":%ld,"
@@ -412,7 +415,7 @@ static String jsonStoveSections() {
     errMask != 0 ? "true" : "false",
     errMask, errSub, warnCode,
     modelS, modelNameS, brandS, mbVerS, buildS,
-    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, sCount, idFan, auger, powerNow,
+    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, logMin, logMin / 60, sCount, idFan, auger, powerNow,
     airFlapsS, airFlapsTgtS,
     (curOn == 1) ? "true" : "false",
     modeName, curMode, rTargetF, curStage,
@@ -705,6 +708,7 @@ static void updateDisplay() {
     if (m.sensors.count("serviceCountdown")) d.serviceKg = (int)sensorValue(m, "serviceCountdown", 0);
     // 0 hours is how a slow sensor group looks until the stove has sent it (seen after a restart of the bridge): not shown then.
     if (m.sensors.count("pelletHours") && sensorValue(m, "pelletHours", 0) > 0) d.hours = (int)sensorValue(m, "pelletHours", 0);
+    if (m.sensors.count("logRuntime") && sensorValue(m, "logRuntime", 0) > 0) d.logHours = (int)(sensorValue(m, "logRuntime", 0) / 60);
     d.errCode = sensorValue(m, "errMask32", 0);
     d.hopperOpen = m.sensors.count("hopperLidClosed") && sensorValue(m, "hopperLidClosed", 1) == 0;
   }
