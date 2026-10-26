@@ -26,6 +26,8 @@ int main() {
   CH("HA target temperature 21.5 °C -> 215", a.at("roomTarget") == 215);
   a = fromJson("{\"power_percent\": 65}");
   CH("HA power 65 %", a.at("targetStage") == 65);
+  a = fromJson("{\"roomSensorPower\": 3}");
+  CH("comfort power level 3", a.at("roomSensorPower") == 3);
   a = fromJson("{\"on\": true}");
   CH("HA on true", a.at("onOff") == 1);
   a = fromJson("{\"mode\": \"auto\"}");

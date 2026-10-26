@@ -50,9 +50,10 @@ inline const char* sensorName(int code) {
 // 2 degrees under 026, code at 0x80034e5e), 088 / 089 frost protection on / switch-on temperature (whole degrees).
 // 023 on / off (0 to 1 when the stove was started) and 025 power in percent of the manual mode (60 to 50 when reset) were seen changing
 // with the user's actions in the log of issue #110. 092 is the power level of the comfort mode, 1 to 4 (3 to 2 seen at the time of the
-// change on the display); it is not mapped. 091 (room sensor offset, "Temperaturanpassung") was read only as 0; the room temperature 000
+// change on the display); it is mapped to roomSensorPower (the official name of the record). 091 (room sensor offset, "Temperaturanpassung") was read only as 0; the room temperature 000
 // went 17, 18, 17 within 15 s of the time the offset was set to +1.0 and back, and the function at 0x800256f4 returns a signed byte
-// divided by 10, so it is probably in tenths of a degree. Not mapped until it is read at a value other than 0.
+// divided by 10, so it is probably in tenths of a degree: mapped to roomTempOffset (read only, never written), but still
+// only ever read as 0, so unproven.
 inline const char* controlName(int code) {
   switch (code) {
     case 23: return "onOff";
@@ -62,6 +63,8 @@ inline const char* controlName(int code) {
     case 81: return "setBackTemp";
     case 88: return "frostProtectionActive";
     case 89: return "frostProtectionTemp";
+    case 91: return "roomTempOffset";
+    case 92: return "roomSensorPower";
   }
   return nullptr;
 }

@@ -5,8 +5,8 @@
 //  - its frame decoder (fn 0x80034c34) collects bytes between STX (0x02) and ETX (0x03) while its receive state is 1
 //    (probe sent) or 2 (an ACK 0x06 was seen); a frame of 3 bytes "NNN" is a READ, "NNN=value" is a WRITE;
 //  - it answers STX digits ETX (value), ACK 0x06 or NAK 0x15.
-// The class reads codes and logs the replies. The only frames it can write are those of v0::writeFrame(): stop, mode,
-// manual power and room set point, each within the range of the stove display (nothing was sent to a stove yet).
+// The class reads codes and logs the replies. The only frames it can write are those of v0::writeFrame(): stop, mode, manual
+// power, set points, frost protection and comfort power level, each within the range of the stove display (nothing was sent to a stove yet).
 // The stove answers a write with nothing at all (not even an ACK / NAK, fn 0x80034c34 only empties its buffer after
 // fn 0x80034d80), so every write is followed by a read of the same code, which is the only confirmation.
 #pragma once
@@ -37,7 +37,13 @@ inline std::string readFrame(int code) {
 //   024 mode:      0 manual, 1 automatic, 2 comfort (the stove itself refuses more than 2).
 //   025 power:     30..100 percent in steps of 5 (manual mode).
 //   026 set point: whole degrees, 14..28 (comfort mode), the range of the page and of /api/controls for the other firmware versions.
-// Returns an empty string for any other code or value.
+//   081 reduced set point: whole degrees, 12..22 (the stove itself keeps it at least 2 degrees under 026, 0x80034e5e).
+//   088 frost protection on / off: 0 or 1. 089 its temperature: whole degrees, 4..10. Both are plain byte stores in the
+//                  stove (0x80035362, 0x8003537a, into 0x6824+0x6e / +0x6f); the frost protection starts the stove by itself
+//                  when the room is colder than 089, which is what it is for (0x80022fa4).
+//   092 power level of the comfort mode: 1..4 (the range of the stove display, "Leistungsbedarf").
+// Returns an empty string for any other code or value (091, the room sensor offset, is read but not written: it was only ever
+// read as 0, so its meaning is not proven).
 inline std::string writeFrame(int code, long value) {
   bool ok = false;
   switch (code) {
@@ -45,6 +51,10 @@ inline std::string writeFrame(int code, long value) {
     case 24: ok = (value >= 0 && value <= 2); break;
     case 25: ok = (value >= 30 && value <= 100 && value % 5 == 0); break;
     case 26: ok = (value >= 14 && value <= 28); break;
+    case 81: ok = (value >= 12 && value <= 22); break;
+    case 88: ok = (value == 0 || value == 1); break;
+    case 89: ok = (value >= 4 && value <= 10); break;
+    case 92: ok = (value >= 1 && value <= 4); break;
   }
   if (!ok) return std::string();
   char b[16];
