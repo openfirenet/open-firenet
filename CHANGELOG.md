@@ -2,8 +2,11 @@
 
 ## Non publié
 
+### New
+- The diagnostic file (and `/api/state`, under `health.crash`) now says where the bridge crashed the last time it did: the task, the address of the failure and the call stack. Please send the diagnostic file after a crash, before restarting anything. (#121)
+
 ### Fixes
-- If the stove had accepted the bridge and then refuses it (it answers "0" to every probe), the bridge now restarts after 5 minutes instead of staying on "waiting for the stove" until it is unplugged; the restart reason is shown as "stove_lost". (#121)
+- If the stove had accepted the bridge and then refuses it (it answers "0" to every probe), the bridge now restarts after 5 minutes instead of staying on "waiting for the stove" until it is unplugged; the restart reason is shown as "stove_lost". This is a safety net: the cause of the stove's refusal is not known. (#121)
 
 ## v4.7.0 (2026-10-21)
 

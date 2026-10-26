@@ -27,6 +27,9 @@
 #include "firenet_link.h"
 #include "firenet_api.h"
 #include "firenet_web_guard.h"
+#include "firenet_crash.h"
+#include "esp_core_dump.h"   // summary of the last crash, left in flash by the chip
+#include "esp_app_desc.h"
 #include "mbedtls/sha256.h"
 #include "firenet_mqtt.h"
 #include <deque>
@@ -615,6 +618,28 @@ static void readRestartReason() {
   }
 }
 
+// The last crash, read from the core dump the chip leaves in flash (partition "coredump") when the program panics. The dump stays until
+// another crash overwrites it, so it can be older than the last restart: its firmware SHA tells which firmware it comes from.
+static firenet::CrashInfo g_crash;
+static void loadCrashInfo() {
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH && CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
+  if (esp_core_dump_image_check() != ESP_OK) return;
+  esp_core_dump_summary_t* s = (esp_core_dump_summary_t*)malloc(sizeof(esp_core_dump_summary_t));
+  if (!s) return;
+  if (esp_core_dump_get_summary(s) == ESP_OK) {
+    strlcpy(g_crash.task, s->exc_task, sizeof g_crash.task);
+    g_crash.pc = s->exc_pc; g_crash.cause = s->ex_info.exc_cause; g_crash.faultAddress = s->ex_info.exc_vaddr;
+    g_crash.depth = s->exc_bt_info.depth > 16 ? 16 : s->exc_bt_info.depth;
+    for (uint32_t i = 0; i < g_crash.depth; i++) g_crash.bt[i] = s->exc_bt_info.bt[i];
+    g_crash.corrupted = s->exc_bt_info.corrupted;
+    strlcpy(g_crash.elfSha, (const char*)s->app_elf_sha256, sizeof g_crash.elfSha);
+    g_crash.valid = true;
+    DBG.printf("[crash] last crash: task %s, pc 0x%08x, cause %u, firmware %s\n", g_crash.task, (unsigned)g_crash.pc, (unsigned)g_crash.cause, g_crash.elfSha);
+  }
+  free(s);
+#endif
+}
+
 // The "health" object of /api/state. `forMqtt` leaves out the value that changes every second (age of the last
 // frame) and rounds the temperature, so that the published state only changes when something happened.
 static String jsonHealth(bool forMqtt) {
@@ -632,6 +657,11 @@ static String jsonHealth(bool forMqtt) {
   j += "\"stove_link_losses\":" + String(m.link_losses) + ",";
   j += "\"stove_rx_dropped_bytes\":" + String((unsigned)g_stoveRxDropped) + ",";
   j += "\"mqtt_disconnects\":" + String((unsigned)g_mqttDisconnects);
+  if (!forMqtt) {
+    char sha[17] = ""; esp_app_get_elf_sha256(sha, sizeof sha);
+    j += ",\"elf_sha256\":\"" + String(sha) + "\"";
+    if (g_crash.valid) j += ",\"crash\":" + String(firenet::crashJson(g_crash).c_str());
+  }
   j += "}";
   return j;
 }
@@ -1757,6 +1787,7 @@ void setup() {
     else if (g_dispBoard == "tdongle_off") g_display.blank();
   }
   readRestartReason();
+  loadCrashInfo();
   DBG.begin(115200);
   DBG.println("\n[Open Firenet] boot");
   buildNames();
