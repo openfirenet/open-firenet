@@ -1320,8 +1320,10 @@ static bool mqttOutboxPush(std::string topic, std::string payload) {
 }
 static std::mutex g_mqttClientMx;             // held while publishing, and while the client is stopped and destroyed
 static TaskHandle_t g_mqttPublisher = nullptr;
-static std::map<std::string, std::string> g_mqttSent;   // last value published per topic
-static String g_mqttLastState;
+static firenet::mqtt::SentValues g_mqttSent;   // hashes of the last value published per topic
+static uint64_t g_mqttLastStateHash = 0;
+static size_t g_mqttStateSize = 4096;   // size of the last state JSON, to reserve the next one
+static bool g_mqttHaveState = false;   // g_mqttLastStateHash is valid
 static uint32_t g_mqttLastStateMs = 0;
 // Home Assistant discovery (optional): the configuration messages are sent a few at a time after each connection,
 // and again when the stove model becomes known. g_mqttDiscRemove sends the empty messages that delete the entities,
@@ -1583,23 +1585,36 @@ static void mqttPublish() {
   snprintf(dev, sizeof dev, "{\"device\":{\"version\":\"" OPENFIRENET_VERSION "\",\"connected\":%s,\"ip\":\"%s\"}",
            linked ? "true" : "false", WiFi.localIP().toString().c_str());
   // Before the stove is linked its values are not known: only the "device" object is published.
-  String state = String(dev) + "," + jsonHealth(true) + (linked ? "," + jsonStoveSections() + "," + jsonScheduleSection() : String()) + "}";
+  // Built in place in a reserved buffer: concatenating the parts would copy the whole state several times.
+  String state;
+  state.reserve(g_mqttStateSize);
+  state += dev; state += ","; state += jsonHealth(true);
+  if (linked) { state += ","; state += jsonStoveSections(); state += ","; state += jsonScheduleSection(); }
+  state += "}";
+  if (state.length() > g_mqttStateSize) g_mqttStateSize = state.length() + 256;   // the next one fits at once
   uint32_t now = millis();
-  bool changed = state != g_mqttLastState;
-  if ((changed && (g_mqttLastState.isEmpty() || now - g_mqttLastStateMs >= 5000)) || now - g_mqttLastStateMs >= 60000) {
+  uint64_t stateHash = 1469598103934665603ULL;
+  for (size_t i = 0; i < state.length(); i++) { stateHash ^= (uint8_t)state[i]; stateHash *= 1099511628211ULL; }
+  bool changed = !g_mqttHaveState || stateHash != g_mqttLastStateHash;
+  if ((changed && (!g_mqttHaveState || now - g_mqttLastStateMs >= 5000)) || now - g_mqttLastStateMs >= 60000) {
     if (!mqttQueue("state", state.c_str(), state.length())) return;
-    g_mqttLastState = state; g_mqttLastStateMs = now;
+    g_mqttLastStateHash = stateHash; g_mqttHaveState = true; g_mqttLastStateMs = now;
   }
-  std::vector<std::pair<std::string, std::string>> values;
-  firenet::mqtt::flattenSections(state.c_str(), values);
+  // The values are walked in the state itself: no copy of the state, no list of pairs. A topic is only built for a
+  // value that changed.
   int budget = 25;
-  for (const auto& v : values) {
-    auto it = g_mqttSent.find(v.first);
-    if (it != g_mqttSent.end() && it->second == v.second) continue;
-    if (!mqttQueue(v.first, v.second.data(), v.second.size())) return;
-    g_mqttSent[v.first] = v.second;
-    if (--budget == 0) break;
-  }
+  std::string topic;
+  if (g_mqttSent.size() == 0) g_mqttSent.reserve(256);   // one block for all the topics
+  firenet::mqtt::forEachValue(std::string_view(state.c_str(), state.length()),
+    [&](std::string_view section, std::string_view key, std::string_view val) {
+      uint64_t th = firenet::mqtt::SentValues::topicHash(section, key);
+      uint32_t vh = firenet::mqtt::SentValues::valueHash(val);
+      if (g_mqttSent.same(th, vh)) return true;
+      topic.assign(section); topic += '/'; topic.append(key);
+      if (!mqttQueue(topic, val.data(), val.size())) return false;
+      g_mqttSent.set(th, vh);
+      return --budget > 0;
+    });
 }
 
 static void mqttLoop() {
@@ -1627,7 +1642,7 @@ static void mqttLoop() {
     mqttApply(c);
   }
   if (g_mqttFresh) {
-    g_mqttFresh = false; g_mqttSent.clear(); g_mqttLastState = ""; DBG.println("[mqtt] full refresh");
+    g_mqttFresh = false; g_mqttSent.clear(); g_mqttHaveState = false; DBG.println("[mqtt] full refresh");
     if (g_mqttCfg.discovery) { g_mqttDiscNext = 0; g_mqttDiscRemove = false; }
     else if (!g_mqttDiscRemove) g_mqttDiscNext = SIZE_MAX;
   }

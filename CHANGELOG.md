@@ -4,6 +4,7 @@
 
 ### Fixes
 - A bridge that runs out of memory while publishing to MQTT no longer restarts: it skips that publication and tries again a second later. (#121)
+- MQTT publishing uses much less memory: the bridge no longer makes several copies of the whole state every second, nor keeps a copy of every published value. This lowers the risk of running out of memory on the LilyGO T-Dongle-S3. (#121)
 
 ## v4.8.0 (2026-10-26)
 
