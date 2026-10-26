@@ -152,6 +152,12 @@ private:
   }
 
   void doCheck() {
+    if (release_) release_();                                // the TLS connection needs the memory of the screen
+    checkNow();
+    if (restore_) restore_();
+  }
+
+  void checkNow() {
     set(State::Checking);
     std::string why;
     std::string sums = fetchText("SHA256SUMS", why);
