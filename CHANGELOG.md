@@ -3,8 +3,47 @@
 ## Non publié
 
 ### New
-- Over MQTT, the bridge publishes the 14 heating schedule time slots (`heatTimeMon1` to `heatTimeSun2`) under `<base>/schedule/...` and in `<base>/state`, so that automation systems using MQTT can read the schedule configured on the stove. (#87)
 - First step towards stoves on firmware 2.25 (SUMO, SONO, INDUO), which do not understand the text frames of the other firmware versions. When such a stove has sent its start-up probe and nothing was acknowledged, the bridge now sends one acknowledgement and reads the stove state, temperatures, input states and its settings in the stove's own numeric format, and shows what the stove answers (state, room and flame temperature, inputs) on the page, in the API and over MQTT, and in the exchange log when a value changes. It can stop the stove, set the mode (manual, automatic, comfort), the power of the manual mode (30 to 100 %, steps of 5) and the room set point (14 to 28 degrees, whole degrees), from the page, the API and MQTT; the stove does not confirm a command, so the bridge reads the value back and shows it. It cannot start the stove yet. These commands have not been tried on a stove yet. The room temperature has whole degrees only. The comfort and reduced set points, the mode and the frost protection of the stove are shown too. Please send the diagnostic file if you try it. (#110)
+
+## v4.7.0 (2026-10-21)
+
+### New
+- Bridge > System: choose the size of the history of the exchanges with the stove, 16 kB (new default) or 32 kB. 16 kB leaves 16 kB more memory free, which matters on the LilyGO T-Dongle-S3 with its screen; 32 kB keeps twice as much history when you look for a problem. Applied at the next restart.
+
+### Changes
+- The main loop of the bridge has a larger stack (12 kB instead of 8 kB): it had only 1.3 kB left at rest on the LilyGO T-Dongle-S3.
+
+### Fixes
+- Installing an update from the page on a bridge with the screen switched on no longer ends in a restart or a "download interrupted" error: the screen is paused during the download, which needs the memory it uses. It comes back when the update fails.
+
+## v4.6.0 (2026-10-20)
+
+### New
+- The screen of the LilyGO T-Dongle-S3 speaks English, French, Italian or German: choose it in Bridge > Screen. The first time, it takes the language of the page.
+- The screen of the LilyGO T-Dongle-S3 can be rotated by 180 degrees: tick "Rotate the screen by 180°" in Bridge > Screen (#114).
+- The screen of the LilyGO T-Dongle-S3 wakes up when the stove changes state (it starts, stops...), not only on a press or an alert.
+
+## v4.5.0 (2026-10-20)
+
+### New
+- **Small screen support (LilyGO T-Dongle-S3).** Off by default, switched on in Bridge > Screen by choosing the board (asked twice, then a restart); a "Screen on" switch then turns the screen and its backlight off while locking the screen settings: the pins of other boards may be wired to something else, so the screen is never driven by guesswork. The key shows the animated Open Firenet logo while it waits for the stove, then one value per screen in turn (the logo itself can be one of the screens): stove state (with the flame following it), room temperature and target, flame temperature, power (or the target temperature in comfort mode), address, pellets until service, running hours, Wi-Fi, MQTT and firmware version. The BOOT button moves to the next screen; a stove error, an open hopper, a silent stove or a lost Wi-Fi takes the whole screen. The backlight level is a setting (half brightness by default), and it can be lowered after a chosen time without a press of BOOT or an alert. The serial command `SETDISPLAY:none` switches it off again without the page.
+- **Bridge > Screen** (after System): choose which screens are shown, drag them or use the arrows to put them in order, and set the time per screen. Each card is drawn as the key draws it. Changes are applied together with the Apply button. The choice is kept after a restart (`/api/display`).
+
+### Changes
+- The icons of the page (stove state, cards, tabs and buttons) are now drawn by the page itself instead of emojis, so they look the same on every phone and computer: line icons in colour, and the flame at the top follows the stove: an outline at ignition, filling at start-up, the colours of the logo when heating, fading at burn-off. Nothing is loaded from the internet, so the page looks the same on the bridge's own Wi-Fi. The language list shows FR / EN / IT / DE instead of flag emojis, which Windows does not display.
+
+### Fixes
+- A stove set to the ANIMO make (sensor "fabNumber" = 2) and reporting model 5 is now shown as "ANIMO PURE" instead of "ROCO RAO" (#112). The API has a new `stove.brand` (`RIKA` or `ANIMO`) next to `model_name` (`PURE`); for an ANIMO model the bridge does not know yet, the model name stays the RIKA one.
+- Bridge > System: the update interval is greyed out and empty while "Check automatically for updates" is off; ticking the box fills it with the last choice (24 h at first) and saves it. Before, the interval box could be empty and the choice was refused.
+- Bridge > System: "Checking GitHub for updates..." now appears at once when you click "Check", instead of a short flash of the previous message first.
+- Bridge > System: the automatic update settings and the delay between frames now show "Saved" (or "Could not save") next to the setting, as the Wi-Fi power saving does.
+- Diagnostics: the sensor filter shows the real number of sensors the stove reports instead of a fixed "53".
+
+## v4.4.0 (2026-10-17)
+
+### New
+- **Self-update from GitHub.** The bridge can check for new official firmware releases directly on GitHub and install them with one click from the System tab. The update is cryptographically verified (Minisign Ed25519 signature and SHA-256 hash table) before installation, cannot downgrade to an older release, and refuses to install unless the stove is switched off. For offline or isolated local networks, background checking is disabled by default and generates zero internet traffic.
+- Over MQTT, the bridge publishes the 14 heating schedule time slots (`heatTimeMon1` to `heatTimeSun2`) under `<base>/schedule/...` and in `<base>/state`, so that automation systems using MQTT can read the schedule configured on the stove. (#87)
 
 ## v4.3.1 (2026-10-14)
 

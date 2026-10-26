@@ -38,12 +38,14 @@ SHOTS = [
     ("ui-desktop-bridge",      1280,  900, "bridge",      "showBridgeTab('bridge-net')"),
     ("ui-desktop-bridge-mqtt", 1280,  860, "bridge",      "showBridgeTab('bridge-mqtt')"),
     ("ui-desktop-bridge-system", 1280, 760, "bridge",     "showBridgeTab('bridge-system')"),
+    ("ui-desktop-bridge-screen", 1280, 960, "bridge",     "showBridgeTab('bridge-screen')"),
     ("ui-desktop-diagnostics", 1280, 1260, "diagnostics", ""),
     ("ui-mobile",               430, 2250, "stove",       ""),
     ("ui-mobile-bridge",        430, 1100, "bridge",      "showBridgeTab('bridge-net')"),
 ]
 API = {"/api/state": "state.json", "/api/controls": "controls.json", "/api/control": "controls.json",
-       "/api/schedule": "schedule.json", "/api/txgap": "txgap.json", "/api/mqtt": "mqtt.json"}
+       "/api/schedule": "schedule.json", "/api/txgap": "txgap.json", "/api/mqtt": "mqtt.json",
+       "/api/display": "display.json"}
 SCAN = [{"ssid": "MyHomeWiFi", "rssi": -51, "secure": True}, {"ssid": "Neighbour", "rssi": -78, "secure": True}]
 
 

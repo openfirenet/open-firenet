@@ -185,6 +185,9 @@ SETWIFI:YourSSID:YourPassword
 ```
 The SSID ends at the first `:`; everything after it is the password (so a password containing `:` is accepted). Credentials are saved to NVS and the bridge reboots into STA mode.
 
+### Small screen (LilyGO T-Dongle-S3)
+The firmware can drive the 160x80 screen of the LilyGO T-Dongle-S3 (animated logo, then one value per screen). It is **off by default**: other boards may have something else on the pins it uses. Switch it on in **Bridge > Screen** by choosing the board (the page asks twice, then restarts the key); there you also choose which screens are shown, in which order and for how long. The BOOT button shows the next screen. A T-Dongle-S3 whose owner does not want the screen should turn the "Screen on" switch off (`tdongle_off`): the backlight goes off too and the screen settings are locked. With `none` the firmware leaves the pins alone and the panel stays lit grey. To change the choice without the page, send `SETDISPLAY:none`, `SETDISPLAY:tdongle` or `SETDISPLAY:tdongle_off` on the serial port and restart.
+
 ---
 
 ## Web interface
@@ -232,10 +235,15 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
   <img src="assets/ui-desktop-bridge.png" alt="Open Firenet Web UI - Bridge tab, Network: Wi-Fi, power saving, access to the page" width="760">
 </p>
 
-- **Bridge tab** (`/#bridge`), in three tabs:
+- **Bridge tab** (`/#bridge`), in four tabs:
   - **Network**: IP, signal strength, Wi-Fi scan, Wi-Fi reconfiguration & reset; **Wi-Fi power saving** (on by default; switch it off if the bridge often loses the Wi-Fi or should answer faster); **access to the page**, the extra names under which the bridge accepts to answer (see [Who can call the API](#who-can-call-the-api))
   - **MQTT**: broker settings and connection status (see [MQTT](#mqtt))
   - **System**: firmware version, uptime, cause of the last restart, free memory and chip temperature; delay between frames sent to the stove (50 – 600 ms, default 150 ms); **restart** of the bridge
+  - **Screen** (after System): the board with a screen (LilyGO T-Dongle-S3), the screens shown and their order, the time per screen, rotating the picture by 180°, the language of the texts, the backlight level and its dimming after inactivity (see [Small screen](#small-screen-lilygo-t-dongle-s3))
+
+<p align="center">
+  <img src="assets/ui-desktop-bridge-screen.png" alt="Open Firenet Web UI - Bridge tab, Screen: hardware, display settings and the screens shown" width="760">
+</p>
 
 <p align="center">
   <img src="assets/ui-desktop-diagnostics.png" alt="Open Firenet Web UI - Diagnostics tab: link with the stove, exchange log, all values" width="760">
@@ -309,6 +317,7 @@ Open Firenet V2 provides a clean, unified REST JSON API with natural units (temp
 | `/api/wifi_power_saving` | GET / POST | Wi-Fi power saving, on or off |
 | `/api/mqtt` | GET / POST | MQTT settings and connection status |
 | `/api/txgap` | GET / POST | Delay between frames sent to the stove, in ms (50–600, default 150) |
+| `/api/display` | GET / POST | Screens of the bridge's small display (boards that have one): which ones, in which order, seconds per screen |
 | `/api/forget` | POST | Erase Wi-Fi credentials from NVS and reboot into provisioning AP |
 | `/log` | GET | Plain-text live USB CDC debug log |
 
@@ -347,6 +356,7 @@ Since firmware 4.0 the bridge answers its own page and programs on your network 
     "warning_code": 0,
     "model": 13,
     "model_name": "DOMO",
+    "brand": "RIKA",
     "mainboard_version": "2.29",
     "firmware_build": "58512"
   },
@@ -393,7 +403,7 @@ Since firmware 4.0 the bridge answers its own page and programs on your network 
 ```
 
 - `room_temperature` is `null` and `room_sensor_connected` is `false` when no RIKA room sensor is connected.
-- `stove.model`, `stove.model_name`, `stove.mainboard_version` and `stove.firmware_build` are `null` until the stove has sent them (the bridge is not linked yet).
+- `stove.model`, `stove.model_name`, `stove.brand`, `stove.mainboard_version` and `stove.firmware_build` are `null` until the stove has sent them (the bridge is not linked yet).
 - `usb.host_connected` is `true` once a USB host (the stove) has detected the bridge on the board's native USB port, and `usb.rx_bytes` counts the bytes received from the stove since boot. `false` / `0` usually means the stove is plugged into the wrong port of the board (UART / COM), a charge-only cable, or a stove that is off.
 - `version_frame` tells which protocol variant the stove answered: `V3` (firmware 2.29), `V28` (2.28), `V1` (2.26 / 2.27).
 - `raw_sensors` holds every value reported by the stove under its name; the names follow the official RIKA ones (`statusWarning`, `airFlaps`, `errCount0`...), see [PROTOCOL.md](PROTOCOL.md).
