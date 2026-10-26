@@ -3,7 +3,9 @@
 ## Non publié
 
 ### Fixes
+- Checking for a firmware update no longer fails with "download: net connection refused" on a bridge with the screen when MQTT is on: the screen is switched off for the few seconds of the check, which frees the memory the secure connection to GitHub needs. (#125)
 - A bridge that runs out of memory while publishing to MQTT no longer restarts: it skips that publication and tries again a second later. (#121)
+- MQTT publishing uses much less memory: the bridge no longer makes several copies of the whole state every second, nor keeps a copy of every published value. This lowers the risk of running out of memory on the LilyGO T-Dongle-S3. (#121)
 
 ## v4.8.0 (2026-10-26)
 
