@@ -48,6 +48,7 @@ inline const char* sensorName(int code) {
 // Settings read back from the stove's configuration. Confirmed against the stove display and the code of firmware 2.25 (issue #110):
 // 024 mode (0 manual, 1 automatic, 2 comfort), 026 room set point of the comfort mode, 081 reduced set point (the stove keeps it at least
 // 2 degrees under 026, code at 0x80034e5e), 088 / 089 frost protection on / switch-on temperature (whole degrees).
+// 080 is the switch of the weekly schedule (a plain byte, written as such by the stove's code at 0x80035274).
 // 023 on / off (0 to 1 when the stove was started) and 025 power in percent of the manual mode (60 to 50 when reset) were seen changing
 // with the user's actions in the log of issue #110. 092 is the power level of the comfort mode, 1 to 4 (3 to 2 seen at the time of the
 // change on the display); it is mapped to roomSensorPower (the official name of the record). 091 (room sensor offset, "Temperaturanpassung") was read only as 0; the room temperature 000
@@ -60,6 +61,7 @@ inline const char* controlName(int code) {
     case 24: return "mode";
     case 25: return "targetStage";
     case 26: return "roomTarget";
+    case 80: return "heatingTimesActive";
     case 81: return "setBackTemp";
     case 88: return "frostProtectionActive";
     case 89: return "frostProtectionTemp";
@@ -77,6 +79,9 @@ inline bool apply(StoveModel& m, int code, const std::string& text, uint32_t now
   long v;
   if (!parseInt(text, v)) return false;
   m.v0_linked = true; m.last_rx_ms = now; m.frames_in++;
+  // 065 .. 078: start and end of the daily range, one pair per weekday in the stove's order (Sunday first), in minutes since midnight.
+  // The stove also holds a switch per day that no numeric code reaches (issue #110), so these are shown as they are, not as schedule slots.
+  if (code >= 65 && code <= 78) { m.v0_sched[code - 65] = v; return true; }
   if (const char* n = sensorName(code)) {
     m.sensors[n] = scaled(code, v);
     if (code == 27) m.main_state = (int)v;

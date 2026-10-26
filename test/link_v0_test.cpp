@@ -93,6 +93,9 @@ int main() {
     CH("room temperature is stored in tenths", v0map::apply(m, 0, "18", 5) && m.sensors["roomTemp"] == 180 && m.v0_linked && m.last_rx_ms == 5);
     CH("flame temperature as is", v0map::apply(m, 1, "276", 6) && m.sensors["flame"] == 276);
     CH("main and sub state", v0map::apply(m, 27, "2", 7) && v0map::apply(m, 28, "9", 8) && m.sensors["mainState"] == 2 && m.sensors["subState"] == 9 && m.main_state == 2 && m.sub_state == 9);
+    CH("schedule switch", v0map::apply(m, 80, "1", 9) && m.controls["heatingTimesActive"] == 1);
+    CH("daily ranges, Sunday first, in minutes", v0map::apply(m, 65, "1020", 9) && v0map::apply(m, 66, "1320", 9) && v0map::apply(m, 77, "60", 9) && v0map::apply(m, 78, "120", 9) &&
+       m.v0_sched[0] == 1020 && m.v0_sched[1] == 1320 && m.v0_sched[12] == 60 && m.v0_sched[13] == 120 && !m.controls.count("heatTimeSun1"));
     CH("pressure switch and unidentified inputs", v0map::apply(m, 12, "1", 9) && m.sensors["pressureSwitch"] == 1 && v0map::apply(m, 16, "1", 9) && m.sensors["in016"] == 1);
     CH("comfort power level and room offset are named", v0map::apply(m, 92, "3", 10) && m.controls["roomSensorPower"] == 3 && v0map::apply(m, 91, "-10", 10) && m.controls["roomTempOffset"] == -10);
     CH("settings go to the controls", v0map::apply(m, 26, "21", 10) && m.controls["roomTarget"] == 210 && v0map::apply(m, 24, "2", 10) && m.controls["mode"] == 2);

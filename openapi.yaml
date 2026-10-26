@@ -770,6 +770,14 @@ components:
           type: object
           description: Two slots per day, `heatTime<Day><1|2>` with Day in Mon, Tue, Wed, Thu, Fri, Sat, Sun
           additionalProperties: { $ref: "#/components/schemas/TimeSlot" }
+        day_ranges:
+          type: object
+          description: "Only on a stove with firmware 2.25: the daily range of each weekday (Sun, Mon, ... Sat), `start` and `end` in minutes since midnight, as the stove holds them. Whether a day is switched on is not known, so `slots` stays empty on that stove."
+          additionalProperties:
+            type: object
+            properties:
+              start: { type: integer }
+              end: { type: integer }
     ScheduleCommand:
       type: object
       description: "`heating_times_active`, `setback_temperature`, and any of the 14 slots `heatTime<Day><1|2>`"

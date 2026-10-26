@@ -37,6 +37,7 @@ struct StoveModel {
   // not known: a command built from them would write wrong settings (seen 2026-10-08: stove switched on at 100 %).
   bool controls_synced = false;
   bool v0_linked = false;      // a stove on firmware 2.25 answers the numeric reads (firenet_link_v0.h), see firenet_v0_map.h
+  long v0_sched[14] = {};      // firmware 2.25: start and end of the daily range of each weekday (Sunday first), in minutes since midnight
   uint32_t link_losses = 0;   // times an acknowledged link was dropped by the stove since boot
 };
 

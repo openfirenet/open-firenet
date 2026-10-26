@@ -1196,6 +1196,7 @@ static AppliedControls applyControlPairs(const std::vector<std::pair<std::string
       else if (kv.first == "frostProtectionActive") put(88, kv.second, "frostProtectionActive");
       else if (kv.first == "frostProtectionTemp") put(89, (kv.second + 5) / 10, "frostProtectionTemp");
       else if (kv.first == "roomSensorPower") put(92, kv.second, "roomSensorPower");
+      else if (kv.first == "heatingTimesActive") put(80, kv.second != 0 ? 1 : 0, "heatingTimesActive");
       else DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
     }
     return {controlValue(m, "onOff", 0), controlValue(m, "mode", 2), controlValue(m, "targetStage", 70), controlValue(m, "roomTarget", 200), queued};
@@ -1767,7 +1768,15 @@ static void handleApiSchedule() {
     json += "\"heatingTimesActive\":" + String(htActive) + ",";
     json += "\"setback_temperature\":" + String(sbTemp / 10.0f, 1) + ",";
     json += "\"setBackTemp\":" + String(sbTemp) + ",";
-    json += "\"slots\":{" + jsonScheduleSlots() + "}}";
+    json += "\"slots\":{" + jsonScheduleSlots() + "}";
+    if (m.v0_linked) {
+      // Firmware 2.25: the daily range of each weekday, in minutes since midnight. Whether a day is switched on is not known.
+      static const char* const days[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+      json += ",\"day_ranges\":{";
+      for (int d = 0; d < 7; d++) json += String(d ? "," : "") + "\"" + days[d] + "\":{\"start\":" + String(m.v0_sched[2 * d]) + ",\"end\":" + String(m.v0_sched[2 * d + 1]) + "}";
+      json += "}";
+    }
+    json += "}";
     web.send(200, "application/json", json);
     return;
   }
