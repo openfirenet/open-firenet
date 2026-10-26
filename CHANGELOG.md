@@ -5,6 +5,9 @@
 ### Changes
 - The health line "Last restart" of the Diagnostics tab is now "Last restart reason" (in the four languages), so it is clear that it tells why the bridge last restarted, not whether it did.
 
+### Fixes
+- The "crash:" line of the diagnostic file now formats the task and failure address on one line instead of showing "[object Object]".
+
 ## v4.8.1 (2026-10-26)
 
 ### Fixes
