@@ -581,7 +581,7 @@ static void handleTxGap() {
 // Cause of the last restart. The chip tells power-on, brown-out, crash and watchdog by itself; for a restart the
 // firmware asks for, it only says "software". The reason is then left in memory that survives a software restart
 // but not a power cut (RTC, no flash wear), with a marker so that leftovers are never read as a reason.
-enum RestartNote : uint32_t { NOTE_NONE = 0, NOTE_USER, NOTE_WIFI_CHANGE, NOTE_UPDATE, NOTE_STOVE_SILENT };
+enum RestartNote : uint32_t { NOTE_NONE = 0, NOTE_USER, NOTE_WIFI_CHANGE, NOTE_UPDATE, NOTE_STOVE_SILENT, NOTE_STOVE_LOST };
 static const uint32_t RESTART_NOTE_MAGIC = 0x0F17E7A5;
 RTC_NOINIT_ATTR static uint32_t g_restartNoteMagic;
 RTC_NOINIT_ATTR static uint32_t g_restartNote;
@@ -609,7 +609,7 @@ static void readRestartReason() {
     case ESP_RST_USB:      g_restartReason = "usb"; break;
     case ESP_RST_SW:
       g_restartReason = note == NOTE_USER ? "user" : note == NOTE_WIFI_CHANGE ? "wifi_change"
-                      : note == NOTE_UPDATE ? "update" : note == NOTE_STOVE_SILENT ? "stove_silent" : "software";
+                      : note == NOTE_UPDATE ? "update" : note == NOTE_STOVE_SILENT ? "stove_silent" : note == NOTE_STOVE_LOST ? "stove_lost" : "software";
       break;
     default:               g_restartReason = "unknown"; break;
   }
@@ -1964,6 +1964,22 @@ void loop() {
       (millis() - g_link->model().last_rx_ms) > RX_TIMEOUT_MS) {
     DBG.printf("[wd] aucun RX depuis %lus -> ESP.restart()\n", RX_TIMEOUT_MS / 1000);
     delay(50); restartBecause(NOTE_STOVE_SILENT);
+  }
+
+  // The stove acknowledged the version once since the boot, then went back to refusing it (it answers "0" to every probe) and
+  // kept refusing: nothing in the link recovers from that, and the check above does not see it (it needs the version
+  // acknowledged). A restart, which enumerates the USB device again like unplugging the key, did bring the link back for a user
+  // (issue #121). Only after an acknowledgement in this session, so that a bridge on a stove that is off never restarts, and not
+  // while an update is being installed.
+  static const uint32_t LINK_LOST_RESTART_MS = 300000;
+  static uint32_t linkLostSince = 0;
+  if (g_link->model().version_ack || g_link->model().detections == 0) linkLostSince = 0;
+  else if (linkLostSince == 0) linkLostSince = millis() | 1;
+  if (linkLostSince && millis() - linkLostSince > LINK_LOST_RESTART_MS &&
+      !(g_updater && (strcmp(g_updater->status().state, "downloading") == 0 || strcmp(g_updater->status().state, "verifying") == 0 ||
+                      strcmp(g_updater->status().state, "installing") == 0))) {
+    DBG.printf("[wd] liaison perdue depuis %lus -> ESP.restart()\n", LINK_LOST_RESTART_MS / 1000);
+    delay(50); restartBecause(NOTE_STOVE_LOST);
   }
 
   // 2) cycle de lecture périodique une fois la version acquittée

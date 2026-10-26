@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Fixes
+- If the stove had accepted the bridge and then refuses it (it answers "0" to every probe), the bridge now restarts after 5 minutes instead of staying on "waiting for the stove" until it is unplugged; the restart reason is shown as "stove_lost". (#121)
+
 ## v4.7.0 (2026-10-21)
 
 ### New
