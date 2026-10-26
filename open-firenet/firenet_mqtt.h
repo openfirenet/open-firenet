@@ -118,6 +118,9 @@ static const Entity ENTITIES[] = {
   {"sensor", "pellet_hours", "Pellet Operating Hours",
    "\"state_topic\":\"~/sensors/pellet_hours\","
    "\"unit_of_measurement\":\"h\",\"device_class\":\"duration\",\"state_class\":\"total_increasing\","},
+  {"sensor", "log_runtime", "Split Log Operating Time",
+   "\"state_topic\":\"~/sensors/log_runtime\","
+   "\"unit_of_measurement\":\"min\",\"device_class\":\"duration\",\"state_class\":\"total_increasing\",\"icon\":\"mdi:fireplace\","},
   {"sensor", "service_countdown_kg", "Service Countdown",
    "\"state_topic\":\"~/sensors/service_countdown_kg\",\"unit_of_measurement\":\"kg\",\"device_class\":\"weight\","},
   {"sensor", "fan_speed_rpm", "Flue Draft Fan Speed",

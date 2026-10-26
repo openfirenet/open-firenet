@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### New
+- Combined (pellet and split log) stoves: the page shows a "Split log running time" card and the key's screen a "Log hours" screen, from the stove's split log running time (`log_runtime` in minutes and `log_runtime_hours` in the API, also over MQTT). Nothing is shown on a stove that reports no split log time. (#119)
+
 ## v4.7.0 (2026-10-21)
 
 ### New
