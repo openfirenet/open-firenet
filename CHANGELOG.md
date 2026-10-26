@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Changes
+- The health line "Last restart" of the Diagnostics tab is now "Last restart reason" (in the four languages), so it is clear that it tells why the bridge last restarted, not whether it did.
+
 ## v4.8.1 (2026-10-26)
 
 ### Fixes
