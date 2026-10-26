@@ -555,9 +555,21 @@ components:
       properties:
         restart_reason:
           type: string
-          enum: [power_on, brownout, crash, watchdog, reset_button, usb, user, wifi_change, update, stove_silent, software, unknown]
-          description: "Cause of the last restart: `power_on` (the stove powered the bridge), `brownout` (supply voltage too low), `crash`, `watchdog` (the program froze), `reset_button`, `usb` (reset over USB), `user` (restart asked through the page or the API), `wifi_change`, `update` (wireless update), `stove_silent` (nothing received from the stove for 60 seconds), `software` (another restart asked by the firmware)"
+          enum: [power_on, brownout, crash, watchdog, reset_button, usb, user, wifi_change, update, stove_silent, stove_lost, software, unknown]
+          description: "Cause of the last restart: `power_on` (the stove powered the bridge), `brownout` (supply voltage too low), `crash`, `watchdog` (the program froze), `reset_button`, `usb` (reset over USB), `user` (restart asked through the page or the API), `wifi_change`, `update` (wireless update), `stove_silent` (nothing received from the stove for 60 seconds), `stove_lost` (the stove had acknowledged the bridge, then refused it for 5 minutes), `software` (another restart asked by the firmware)"
         min_free_heap: { type: integer, description: "Lowest free memory since boot, in bytes" }
+        elf_sha256: { type: string, description: "First characters of the SHA-256 of the running firmware (not published over MQTT)" }
+        crash:
+          type: object
+          description: "The last crash the chip saved in its flash, present only after one (not published over MQTT). It stays until another crash replaces it, so it can predate the last restart: `elf_sha256` is the firmware that crashed. The addresses can be turned into function names with the ELF file of that release."
+          properties:
+            task: { type: string, description: Task that took the exception }
+            pc: { type: string, description: Address of the instruction that failed }
+            cause: { type: integer, description: Exception cause number of the chip }
+            fault_address: { type: string }
+            backtrace: { type: array, items: { type: string }, description: "Return addresses, innermost first" }
+            backtrace_corrupted: { type: boolean }
+            elf_sha256: { type: string }
         chip_temperature: { type: number, nullable: true, description: Temperature of the chip in °C }
         wifi_disconnects: { type: integer, description: Wi-Fi connections lost since boot }
         stove_last_frame_seconds: { type: integer, nullable: true, description: Seconds since the last byte received from the stove; null when nothing was ever received }

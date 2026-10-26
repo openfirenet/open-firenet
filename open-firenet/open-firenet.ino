@@ -27,6 +27,9 @@
 #include "firenet_link.h"
 #include "firenet_api.h"
 #include "firenet_web_guard.h"
+#include "firenet_crash.h"
+#include "esp_core_dump.h"   // summary of the last crash, left in flash by the chip
+#include "esp_app_desc.h"
 #include "mbedtls/sha256.h"
 #include "firenet_mqtt.h"
 #include <deque>
@@ -584,7 +587,7 @@ static void handleTxGap() {
 // Cause of the last restart. The chip tells power-on, brown-out, crash and watchdog by itself; for a restart the
 // firmware asks for, it only says "software". The reason is then left in memory that survives a software restart
 // but not a power cut (RTC, no flash wear), with a marker so that leftovers are never read as a reason.
-enum RestartNote : uint32_t { NOTE_NONE = 0, NOTE_USER, NOTE_WIFI_CHANGE, NOTE_UPDATE, NOTE_STOVE_SILENT };
+enum RestartNote : uint32_t { NOTE_NONE = 0, NOTE_USER, NOTE_WIFI_CHANGE, NOTE_UPDATE, NOTE_STOVE_SILENT, NOTE_STOVE_LOST };
 static const uint32_t RESTART_NOTE_MAGIC = 0x0F17E7A5;
 RTC_NOINIT_ATTR static uint32_t g_restartNoteMagic;
 RTC_NOINIT_ATTR static uint32_t g_restartNote;
@@ -612,10 +615,32 @@ static void readRestartReason() {
     case ESP_RST_USB:      g_restartReason = "usb"; break;
     case ESP_RST_SW:
       g_restartReason = note == NOTE_USER ? "user" : note == NOTE_WIFI_CHANGE ? "wifi_change"
-                      : note == NOTE_UPDATE ? "update" : note == NOTE_STOVE_SILENT ? "stove_silent" : "software";
+                      : note == NOTE_UPDATE ? "update" : note == NOTE_STOVE_SILENT ? "stove_silent" : note == NOTE_STOVE_LOST ? "stove_lost" : "software";
       break;
     default:               g_restartReason = "unknown"; break;
   }
+}
+
+// The last crash, read from the core dump the chip leaves in flash (partition "coredump") when the program panics. The dump stays until
+// another crash overwrites it, so it can be older than the last restart: its firmware SHA tells which firmware it comes from.
+static firenet::CrashInfo g_crash;
+static void loadCrashInfo() {
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH && CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
+  if (esp_core_dump_image_check() != ESP_OK) return;
+  esp_core_dump_summary_t* s = (esp_core_dump_summary_t*)malloc(sizeof(esp_core_dump_summary_t));
+  if (!s) return;
+  if (esp_core_dump_get_summary(s) == ESP_OK) {
+    strlcpy(g_crash.task, s->exc_task, sizeof g_crash.task);
+    g_crash.pc = s->exc_pc; g_crash.cause = s->ex_info.exc_cause; g_crash.faultAddress = s->ex_info.exc_vaddr;
+    g_crash.depth = s->exc_bt_info.depth > 16 ? 16 : s->exc_bt_info.depth;
+    for (uint32_t i = 0; i < g_crash.depth; i++) g_crash.bt[i] = s->exc_bt_info.bt[i];
+    g_crash.corrupted = s->exc_bt_info.corrupted;
+    strlcpy(g_crash.elfSha, (const char*)s->app_elf_sha256, sizeof g_crash.elfSha);
+    g_crash.valid = true;
+    DBG.printf("[crash] last crash: task %s, pc 0x%08x, cause %u, firmware %s\n", g_crash.task, (unsigned)g_crash.pc, (unsigned)g_crash.cause, g_crash.elfSha);
+  }
+  free(s);
+#endif
 }
 
 // The "health" object of /api/state. `forMqtt` leaves out the value that changes every second (age of the last
@@ -635,6 +660,11 @@ static String jsonHealth(bool forMqtt) {
   j += "\"stove_link_losses\":" + String(m.link_losses) + ",";
   j += "\"stove_rx_dropped_bytes\":" + String((unsigned)g_stoveRxDropped) + ",";
   j += "\"mqtt_disconnects\":" + String((unsigned)g_mqttDisconnects);
+  if (!forMqtt) {
+    char sha[17] = ""; esp_app_get_elf_sha256(sha, sizeof sha);
+    j += ",\"elf_sha256\":\"" + String(sha) + "\"";
+    if (g_crash.valid) j += ",\"crash\":" + String(firenet::crashJson(g_crash).c_str());
+  }
   j += "}";
   return j;
 }
@@ -1761,6 +1791,7 @@ void setup() {
     else if (g_dispBoard == "tdongle_off") g_display.blank();
   }
   readRestartReason();
+  loadCrashInfo();
   DBG.begin(115200);
   DBG.println("\n[Open Firenet] boot");
   buildNames();
@@ -1968,6 +1999,22 @@ void loop() {
       (millis() - g_link->model().last_rx_ms) > RX_TIMEOUT_MS) {
     DBG.printf("[wd] aucun RX depuis %lus -> ESP.restart()\n", RX_TIMEOUT_MS / 1000);
     delay(50); restartBecause(NOTE_STOVE_SILENT);
+  }
+
+  // The stove acknowledged the version once since the boot, then went back to refusing it (it answers "0" to every probe) and
+  // kept refusing: nothing in the link recovers from that, and the check above does not see it (it needs the version
+  // acknowledged). A restart, which enumerates the USB device again like unplugging the key, did bring the link back for a user
+  // (issue #121). Only after an acknowledgement in this session, so that a bridge on a stove that is off never restarts, and not
+  // while an update is being installed.
+  static const uint32_t LINK_LOST_RESTART_MS = 300000;
+  static uint32_t linkLostSince = 0;
+  if (g_link->model().version_ack || g_link->model().detections == 0) linkLostSince = 0;
+  else if (linkLostSince == 0) linkLostSince = millis() | 1;
+  if (linkLostSince && millis() - linkLostSince > LINK_LOST_RESTART_MS &&
+      !(g_updater && (strcmp(g_updater->status().state, "downloading") == 0 || strcmp(g_updater->status().state, "verifying") == 0 ||
+                      strcmp(g_updater->status().state, "installing") == 0))) {
+    DBG.printf("[wd] liaison perdue depuis %lus -> ESP.restart()\n", LINK_LOST_RESTART_MS / 1000);
+    delay(50); restartBecause(NOTE_STOVE_LOST);
   }
 
   // 2) cycle de lecture périodique une fois la version acquittée
