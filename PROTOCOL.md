@@ -372,8 +372,8 @@ is slot *p* below for *p* < 2 and *p* + 1 from 2 on (87 slots).
 | 44 | firmwareBuild | `parameterVersionMainBoardSub` | Mainboard build (58512 = 585.12) |
 | 45 | tftBuild | `parameterVersionTFTSub` | Display build |
 | 46 | appRevision | `parameterVersionWiFiSub` | Dongle REV, as sent in the version frame |
-| 47 | pelletHours | `parameterRuntimePellets` | Pellet operating time |
-| 48 | logRuntime | `parameterRuntimeLogs` | Wood (log) operating time |
+| 47 | pelletHours | `parameterRuntimePellets` | Pellet operating time, in hours |
+| 48 | logRuntime | `parameterRuntimeLogs` | Wood (log) operating time, in **minutes** (91007 shown as 1516 h by a combined stove); 0 on a stove that burns pellets only |
 | 49 | pelletsTotal | `parameterFeedRateTotal` | Total pellet consumption (kg) |
 | 50 | serviceCountdown | `parameterFeedRateService` | Consumption remaining before service (kg) |
 | 51 | serviceOffset | `parameterServiceCountdownKg` | Service countdown (kg) |

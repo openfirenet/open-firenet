@@ -10,13 +10,13 @@ namespace firenet {
 
 class DisplayConfig {
 public:
-  enum Id : uint8_t { STATE, ROOM, FLAME, POWER, IP, PELLETS, HOURS, WIFI, MQTT, VERSION, LOGO, COUNT };
+  enum Id : uint8_t { STATE, ROOM, FLAME, POWER, IP, PELLETS, HOURS, LOG_HOURS, WIFI, MQTT, VERSION, LOGO, COUNT };
   static constexpr uint8_t SECONDS_MIN = 2, SECONDS_MAX = 30, SECONDS_DEFAULT = 4;
   static constexpr uint8_t BRIGHT_MIN = 5, BRIGHT_MAX = 100, BRIGHT_DEFAULT = 50, DIM_LEVEL_MAX = 50, DIM_LEVEL_DEFAULT = 10;
   static constexpr uint16_t DIM_AFTER_MIN = 30, DIM_AFTER_MAX = 3600, DIM_AFTER_DEFAULT = 120;
 
   static const char* idName(int i) {
-    static const char* const N[COUNT] = {"state", "room", "flame", "power", "ip", "pellets", "hours", "wifi", "mqtt", "version", "logo"};
+    static const char* const N[COUNT] = {"state", "room", "flame", "power", "ip", "pellets", "hours", "log_hours", "wifi", "mqtt", "version", "logo"};
     return i >= 0 && i < COUNT ? N[i] : "";
   }
   static int idOf(const std::string& n) { for (int i = 0; i < COUNT; i++) if (n == idName(i)) return i; return -1; }

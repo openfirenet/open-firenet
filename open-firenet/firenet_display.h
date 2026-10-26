@@ -34,6 +34,7 @@ struct DisplaySnapshot {
   int  mode = -1;                 // 0 manual, 1 auto, 2 comfort
   bool comfort = false;           // comfort mode: the stove sets its own power
   int  serviceKg = NONE, hours = NONE;
+  int  logHours = NONE;           // split log running time of a combined stove, in whole hours; NONE when the stove reports none
   long errCode = 0;
   bool hopperOpen = false;
   char ip[20] = "";
@@ -94,7 +95,7 @@ public:
 
 private:
   // Same values as DisplayConfig::Id (the order on the screen comes from the setting, not from here).
-  enum Screen { S_STATE, S_ROOM, S_FLAME, S_POWER, S_IP, S_PELLETS, S_HOURS, S_WIFI, S_MQTT, S_VERSION, S_LOGO, S_COUNT };
+  enum Screen { S_STATE, S_ROOM, S_FLAME, S_POWER, S_IP, S_PELLETS, S_HOURS, S_LOG_HOURS, S_WIFI, S_MQTT, S_VERSION, S_LOGO, S_COUNT };
   static_assert((int)S_COUNT == (int)DisplayConfig::COUNT, "screens and their setting must list the same screens");
   enum Alert { A_NONE, A_ERROR, A_HOPPER, A_SILENT, A_NOWIFI };
 
@@ -321,6 +322,7 @@ private:
       case S_IP:      return s.ip[0] != 0;
       case S_PELLETS: return s.serviceKg != DisplaySnapshot::NONE;
       case S_HOURS:   return s.hours != DisplaySnapshot::NONE;
+      case S_LOG_HOURS: return s.logHours != DisplaySnapshot::NONE;
       case S_WIFI:    return s.wifi;
       case S_MQTT:    return s.mqttOn;
       case S_VERSION: return s.version[0] != 0;
@@ -379,6 +381,10 @@ private:
       case S_HOURS:
         snprintf(v, sizeof v, "%d", s.hours);
         info(ICON_TIMER, C_AMBER, TXT(screentext::W_RUNNING), v, FONT_BIG, C_WHITE, "h");
+        break;
+      case S_LOG_HOURS:
+        snprintf(v, sizeof v, "%d", s.logHours);
+        info(ICON_TIMER, C_AMBER, TXT(screentext::W_RUNNING_LOGS), v, FONT_BIG, C_WHITE, "h");
         break;
       case S_WIFI: {
         snprintf(v, sizeof v, "%d", s.rssi);

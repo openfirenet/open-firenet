@@ -78,11 +78,12 @@ int main(){
     std::string k = "=0; =1; =1; =1; =1; =1; =1; =29; =70; =70; =70; =1; =3; =0; =0; =1; =13; =3; =229; =0; =0; =160; ";
     for(char ch:k) l2.onByte(ch);
     clk+=50; l2.poll();   // continuation
-    std::string k2 = "=150; =112; =58512; =53404; =12201; =4354; =0; =7064; =700; =0; =0; ";
+    std::string k2 = "=150; =112; =58512; =53404; =12201; =4354; =91007; =7064; =700; =0; =0; ";
     for(char ch:k2) l2.onByte(ch);
     clk+=50; l2.poll();  // continuation
     CH("total 53 capteurs", l2.model().sensors_pos.size()==53);
     CH("s47 pelletHours=4354", l2.model().sensors_pos[47]==4354);
+    CH("s48 logRuntime=91007 (minutes), named logRuntime", l2.model().sensors_pos[48]==91007 && firenet::sensIndexByName("logRuntime")==48);
     CH("s49 pelletsTotal=7064", l2.model().sensors_pos[49]==7064);
     CH("s50 serviceCountdown=700", l2.model().sensors_pos[50]==700);
     // commande suivante clôt l'accumulation
