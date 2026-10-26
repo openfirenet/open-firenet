@@ -10,6 +10,11 @@ int main() {
   CH("default order and all on", std::string(c.json(true)).find("{\"id\":\"state\",\"enabled\":true},{\"id\":\"room\"") != std::string::npos && c.seconds == 4);
   CH("json says whether a display exists", c.json(false).rfind("{\"available\":false,", 0) == 0 && c.json(true).rfind("{\"available\":true,", 0) == 0);
 
+  CH("the split log hours screen is known, after the pellet hours", DisplayConfig::idOf("log_hours") == DisplayConfig::LOG_HOURS && DisplayConfig::LOG_HOURS == DisplayConfig::HOURS + 1 && c.on[DisplayConfig::LOG_HOURS]);
+  {
+    DisplayConfig old; old.fromPrefs("state:1,room:1,flame:1,power:1,ip:1,pellets:1,hours:0,wifi:1,mqtt:1,version:1,logo:1;4;50");
+    CH("a text saved before the split log screen still loads, with that screen last and on", old.order[DisplayConfig::COUNT - 1] == DisplayConfig::LOG_HOURS && old.on[DisplayConfig::LOG_HOURS] && !old.on[DisplayConfig::HOURS]);
+  }
   CH("only known boards are valid", DisplayConfig::validBoard("none") && DisplayConfig::validBoard("tdongle") && DisplayConfig::validBoard("tdongle_off") && !DisplayConfig::validBoard("") && !DisplayConfig::validBoard("TDONGLE") && !DisplayConfig::validBoard("lilygo"));
   CH("json carries the board and whether a restart is needed",
      c.json(false, "tdongle", true).find("\"board\":\"tdongle\"") != std::string::npos && c.json(false, "tdongle", true).find("\"restart_needed\":true") != std::string::npos &&

@@ -1,30 +1,35 @@
 // firenet_mqtt.h -- Arduino-free helpers of the MQTT feature, tested on the host (test/mqtt_test.cpp). The MQTT
 // client itself is Espressif's esp-mqtt, shipped with the ESP32 core (see the MQTT section of open-firenet.ino).
 #pragma once
+#include <algorithm>
+#include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace firenet {
 namespace mqtt {
 
-// Flattens {"section":{"key":value,...},...} into ("section/key", value) pairs: one MQTT topic per value. String
-// values lose their quotes. Top-level scalars and deeper levels are ignored.
-inline void flattenSections(const std::string& json, std::vector<std::pair<std::string, std::string>>& out) {
+// Walks {"section":{"key":value,...},...} and calls f(section, key, value) once per value, in order, without
+// allocating: the three views point into `json`. String values lose their quotes. Top-level scalars and deeper levels
+// are ignored. f returns false to stop the walk.
+template <class F>
+inline void forEachValue(std::string_view json, F&& f) {
   auto ws = [&](size_t& p) { while (p < json.size() && (json[p] == ' ' || json[p] == '\n' || json[p] == '\t' || json[p] == '\r')) p++; };
-  auto str = [&](size_t& p, std::string& v) {             // p on the opening quote; leaves p after the closing one
-    size_t e = json.find('"', p + 1); if (e == std::string::npos) return false;
+  auto str = [&](size_t& p, std::string_view& v) {        // p on the opening quote; leaves p after the closing one
+    size_t e = json.find('"', p + 1); if (e == std::string_view::npos) return false;
     v = json.substr(p + 1, e - p - 1); p = e + 1; return true;
   };
-  std::string section;
+  std::string_view section;
   int depth = 0;
   size_t p = 0;
   while (p < json.size()) {
     char c = json[p];
     if (c == '{') { depth++; p++; continue; }
-    if (c == '}') { depth--; if (depth == 1) section.clear(); p++; continue; }
+    if (c == '}') { depth--; if (depth == 1) section = std::string_view(); p++; continue; }
     if (c != '"') { p++; continue; }
-    std::string key, val;
+    std::string_view key, val;
     if (!str(p, key)) return;
     ws(p);
     if (p >= json.size() || json[p] != ':') continue;
@@ -32,10 +37,57 @@ inline void flattenSections(const std::string& json, std::vector<std::pair<std::
     if (p >= json.size()) return;
     if (json[p] == '{') { if (depth == 1) section = key; continue; }
     if (json[p] == '"') { if (!str(p, val)) return; }
-    else { size_t e = json.find_first_of(",}", p); if (e == std::string::npos) e = json.size(); val = json.substr(p, e - p); p = e; }
-    if (depth == 2 && !section.empty()) out.push_back({section + "/" + key, val});
+    else { size_t e = json.find_first_of(",}", p); if (e == std::string_view::npos) e = json.size(); val = json.substr(p, e - p); p = e; }
+    if (depth == 2 && !section.empty() && !f(section, key, val)) return;
   }
 }
+
+// The same walk collected as ("section/key", value) pairs: one MQTT topic per value.
+inline void flattenSections(std::string_view json, std::vector<std::pair<std::string, std::string>>& out) {
+  forEachValue(json, [&](std::string_view section, std::string_view key, std::string_view val) {
+    out.emplace_back(std::string(section) + "/" + std::string(key), std::string(val));
+    return true;
+  });
+}
+
+// What was last published, kept as hashes instead of copies of the topics and values: one block of 16 bytes per topic
+// instead of two strings and a map node. The topic is a 64-bit hash of "section/key", the value a 32-bit hash; a
+// collision would only delay an update to the next full refresh (every 60 s).
+class SentValues {
+ public:
+  static uint64_t topicHash(std::string_view section, std::string_view key) {
+    uint64_t h = 1469598103934665603ULL;
+    for (char c : section) { h ^= (uint8_t)c; h *= 1099511628211ULL; }
+    h ^= (uint8_t)'/'; h *= 1099511628211ULL;
+    for (char c : key) { h ^= (uint8_t)c; h *= 1099511628211ULL; }
+    return h;
+  }
+  static uint32_t valueHash(std::string_view v) {
+    uint32_t h = 2166136261u;
+    for (char c : v) { h ^= (uint8_t)c; h *= 16777619u; }
+    return h;
+  }
+  bool same(uint64_t topic, uint32_t value) const {
+    auto it = find(topic);
+    return it != items_.end() && it->first == topic && it->second == value;
+  }
+  void set(uint64_t topic, uint32_t value) {
+    auto it = find(topic);
+    if (it != items_.end() && it->first == topic) it->second = value;
+    else items_.insert(it, {topic, value});
+  }
+  void clear() { items_.clear(); }
+  void reserve(size_t n) { items_.reserve(n); }
+  size_t size() const { return items_.size(); }
+ private:
+  std::vector<std::pair<uint64_t, uint32_t>> items_;     // sorted by topic hash
+  std::vector<std::pair<uint64_t, uint32_t>>::const_iterator find(uint64_t topic) const {
+    return std::lower_bound(items_.begin(), items_.end(), topic, [](const std::pair<uint64_t, uint32_t>& a, uint64_t b) { return a.first < b; });
+  }
+  std::vector<std::pair<uint64_t, uint32_t>>::iterator find(uint64_t topic) {
+    return std::lower_bound(items_.begin(), items_.end(), topic, [](const std::pair<uint64_t, uint32_t>& a, uint64_t b) { return a.first < b; });
+  }
+};
 
 // Name/value pairs commanded by a message: the JSON or "k=v;" payload of <base>/set, or the single value of
 // <base>/set/<name>. Empty for any other topic. The split of the payload is left to the caller (firenet_api.h).
@@ -118,6 +170,9 @@ static const Entity ENTITIES[] = {
   {"sensor", "pellet_hours", "Pellet Operating Hours",
    "\"state_topic\":\"~/sensors/pellet_hours\","
    "\"unit_of_measurement\":\"h\",\"device_class\":\"duration\",\"state_class\":\"total_increasing\","},
+  {"sensor", "log_runtime", "Split Log Operating Time",
+   "\"state_topic\":\"~/sensors/log_runtime\","
+   "\"unit_of_measurement\":\"min\",\"device_class\":\"duration\",\"state_class\":\"total_increasing\",\"icon\":\"mdi:fireplace\","},
   {"sensor", "service_countdown_kg", "Service Countdown",
    "\"state_topic\":\"~/sensors/service_countdown_kg\",\"unit_of_measurement\":\"kg\",\"device_class\":\"weight\","},
   {"sensor", "fan_speed_rpm", "Flue Draft Fan Speed",

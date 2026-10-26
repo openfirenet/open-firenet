@@ -23,6 +23,28 @@ int main() {
     CH("flatten: deeper levels and top-level scalars ignored", f.size() == 9 && !m.count("sensors/x") && !m.count("deep/x") && !m.count("top"));
   }
 
+  // --- walk without copies, and the hashes of what was published
+  {
+    std::string json = "{\"stove\":{\"state\":\"heating\",\"n\":4},\"sensors\":{\"t\":21.5,\"deep\":{\"x\":1}},\"top\":7}";
+    std::vector<std::string> seen;
+    mqtt::forEachValue(json, [&](std::string_view s, std::string_view k, std::string_view v) { seen.push_back(std::string(s) + "/" + std::string(k) + "=" + std::string(v)); return true; });
+    CH("walk: order and content", seen.size() == 3 && seen[0] == "stove/state=heating" && seen[1] == "stove/n=4" && seen[2] == "sensors/t=21.5");
+    int n = 0;
+    mqtt::forEachValue(json, [&](std::string_view, std::string_view, std::string_view) { return ++n < 2; });
+    CH("walk: stops when the callback says so", n == 2);
+    mqtt::SentValues sv;
+    uint64_t t1 = mqtt::SentValues::topicHash("stove", "state"), t2 = mqtt::SentValues::topicHash("stove", "n");
+    CH("sent: nothing known at first", !sv.same(t1, mqtt::SentValues::valueHash("heating")));
+    sv.set(t2, mqtt::SentValues::valueHash("4")); sv.set(t1, mqtt::SentValues::valueHash("heating"));
+    CH("sent: same value", sv.same(t1, mqtt::SentValues::valueHash("heating")) && sv.same(t2, mqtt::SentValues::valueHash("4")));
+    CH("sent: other value", !sv.same(t1, mqtt::SentValues::valueHash("off")));
+    sv.set(t1, mqtt::SentValues::valueHash("off"));
+    CH("sent: updated, still two topics", sv.same(t1, mqtt::SentValues::valueHash("off")) && sv.size() == 2);
+    CH("sent: section and key are not interchangeable", mqtt::SentValues::topicHash("a", "bc") != mqtt::SentValues::topicHash("ab", "c"));
+    sv.clear();
+    CH("sent: cleared", sv.size() == 0 && !sv.same(t1, mqtt::SentValues::valueHash("off")));
+  }
+
   // --- command topics
   {
     std::string name = "x";

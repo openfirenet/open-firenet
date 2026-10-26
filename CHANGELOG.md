@@ -5,6 +5,25 @@
 ### New
 - First step towards stoves on firmware 2.25 (SUMO, SONO, INDUO), which do not understand the text frames of the other firmware versions. When such a stove has sent its start-up probe and nothing was acknowledged, the bridge now sends one acknowledgement and reads the stove state, temperatures, input states and its settings in the stove's own numeric format, and shows what the stove answers (state, room and flame temperature, inputs) on the page, in the API and over MQTT, and in the exchange log when a value changes. It can start the stove (only when it is off, cold and without error) and stop it, and set the mode (manual, automatic, comfort), the power of the manual mode (30 to 100 %, steps of 5), the room set point (14 to 28 degrees) and the reduced set point (12 to 22), the frost protection (on or off, 4 to 10 degrees) and the power level of the comfort mode (1 to 4), from the page, the API and MQTT; the stove does not confirm a command, so the bridge reads the value back and shows it. The weekly schedule is not available yet. The mode, the manual power, the room set point and the stop were tried on a stove; the start and the other settings were not. The room temperature has whole degrees only. The comfort and reduced set points, the mode and the frost protection of the stove are shown too. Please send the diagnostic file if you try it. (#110)
 
+### Changes
+- The health line "Last restart" of the Diagnostics tab is now "Last restart reason" (in the four languages), so it is clear that it tells why the bridge last restarted, not whether it did.
+
+## v4.8.1 (2026-10-26)
+
+### Fixes
+- Checking for a firmware update no longer fails with "download: net connection refused" on a bridge with the screen when MQTT is on: the screen is switched off for the few seconds of the check, which frees the memory the secure connection to GitHub needs. (#125)
+- A bridge that runs out of memory while publishing to MQTT no longer restarts: it skips that publication and tries again a second later. (#121)
+- MQTT publishing uses much less memory: the bridge no longer makes several copies of the whole state every second, nor keeps a copy of every published value. This lowers the risk of running out of memory on the LilyGO T-Dongle-S3. (#121)
+
+## v4.8.0 (2026-10-26)
+
+### New
+- Combined (pellet and split log) stoves: the page shows a "Split log running time" card and the key's screen a "Log hours" screen, from the stove's split log running time (`log_runtime` in minutes and `log_runtime_hours` in the API, also over MQTT). Nothing is shown on a stove that reports no split log time. (#119)
+- The diagnostic file (and `/api/state`, under `health.crash`) now says where the bridge crashed the last time it did: the task, the address of the failure and the call stack. Please send the diagnostic file after a crash, before restarting anything. (#121)
+
+### Fixes
+- If the stove had accepted the bridge and then refuses it (it answers "0" to every probe), the bridge now restarts after 5 minutes instead of staying on "waiting for the stove" until it is unplugged; the restart reason is shown as "stove_lost". This is a safety net: the cause of the stove's refusal is not known. (#121)
+
 ## v4.7.0 (2026-10-21)
 
 ### New

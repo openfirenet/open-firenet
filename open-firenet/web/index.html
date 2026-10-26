@@ -828,6 +828,16 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
     </div>
 
+    <div class="card" id="logRuntimeCard" style="display:none">
+      <div class="card-header">
+        <span id="lblLogRuntimeHeader">Fonctionnement bois</span>
+        <span class="ic-slot" data-ic="timer"></span>
+      </div>
+      <div class="card-val">
+        <span id="logRuntimeHours">--</span><span class="unit">h</span>
+      </div>
+    </div>
+
     <div class="card card-gauge">
       <div class="card-header">
         <span id="lblServiceHeader">Entretien dans</span>
@@ -1569,6 +1579,7 @@ const I18N = {
     serviceHeader: "Entretien dans",
     ignitionsHeader: "Allumages",
     runtimeHeader: "Fonctionnement",
+    logRuntimeHeader: "Fonctionnement bois",
     serviceBarTitle: "Reste avant le prochain entretien : ",
     deckTitle: "Pilotage du Poêle",
     subtabDirect: "Commandes directes",
@@ -1627,6 +1638,7 @@ const I18N = {
     screen_ip: "Adresse IP",
     screen_pellets: "Granulés avant entretien",
     screen_hours: "Heures de fonctionnement",
+    screen_log_hours: "Heures de fonctionnement bois",
     screen_wifi: "Wi-Fi",
     screen_mqtt: "MQTT",
     screen_version: "Version du firmware",
@@ -1773,7 +1785,7 @@ const I18N = {
     diagHealth: "État de la clé",
     diagFile: "Fichier de diagnostic",
     diagFileHint: "Un seul fichier à joindre à un signalement : état, liaison, toutes les valeurs et journal. Le nom du Wi-Fi et l'adresse MAC y sont masqués.",
-    healthRestart: "Dernier redémarrage",
+    healthRestart: "Cause du dernier redémarrage",
     healthMemory: "Mémoire libre",
     healthMemoryMin: "minimum {v}",
     healthTemp: "Température de la puce",
@@ -1796,6 +1808,7 @@ const I18N = {
       wifi_change: "Changement de Wi-Fi",
       update: "Mise à jour",
       stove_silent: "Plus de réponse du poêle (60 s)",
+      stove_lost: "Liaison avec le poêle perdue (5 min)",
       software: "Redémarrage logiciel",
       unknown: "Inconnu"
     },
@@ -1836,6 +1849,7 @@ const I18N = {
       boardSensor: "Sonde carte mère (°C)",
       pelletsTotal: "Consommation totale (kg)",
       pelletHours: "Heures granulés (h)",
+      logRuntime: "Temps de fonctionnement bois (min)",
       serviceCountdown: "Compte à rebours entretien (kg)",
       mainState: "État principal poêle",
       subState: "Sous-état détaillé",
@@ -1904,6 +1918,7 @@ const I18N = {
     serviceHeader: "Service in",
     ignitionsHeader: "Ignitions",
     runtimeHeader: "Running time",
+    logRuntimeHeader: "Split log running time",
     serviceBarTitle: "Left before the next service: ",
     deckTitle: "Stove Controls",
     subtabDirect: "Direct Controls",
@@ -1962,6 +1977,7 @@ const I18N = {
     screen_ip: "IP address",
     screen_pellets: "Pellets until service",
     screen_hours: "Running hours",
+    screen_log_hours: "Split log running hours",
     screen_wifi: "Wi-Fi",
     screen_mqtt: "MQTT",
     screen_version: "Firmware version",
@@ -2108,7 +2124,7 @@ const I18N = {
     diagHealth: "Bridge health",
     diagFile: "Diagnostic file",
     diagFileHint: "One file to attach to a report: health, link, all values and log. The Wi-Fi name and the MAC address are masked in it.",
-    healthRestart: "Last restart",
+    healthRestart: "Last restart reason",
     healthMemory: "Free memory",
     healthMemoryMin: "lowest {v}",
     healthTemp: "Chip temperature",
@@ -2131,6 +2147,7 @@ const I18N = {
       wifi_change: "Wi-Fi change",
       update: "Update",
       stove_silent: "No answer from the stove (60 s)",
+      stove_lost: "Link with the stove lost (5 min)",
       software: "Software restart",
       unknown: "Unknown"
     },
@@ -2171,6 +2188,7 @@ const I18N = {
       boardSensor: "Mainboard temperature (°C)",
       pelletsTotal: "Total pellet consumption (kg)",
       pelletHours: "Total pellet runtime (h)",
+      logRuntime: "Total split log runtime (min)",
       serviceCountdown: "Service countdown (kg)",
       mainState: "Main operating state",
       subState: "Detailed sub-state",
@@ -2239,6 +2257,7 @@ const I18N = {
     "serviceHeader": "Manutenzione tra",
     "ignitionsHeader": "Accensioni",
     "runtimeHeader": "Funzionamento",
+    "logRuntimeHeader": "Funzionamento a legna",
     "serviceBarTitle": "Pellet rimanente prima della manutenzione: ",
     "deckTitle": "Comandi della stufa",
     "subtabDirect": "Comandi diretti",
@@ -2297,6 +2316,7 @@ const I18N = {
     "screen_ip": "Indirizzo IP",
     "screen_pellets": "Pellet alla manutenzione",
     "screen_hours": "Ore di funzionamento",
+    "screen_log_hours": "Ore di funzionamento a legna",
     "screen_wifi": "Wi-Fi",
     "screen_mqtt": "MQTT",
     "screen_version": "Versione del firmware",
@@ -2463,7 +2483,7 @@ const I18N = {
     "diagHealth": "Stato del bridge",
     "diagFile": "File di diagnostica",
     "diagFileHint": "Un solo file da allegare a una segnalazione: stato, collegamento, tutti i valori e registro. Il nome del Wi-Fi e l'indirizzo MAC vi sono mascherati.",
-    "healthRestart": "Ultimo riavvio",
+    "healthRestart": "Motivo dell'ultimo riavvio",
     "healthMemory": "Memoria libera",
     "healthMemoryMin": "minimo {v}",
     "healthTemp": "Temperatura del chip",
@@ -2486,6 +2506,7 @@ const I18N = {
       "wifi_change": "Modifica del Wi-Fi",
       "update": "Aggiornamento",
       "stove_silent": "Nessuna risposta dalla stufa (60 s)",
+      "stove_lost": "Collegamento con la stufa perso (5 min)",
       "software": "Riavvio software",
       "unknown": "Sconosciuto"
     },
@@ -2566,6 +2587,7 @@ const I18N = {
       "boardSensor": "Temperatura della scheda principale (°C)",
       "pelletsTotal": "Consumo totale di pellet (kg)",
       "pelletHours": "Ore totali di funzionamento a pellet (h)",
+      "logRuntime": "Tempo totale di funzionamento a legna (min)",
       "serviceCountdown": "Pellet rimanente prima della manutenzione (kg)",
       "mainState": "Stato operativo principale",
       "subState": "Sottostato dettagliato",
@@ -2634,6 +2656,7 @@ const I18N = {
     serviceHeader: "Wartung in",
     ignitionsHeader: "Zündungen",
     runtimeHeader: "Betriebszeit",
+    logRuntimeHeader: "Scheitholz-Betriebszeit",
     serviceBarTitle: "Verbleibend bis zur nächsten Wartung: ",
     deckTitle: "Ofensteuerung",
     subtabDirect: "Direktsteuerung",
@@ -2692,6 +2715,7 @@ const I18N = {
     screen_ip: "IP-Adresse",
     screen_pellets: "Pellets bis Wartung",
     screen_hours: "Betriebsstunden",
+    screen_log_hours: "Scheitholz-Betriebsstunden",
     screen_wifi: "WLAN",
     screen_mqtt: "MQTT",
     screen_version: "Firmware-Version",
@@ -2838,7 +2862,7 @@ const I18N = {
     diagHealth: "Zustand des Sticks",
     diagFile: "Diagnosedatei",
     diagFileHint: "Eine einzige Datei für eine Meldung: Zustand, Verbindung, alle Werte und Protokoll. WLAN-Name und MAC-Adresse sind darin unkenntlich gemacht.",
-    healthRestart: "Letzter Neustart",
+    healthRestart: "Grund des letzten Neustarts",
     healthMemory: "Freier Speicher",
     healthMemoryMin: "Minimum {v}",
     healthTemp: "Chip-Temperatur",
@@ -2861,6 +2885,7 @@ const I18N = {
       wifi_change: "WLAN-Änderung",
       update: "Update",
       stove_silent: "Keine Antwort vom Ofen (60 s)",
+      stove_lost: "Verbindung zum Ofen verloren (5 Min.)",
       software: "Software-Neustart",
       unknown: "Unbekannt"
     },
@@ -2901,6 +2926,7 @@ const I18N = {
       boardSensor: "Hauptplatine Temperatur (°C)",
       pelletsTotal: "Gesamter Pelletverbrauch (kg)",
       pelletHours: "Pellet-Betriebsstunden gesamt (h)",
+      logRuntime: "Scheitholz-Betriebszeit gesamt (min)",
       serviceCountdown: "Wartungs-Countdown (kg)",
       mainState: "Hauptbetriebszustand",
       subState: "Detailierter Unterzustand",
@@ -3000,6 +3026,7 @@ function applyLang() {
   document.getElementById('lblServiceHeader').textContent = t.serviceHeader;
   Object.keys(APPLY_BUTTONS).forEach((id) => { const b = document.getElementById(id); if (b && !b.dataset.busy) b.textContent = t.btnApply; });
   document.getElementById('lblRuntimeHeader').textContent = t.runtimeHeader;
+  document.getElementById('lblLogRuntimeHeader').textContent = t.logRuntimeHeader;
   document.getElementById('lblIgnitionsHeader').textContent = t.ignitionsHeader;
   if (document.getElementById('lblDeckTitle')) document.getElementById('lblDeckTitle').textContent = t.deckTitle;
   if (document.getElementById('lblSubtabDirect')) document.getElementById('lblSubtabDirect').textContent = t.subtabDirect;
@@ -3536,7 +3563,7 @@ let lastUpdateState = null;
 let _updatePollTimer = null;
 
 // ---- Screen tab: the key's display (only on a board that has one) ----
-const SCREEN_COLORS = { state: '#f97316', room: '#fb7185', flame: '#f97316', power: '#facc15', ip: '#818cf8', pellets: '#f59e0b', hours: '#f59e0b', wifi: '#34d399', mqtt: '#34d399', version: '#818cf8' };
+const SCREEN_COLORS = { state: '#f97316', room: '#fb7185', flame: '#f97316', power: '#facc15', ip: '#818cf8', pellets: '#f59e0b', hours: '#f59e0b', log_hours: '#f59e0b', wifi: '#34d399', mqtt: '#34d399', version: '#818cf8' };
 // What each card shows, as the key draws it, from the last state; null when the key would skip the screen.
 function screenPreview(id) {
   const st = lastState; if (!st) return null;
@@ -3555,6 +3582,7 @@ function screenPreview(id) {
   if (id === 'ip') return st.ip ? { cap: 'ADDRESS', val: st.ip, size: 'sm' } : null;
   if (id === 'pellets') return num(sn.service_countdown_kg) ? { cap: 'SERVICE IN', val: String(sn.service_countdown_kg), unit: 'kg' } : null;
   if (id === 'hours') return num(sn.pellet_hours) && sn.pellet_hours > 0 ? { cap: 'RUNNING', val: String(sn.pellet_hours), unit: 'h' } : null;
+  if (id === 'log_hours') return num(sn.log_runtime) && sn.log_runtime > 0 && num(sn.log_runtime_hours) ? { cap: 'LOG HOURS', val: String(sn.log_runtime_hours), unit: 'h' } : null;
   if (id === 'wifi') return st.wifi_connected && st.device ? { cap: 'WI-FI', val: String(st.device.wifi_rssi), unit: 'dBm' } : null;
   if (id === 'mqtt') return (st.mqtt || {}).enabled ? { cap: 'MQTT', val: st.mqtt.connected ? 'Online' : 'Offline', size: 'med' } : null;
   if (id === 'logo') return { logo: true };
@@ -4636,6 +4664,7 @@ function renderSensors(sObj, filterText) {
     else if (k === 'flame' || k === 'boardSensor') v = v + ' °C';
     else if (k === 'pelletsTotal' || k === 'serviceCountdown') v = v + ' kg';
     else if (k === 'pelletHours') v = v + ' h';
+    else if (k === 'logRuntime') v = v + ' min';
     else if (k === 'stageCur' || k === 'stageCur1') v = v + ' %';
     else if (k === 'mainState') v = (t.stateMap && t.stateMap[v] ? t.stateMap[v].title : v);
     else if (k === 'model') {
@@ -4766,6 +4795,11 @@ async function tick() {
     document.getElementById('pelletsTotal').textContent = pTot.toLocaleString(bcpLanguageTag);
     const pHours = sens.pellet_hours !== undefined ? sens.pellet_hours : (rawS.pelletHours !== undefined ? rawS.pelletHours : (s.sensors_pos ? s.sensors_pos[47] : 0));
     document.getElementById('pelletHours').textContent = pHours.toLocaleString(bcpLanguageTag);
+    // Split log time: shown only when the stove reports some (a stove that burns pellets alone sends 0).
+    const logMin = sens.log_runtime !== undefined ? sens.log_runtime : 0;
+    const logH = sens.log_runtime_hours !== undefined ? sens.log_runtime_hours : 0;
+    document.getElementById('logRuntimeCard').style.display = logMin > 0 ? '' : 'none';
+    document.getElementById('logRuntimeHours').textContent = logH.toLocaleString(bcpLanguageTag);
     document.getElementById('ignitionCount').textContent = rawS.ignitionCount !== undefined ? Number(rawS.ignitionCount).toLocaleString(bcpLanguageTag) : '--';
     const sCount = sens.service_countdown_kg !== undefined ? sens.service_countdown_kg : (rawS.serviceCountdown !== undefined ? rawS.serviceCountdown : (s.sensors_pos ? s.sensors_pos[50] : 700));
     document.getElementById('serviceCount').textContent = sCount.toLocaleString(bcpLanguageTag);

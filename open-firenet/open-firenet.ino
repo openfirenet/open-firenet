@@ -29,6 +29,9 @@
 #include "firenet_v0_map.h"
 #include "firenet_api.h"
 #include "firenet_web_guard.h"
+#include "firenet_crash.h"
+#include "esp_core_dump.h"   // summary of the last crash, left in flash by the chip
+#include "esp_app_desc.h"
 #include "mbedtls/sha256.h"
 #include "firenet_mqtt.h"
 #include <deque>
@@ -83,7 +86,7 @@ SET_LOOP_TASK_STACK_SIZE(12 * 1024);   // loop() was left with 1.3 kB of its 8 k
 
 // --------------------------------------------------------- version & config USB
 #ifndef OPENFIRENET_VERSION
-#define OPENFIRENET_VERSION "4.7.0"
+#define OPENFIRENET_VERSION "4.8.1"
 #endif
 
 // Identifiants USB Open Firenet
@@ -274,6 +277,7 @@ static String jsonStoveSections() {
   long sState   = sensorValue(m, "subState", 0);
   long pTotal   = sensorValue(m, "pelletsTotal", 0);
   long pHours   = sensorValue(m, "pelletHours", 0);
+  long logMin   = sensorValue(m, "logRuntime", 0);   // minutes, unlike pelletHours (a combined stove reports both; others send 0)
   long sCount   = sensorValue(m, "serviceCountdown", 700);
   long idFan    = sensorValue(m, "idFanMeas", 0);
   long auger    = sensorValue(m, "augerSet", 0);
@@ -379,6 +383,8 @@ static String jsonStoveSections() {
       "\"board_temperature\":%.1f,"
       "\"pellets_total_kg\":%ld,"
       "\"pellet_hours\":%ld,"
+      "\"log_runtime\":%ld,"
+      "\"log_runtime_hours\":%ld,"
       "\"service_countdown_kg\":%ld,"
       "\"fan_speed_rpm\":%ld,"
       "\"auger_speed_rpm\":%ld,"
@@ -412,7 +418,7 @@ static String jsonStoveSections() {
     errMask != 0 ? "true" : "false",
     errMask, errSub, warnCode,
     modelS, modelNameS, brandS, mbVerS, buildS,
-    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, sCount, idFan, auger, powerNow,
+    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, logMin, logMin / 60, sCount, idFan, auger, powerNow,
     airFlapsS, airFlapsTgtS,
     (curOn == 1) ? "true" : "false",
     modeName, curMode, rTargetF, curStage,
@@ -584,7 +590,7 @@ static void handleTxGap() {
 // Cause of the last restart. The chip tells power-on, brown-out, crash and watchdog by itself; for a restart the
 // firmware asks for, it only says "software". The reason is then left in memory that survives a software restart
 // but not a power cut (RTC, no flash wear), with a marker so that leftovers are never read as a reason.
-enum RestartNote : uint32_t { NOTE_NONE = 0, NOTE_USER, NOTE_WIFI_CHANGE, NOTE_UPDATE, NOTE_STOVE_SILENT };
+enum RestartNote : uint32_t { NOTE_NONE = 0, NOTE_USER, NOTE_WIFI_CHANGE, NOTE_UPDATE, NOTE_STOVE_SILENT, NOTE_STOVE_LOST };
 static const uint32_t RESTART_NOTE_MAGIC = 0x0F17E7A5;
 RTC_NOINIT_ATTR static uint32_t g_restartNoteMagic;
 RTC_NOINIT_ATTR static uint32_t g_restartNote;
@@ -612,10 +618,32 @@ static void readRestartReason() {
     case ESP_RST_USB:      g_restartReason = "usb"; break;
     case ESP_RST_SW:
       g_restartReason = note == NOTE_USER ? "user" : note == NOTE_WIFI_CHANGE ? "wifi_change"
-                      : note == NOTE_UPDATE ? "update" : note == NOTE_STOVE_SILENT ? "stove_silent" : "software";
+                      : note == NOTE_UPDATE ? "update" : note == NOTE_STOVE_SILENT ? "stove_silent" : note == NOTE_STOVE_LOST ? "stove_lost" : "software";
       break;
     default:               g_restartReason = "unknown"; break;
   }
+}
+
+// The last crash, read from the core dump the chip leaves in flash (partition "coredump") when the program panics. The dump stays until
+// another crash overwrites it, so it can be older than the last restart: its firmware SHA tells which firmware it comes from.
+static firenet::CrashInfo g_crash;
+static void loadCrashInfo() {
+#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH && CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF
+  if (esp_core_dump_image_check() != ESP_OK) return;
+  esp_core_dump_summary_t* s = (esp_core_dump_summary_t*)malloc(sizeof(esp_core_dump_summary_t));
+  if (!s) return;
+  if (esp_core_dump_get_summary(s) == ESP_OK) {
+    strlcpy(g_crash.task, s->exc_task, sizeof g_crash.task);
+    g_crash.pc = s->exc_pc; g_crash.cause = s->ex_info.exc_cause; g_crash.faultAddress = s->ex_info.exc_vaddr;
+    g_crash.depth = s->exc_bt_info.depth > 16 ? 16 : s->exc_bt_info.depth;
+    for (uint32_t i = 0; i < g_crash.depth; i++) g_crash.bt[i] = s->exc_bt_info.bt[i];
+    g_crash.corrupted = s->exc_bt_info.corrupted;
+    strlcpy(g_crash.elfSha, (const char*)s->app_elf_sha256, sizeof g_crash.elfSha);
+    g_crash.valid = true;
+    DBG.printf("[crash] last crash: task %s, pc 0x%08x, cause %u, firmware %s\n", g_crash.task, (unsigned)g_crash.pc, (unsigned)g_crash.cause, g_crash.elfSha);
+  }
+  free(s);
+#endif
 }
 
 // The "health" object of /api/state. `forMqtt` leaves out the value that changes every second (age of the last
@@ -635,6 +663,11 @@ static String jsonHealth(bool forMqtt) {
   j += "\"stove_link_losses\":" + String(m.link_losses) + ",";
   j += "\"stove_rx_dropped_bytes\":" + String((unsigned)g_stoveRxDropped) + ",";
   j += "\"mqtt_disconnects\":" + String((unsigned)g_mqttDisconnects);
+  if (!forMqtt) {
+    char sha[17] = ""; esp_app_get_elf_sha256(sha, sizeof sha);
+    j += ",\"elf_sha256\":\"" + String(sha) + "\"";
+    if (g_crash.valid) j += ",\"crash\":" + String(firenet::crashJson(g_crash).c_str());
+  }
   j += "}";
   return j;
 }
@@ -678,6 +711,7 @@ static void updateDisplay() {
     if (m.sensors.count("serviceCountdown")) d.serviceKg = (int)sensorValue(m, "serviceCountdown", 0);
     // 0 hours is how a slow sensor group looks until the stove has sent it (seen after a restart of the bridge): not shown then.
     if (m.sensors.count("pelletHours") && sensorValue(m, "pelletHours", 0) > 0) d.hours = (int)sensorValue(m, "pelletHours", 0);
+    if (m.sensors.count("logRuntime") && sensorValue(m, "logRuntime", 0) > 0) d.logHours = (int)(sensorValue(m, "logRuntime", 0) / 60);
     d.errCode = sensorValue(m, "errMask32", 0);
     d.hopperOpen = m.sensors.count("hopperLidClosed") && sensorValue(m, "hopperLidClosed", 1) == 0;
   }
@@ -1321,8 +1355,10 @@ static bool mqttOutboxPush(std::string topic, std::string payload) {
 }
 static std::mutex g_mqttClientMx;             // held while publishing, and while the client is stopped and destroyed
 static TaskHandle_t g_mqttPublisher = nullptr;
-static std::map<std::string, std::string> g_mqttSent;   // last value published per topic
-static String g_mqttLastState;
+static firenet::mqtt::SentValues g_mqttSent;   // hashes of the last value published per topic
+static uint64_t g_mqttLastStateHash = 0;
+static size_t g_mqttStateSize = 4096;   // size of the last state JSON, to reserve the next one
+static bool g_mqttHaveState = false;   // g_mqttLastStateHash is valid
 static uint32_t g_mqttLastStateMs = 0;
 // Home Assistant discovery (optional): the configuration messages are sent a few at a time after each connection,
 // and again when the stove model becomes known. g_mqttDiscRemove sends the empty messages that delete the entities,
@@ -1584,23 +1620,36 @@ static void mqttPublish() {
   snprintf(dev, sizeof dev, "{\"device\":{\"version\":\"" OPENFIRENET_VERSION "\",\"connected\":%s,\"ip\":\"%s\"}",
            linked ? "true" : "false", WiFi.localIP().toString().c_str());
   // Before the stove is linked its values are not known: only the "device" object is published.
-  String state = String(dev) + "," + jsonHealth(true) + (linked ? "," + jsonStoveSections() + "," + jsonScheduleSection() : String()) + "}";
+  // Built in place in a reserved buffer: concatenating the parts would copy the whole state several times.
+  String state;
+  state.reserve(g_mqttStateSize);
+  state += dev; state += ","; state += jsonHealth(true);
+  if (linked) { state += ","; state += jsonStoveSections(); state += ","; state += jsonScheduleSection(); }
+  state += "}";
+  if (state.length() > g_mqttStateSize) g_mqttStateSize = state.length() + 256;   // the next one fits at once
   uint32_t now = millis();
-  bool changed = state != g_mqttLastState;
-  if ((changed && (g_mqttLastState.isEmpty() || now - g_mqttLastStateMs >= 5000)) || now - g_mqttLastStateMs >= 60000) {
+  uint64_t stateHash = 1469598103934665603ULL;
+  for (size_t i = 0; i < state.length(); i++) { stateHash ^= (uint8_t)state[i]; stateHash *= 1099511628211ULL; }
+  bool changed = !g_mqttHaveState || stateHash != g_mqttLastStateHash;
+  if ((changed && (!g_mqttHaveState || now - g_mqttLastStateMs >= 5000)) || now - g_mqttLastStateMs >= 60000) {
     if (!mqttQueue("state", state.c_str(), state.length())) return;
-    g_mqttLastState = state; g_mqttLastStateMs = now;
+    g_mqttLastStateHash = stateHash; g_mqttHaveState = true; g_mqttLastStateMs = now;
   }
-  std::vector<std::pair<std::string, std::string>> values;
-  firenet::mqtt::flattenSections(state.c_str(), values);
+  // The values are walked in the state itself: no copy of the state, no list of pairs. A topic is only built for a
+  // value that changed.
   int budget = 25;
-  for (const auto& v : values) {
-    auto it = g_mqttSent.find(v.first);
-    if (it != g_mqttSent.end() && it->second == v.second) continue;
-    if (!mqttQueue(v.first, v.second.data(), v.second.size())) return;
-    g_mqttSent[v.first] = v.second;
-    if (--budget == 0) break;
-  }
+  std::string topic;
+  if (g_mqttSent.size() == 0) g_mqttSent.reserve(256);   // one block for all the topics
+  firenet::mqtt::forEachValue(std::string_view(state.c_str(), state.length()),
+    [&](std::string_view section, std::string_view key, std::string_view val) {
+      uint64_t th = firenet::mqtt::SentValues::topicHash(section, key);
+      uint32_t vh = firenet::mqtt::SentValues::valueHash(val);
+      if (g_mqttSent.same(th, vh)) return true;
+      topic.assign(section); topic += '/'; topic.append(key);
+      if (!mqttQueue(topic, val.data(), val.size())) return false;
+      g_mqttSent.set(th, vh);
+      return --budget > 0;
+    });
 }
 
 static void mqttLoop() {
@@ -1628,12 +1677,16 @@ static void mqttLoop() {
     mqttApply(c);
   }
   if (g_mqttFresh) {
-    g_mqttFresh = false; g_mqttSent.clear(); g_mqttLastState = ""; DBG.println("[mqtt] full refresh");
+    g_mqttFresh = false; g_mqttSent.clear(); g_mqttHaveState = false; DBG.println("[mqtt] full refresh");
     if (g_mqttCfg.discovery) { g_mqttDiscNext = 0; g_mqttDiscRemove = false; }
     else if (!g_mqttDiscRemove) g_mqttDiscNext = SIZE_MAX;
   }
   static uint32_t lastPublish = 0;
-  if (g_mqttConnected && millis() - lastPublish >= 1000) { lastPublish = millis(); mqttPublish(); }
+  if (g_mqttConnected && millis() - lastPublish >= 1000) {
+    lastPublish = millis();
+    // A failed allocation here must not abort the firmware: skip this pass, the next one is a second later.
+    try { mqttPublish(); } catch (const std::bad_alloc&) { DBG.println("[mqtt] out of memory, publish skipped"); }
+  }
 }
 
 static String jsonEscape(const String& in) {
@@ -1792,6 +1845,7 @@ void setup() {
     else if (g_dispBoard == "tdongle_off") g_display.blank();
   }
   readRestartReason();
+  loadCrashInfo();
   DBG.begin(115200);
   DBG.println("\n[Open Firenet] boot");
   buildNames();
@@ -2011,6 +2065,22 @@ void loop() {
       (millis() - g_link->model().last_rx_ms) > RX_TIMEOUT_MS) {
     DBG.printf("[wd] aucun RX depuis %lus -> ESP.restart()\n", RX_TIMEOUT_MS / 1000);
     delay(50); restartBecause(NOTE_STOVE_SILENT);
+  }
+
+  // The stove acknowledged the version once since the boot, then went back to refusing it (it answers "0" to every probe) and
+  // kept refusing: nothing in the link recovers from that, and the check above does not see it (it needs the version
+  // acknowledged). A restart, which enumerates the USB device again like unplugging the key, did bring the link back for a user
+  // (issue #121). Only after an acknowledgement in this session, so that a bridge on a stove that is off never restarts, and not
+  // while an update is being installed.
+  static const uint32_t LINK_LOST_RESTART_MS = 300000;
+  static uint32_t linkLostSince = 0;
+  if (g_link->model().version_ack || g_link->model().detections == 0) linkLostSince = 0;
+  else if (linkLostSince == 0) linkLostSince = millis() | 1;
+  if (linkLostSince && millis() - linkLostSince > LINK_LOST_RESTART_MS &&
+      !(g_updater && (strcmp(g_updater->status().state, "downloading") == 0 || strcmp(g_updater->status().state, "verifying") == 0 ||
+                      strcmp(g_updater->status().state, "installing") == 0))) {
+    DBG.printf("[wd] liaison perdue depuis %lus -> ESP.restart()\n", LINK_LOST_RESTART_MS / 1000);
+    delay(50); restartBecause(NOTE_STOVE_LOST);
   }
 
   // 2) cycle de lecture périodique une fois la version acquittée
