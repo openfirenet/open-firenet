@@ -3995,7 +3995,16 @@ function buildDiagFile(parts) {
   out.push('Masked: Wi-Fi name, last three bytes of the MAC address, MQTT user. The Wi-Fi password is never included.');
   out.push('', '===== BRIDGE HEALTH =====');
   out.push(line('uptime_seconds', dev.uptime_seconds), line('free_heap', dev.free_heap), line('wifi_rssi', dev.wifi_rssi));
-  for (const k of Object.keys(h)) out.push(line(k, h[k]));
+  for (const k of Object.keys(h)) {
+    if (k === 'crash' && h[k] && typeof h[k] === 'object') {
+      const c = h[k];
+      const desc = 'task ' + (c.task || '?') + ', pc ' + (c.pc || '?') + ', cause ' + (c.cause !== undefined ? c.cause : '?')
+                 + (c.fault_address ? ', fault ' + c.fault_address : '') + (c.elf_sha256 ? ', firmware ' + c.elf_sha256 : '');
+      out.push(line(k, desc));
+    } else {
+      out.push(line(k, typeof h[k] === 'object' && h[k] !== null ? JSON.stringify(h[k]) : h[k]));
+    }
+  }
   out.push('', '===== LINK WITH THE STOVE =====');
   out.push(line('linked', s.version_ack), line('version_frame', s.version_frame), line('generation', s.generation));
   out.push(line('usb', JSON.stringify(s.usb)), line('frames_in', s.frames_in), line('frames_out', s.frames_out), line('revision', s.revision));
