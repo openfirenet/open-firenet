@@ -133,6 +133,7 @@ int main() {
     CH("set point only 14..28", v0::writeFrame(26, 13).empty() && v0::writeFrame(26, 29).empty() && !v0::writeFrame(26, 14).empty() && !v0::writeFrame(26, 28).empty());
     CH("write frame 081 088 089 092", v0::writeFrame(81, 17) == std::string("\x02" "081=17" "\x03", 8) && v0::writeFrame(88, 1) == std::string("\x02" "088=1" "\x03", 7) &&
        v0::writeFrame(89, 5) == std::string("\x02" "089=5" "\x03", 7) && v0::writeFrame(92, 3) == std::string("\x02" "092=3" "\x03", 7));
+    CH("schedule switch 080: 0 or 1", v0::writeFrame(80, 0) == std::string("\x02" "080=0" "\x03", 7) && v0::writeFrame(80, 1) == std::string("\x02" "080=1" "\x03", 7) && v0::writeFrame(80, 2).empty() && v0::writeFrame(80, -1).empty());
     CH("reduced set point only 12..22", v0::writeFrame(81, 11).empty() && v0::writeFrame(81, 23).empty() && !v0::writeFrame(81, 12).empty() && !v0::writeFrame(81, 22).empty());
     CH("frost protection: 0 or 1, temperature 4..10", v0::writeFrame(88, 2).empty() && v0::writeFrame(88, -1).empty() && v0::writeFrame(89, 3).empty() && v0::writeFrame(89, 11).empty() && !v0::writeFrame(89, 4).empty() && !v0::writeFrame(89, 10).empty());
     CH("comfort power level only 1..4", v0::writeFrame(92, 0).empty() && v0::writeFrame(92, 5).empty() && !v0::writeFrame(92, 1).empty() && !v0::writeFrame(92, 4).empty());
