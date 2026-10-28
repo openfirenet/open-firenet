@@ -672,11 +672,11 @@ components:
         room_sensor_connected: { type: boolean }
         combustion_temperature: { type: number, description: °C }
         board_temperature: { type: number, description: °C }
-        pellets_total_kg: { type: integer }
-        pellet_hours: { type: integer, description: Running hours with pellets }
-        log_runtime: { type: integer, description: "Running time with split logs of a combined stove, in minutes (0 on a stove that burns pellets only)" }
-        log_runtime_hours: { type: integer, description: log_runtime in whole hours }
-        service_countdown_kg: { type: integer, description: Pellets left before the next service }
+        pellets_total_kg: { type: integer, nullable: true, description: "null until the stove has sent it (after a restart of the bridge)" }
+        pellet_hours: { type: integer, nullable: true, description: "Running hours with pellets; null until the stove has sent it" }
+        log_runtime: { type: integer, nullable: true, description: "Running time with split logs of a combined stove, in minutes (0 on a stove that burns pellets only; null until the stove has sent it)" }
+        log_runtime_hours: { type: integer, nullable: true, description: log_runtime in whole hours }
+        service_countdown_kg: { type: integer, nullable: true, description: "Pellets left before the next service; null until the stove has sent it" }
         fan_speed_rpm: { type: integer }
         auger_speed_rpm: { type: integer }
         power_actual_percent: { type: integer, description: "Power the stove really runs at. In comfort mode the stove sets it itself, whatever `power_percent` says. 0 when it is not heating." }

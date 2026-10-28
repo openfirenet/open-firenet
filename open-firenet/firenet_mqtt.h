@@ -165,16 +165,16 @@ static const Entity ENTITIES[] = {
    "\"state_topic\":\"~/sensors/board_temperature\","
    "\"unit_of_measurement\":\"°C\",\"device_class\":\"temperature\",\"state_class\":\"measurement\"," OF_DIAG},
   {"sensor", "pellets_total_kg", "Pellets Consumed",
-   "\"state_topic\":\"~/sensors/pellets_total_kg\","
+   "\"state_topic\":\"~/sensors/pellets_total_kg\"," OF_NULLABLE
    "\"unit_of_measurement\":\"kg\",\"device_class\":\"weight\",\"state_class\":\"total_increasing\","},
   {"sensor", "pellet_hours", "Pellet Operating Hours",
-   "\"state_topic\":\"~/sensors/pellet_hours\","
+   "\"state_topic\":\"~/sensors/pellet_hours\"," OF_NULLABLE
    "\"unit_of_measurement\":\"h\",\"device_class\":\"duration\",\"state_class\":\"total_increasing\","},
   {"sensor", "log_runtime", "Split Log Operating Time",
-   "\"state_topic\":\"~/sensors/log_runtime\","
+   "\"state_topic\":\"~/sensors/log_runtime\"," OF_NULLABLE
    "\"unit_of_measurement\":\"min\",\"device_class\":\"duration\",\"state_class\":\"total_increasing\",\"icon\":\"mdi:fireplace\","},
   {"sensor", "service_countdown_kg", "Service Countdown",
-   "\"state_topic\":\"~/sensors/service_countdown_kg\",\"unit_of_measurement\":\"kg\",\"device_class\":\"weight\","},
+   "\"state_topic\":\"~/sensors/service_countdown_kg\"," OF_NULLABLE "\"unit_of_measurement\":\"kg\",\"device_class\":\"weight\","},
   {"sensor", "fan_speed_rpm", "Flue Draft Fan Speed",
    "\"state_topic\":\"~/sensors/fan_speed_rpm\",\"unit_of_measurement\":\"rpm\",\"state_class\":\"measurement\",\"icon\":\"mdi:fan\"," OF_DIAG},
   {"sensor", "power_actual_percent", "Actual Heating Power",

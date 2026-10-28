@@ -133,6 +133,12 @@ static long sensorValue(const firenet::StoveModel& m, const char* name, long def
   int i = firenet::sensIndexByName(name);
   return (i >= 0 && (size_t)i < m.sensors_pos.size()) ? m.sensors_pos[i] : def;
 }
+// Whether the stove has sent this sensor since the link came up (by name, or at its position in the list).
+static bool sensorKnown(const firenet::StoveModel& m, const char* name) {
+  if (m.sensors.count(name)) return true;
+  int i = firenet::sensIndexByName(name);
+  return i >= 0 && (size_t)i < m.sensors_pos.size();
+}
 static long controlValue(const firenet::StoveModel& m, const char* name, long def) {
   auto it = m.controls.find(name); if (it != m.controls.end()) return it->second;
   int i = firenet::ctrlIndexByName(name);
@@ -276,6 +282,13 @@ static String jsonStoveSections() {
   long pHours   = sensorValue(m, "pelletHours", 0);
   long logMin   = sensorValue(m, "logRuntime", 0);   // minutes, unlike pelletHours (a combined stove reports both; others send 0)
   long sCount   = sensorValue(m, "serviceCountdown", 700);
+  // The counters are null until the stove has sent them: a 0 after a restart would be taken by Home Assistant for a reset of the
+  // counter and added to its statistics (issue #64).
+  char pTotalS[16] = "null", pHoursS[16] = "null", logMinS[16] = "null", logHoursS[16] = "null", sCountS[16] = "null";
+  if (sensorKnown(m, "pelletsTotal")) snprintf(pTotalS, sizeof pTotalS, "%ld", pTotal);
+  if (sensorKnown(m, "pelletHours")) snprintf(pHoursS, sizeof pHoursS, "%ld", pHours);
+  if (sensorKnown(m, "logRuntime")) { snprintf(logMinS, sizeof logMinS, "%ld", logMin); snprintf(logHoursS, sizeof logHoursS, "%ld", logMin / 60); }
+  if (sensorKnown(m, "serviceCountdown")) snprintf(sCountS, sizeof sCountS, "%ld", sCount);
   long idFan    = sensorValue(m, "idFanMeas", 0);
   long auger    = sensorValue(m, "augerSet", 0);
   // The power the stove really runs at (inputCurrentStagePID). In comfort mode it sets it itself from the room
@@ -378,11 +391,11 @@ static String jsonStoveSections() {
       "\"room_sensor_connected\":%s,"
       "\"combustion_temperature\":%.1f,"
       "\"board_temperature\":%.1f,"
-      "\"pellets_total_kg\":%ld,"
-      "\"pellet_hours\":%ld,"
-      "\"log_runtime\":%ld,"
-      "\"log_runtime_hours\":%ld,"
-      "\"service_countdown_kg\":%ld,"
+      "\"pellets_total_kg\":%s,"
+      "\"pellet_hours\":%s,"
+      "\"log_runtime\":%s,"
+      "\"log_runtime_hours\":%s,"
+      "\"service_countdown_kg\":%s,"
       "\"fan_speed_rpm\":%ld,"
       "\"auger_speed_rpm\":%ld,"
       "\"power_actual_percent\":%ld,"
@@ -415,7 +428,7 @@ static String jsonStoveSections() {
     errMask != 0 ? "true" : "false",
     errMask, errSub, warnCode,
     modelS, modelNameS, brandS, mbVerS, buildS,
-    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotal, pHours, logMin, logMin / 60, sCount, idFan, auger, powerNow,
+    roomTempS, roomSensor ? "true" : "false", fTempF, bTempF, pTotalS, pHoursS, logMinS, logHoursS, sCountS, idFan, auger, powerNow,
     airFlapsS, airFlapsTgtS,
     (curOn == 1) ? "true" : "false",
     modeName, curMode, rTargetF, curStage,
