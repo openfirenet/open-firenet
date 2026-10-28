@@ -6,6 +6,7 @@
 - The health line "Last restart" of the Diagnostics tab is now "Last restart reason" (in the four languages), so it is clear that it tells why the bridge last restarted, not whether it did.
 
 ### Fixes
+- After a restart of the bridge, the pellets consumed, pellet operating hours, split log time and service countdown stay unknown until the stove has sent them, instead of showing 0. In Home Assistant the 0 was counted as a reset of the counter, which broke the statistics and any pellet stock tracking built on it. (open-firenet-ha#64)
 - The "crash:" line of the diagnostic file now formats the task and failure address on one line instead of showing "[object Object]".
 
 ## v4.8.1 (2026-10-26)

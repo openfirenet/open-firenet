@@ -89,6 +89,13 @@ int main() {
     CH("discovery: well-formed JSON (balanced, no trailing comma)", allBalanced);
     CH("discovery: base topic given once, as ~", allTilde);
     CH("discovery: availability on every entity", allAvail);
+    bool counters = true; int seen = 0;                                      // the counters are "unknown" in Home Assistant while the bridge publishes null
+    for (size_t i = 0; i < n; i++) {
+      mqtt::discoveryEntity(i, dev, false, topic, payload);
+      for (const char* k : {"pellets_total_kg", "pellet_hours", "log_runtime", "service_countdown_kg"})
+        if (topic.find(std::string("/") + k + "/config") != std::string::npos) { seen++; if (payload.find("None if value == 'null'") == std::string::npos) counters = false; }
+    }
+    CH("discovery: the pellet and service counters read null as unknown", counters && seen == 4);
     mqtt::discoveryEntity(0, dev, false, topic, payload);
     CH("discovery: first entity is the climate, under the device id", topic == "homeassistant/climate/openfirenet_45eac8/stove/config");
     CH("discovery: the climate carries the device description", payload.find("\"manufacturer\":\"RIKA\",\"model\":\"DOMO\",\"sw_version\":\"3.4.0\"") != std::string::npos);
