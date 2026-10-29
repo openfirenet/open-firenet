@@ -95,7 +95,9 @@ int main() {
     CH("main and sub state", v0map::apply(m, 27, "2", 7) && v0map::apply(m, 28, "9", 8) && m.sensors["mainState"] == 2 && m.sensors["subState"] == 9 && m.main_state == 2 && m.sub_state == 9);
     CH("schedule switch", v0map::apply(m, 80, "1", 9) && m.controls["heatingTimesActive"] == 1);
     CH("daily ranges, Sunday first, in minutes", v0map::apply(m, 65, "1020", 9) && v0map::apply(m, 66, "1320", 9) && v0map::apply(m, 77, "60", 9) && v0map::apply(m, 78, "120", 9) &&
-       m.v0_sched[0] == 1020 && m.v0_sched[1] == 1320 && m.v0_sched[12] == 60 && m.v0_sched[13] == 120 && !m.controls.count("heatTimeSun1"));
+       m.v0_sched[0] == 1020 && m.v0_sched[1] == 1320 && m.v0_sched[12] == 60 && m.v0_sched[13] == 120 && m.controls["heatTimeSun1"] == 17002200 && m.controls["heatTimeSun2"] == 0 && m.controls["heatTimeSat1"] == 1000200 && m.controls["heatTimeSat2"] == 0);
+    CH("a day without range is an empty slot", v0map::apply(m, 67, "0", 9) && v0map::apply(m, 68, "0", 9) && m.controls["heatTimeMon1"] == 0);
+    CH("range from midnight keeps the leading zero out", v0map::apply(m, 67, "0", 9) && v0map::apply(m, 68, "720", 9) && m.controls["heatTimeMon1"] == 1200);
     CH("pressure switch and unidentified inputs", v0map::apply(m, 12, "1", 9) && m.sensors["pressureSwitch"] == 1 && v0map::apply(m, 16, "1", 9) && m.sensors["in016"] == 1);
     CH("comfort power level and room offset are named", v0map::apply(m, 92, "3", 10) && m.controls["roomSensorPower"] == 3 && v0map::apply(m, 91, "-10", 10) && m.controls["roomTempOffset"] == -10);
     CH("settings go to the controls", v0map::apply(m, 26, "21", 10) && m.controls["roomTarget"] == 210 && v0map::apply(m, 24, "2", 10) && m.controls["mode"] == 2);
@@ -134,10 +136,12 @@ int main() {
     CH("write frame 081 088 089 092", v0::writeFrame(81, 17) == std::string("\x02" "081=17" "\x03", 8) && v0::writeFrame(88, 1) == std::string("\x02" "088=1" "\x03", 7) &&
        v0::writeFrame(89, 5) == std::string("\x02" "089=5" "\x03", 7) && v0::writeFrame(92, 3) == std::string("\x02" "092=3" "\x03", 7));
     CH("schedule switch 080: 0 or 1", v0::writeFrame(80, 0) == std::string("\x02" "080=0" "\x03", 7) && v0::writeFrame(80, 1) == std::string("\x02" "080=1" "\x03", 7) && v0::writeFrame(80, 2).empty() && v0::writeFrame(80, -1).empty());
+    CH("daily range 065..078: 0..1440 minutes", v0::writeFrame(65, 1020) == std::string("\x02" "065=1020" "\x03", 10) && v0::writeFrame(78, 0) == std::string("\x02" "078=0" "\x03", 7) &&
+       !v0::writeFrame(70, 1440).empty() && v0::writeFrame(70, 1441).empty() && v0::writeFrame(70, -1).empty() && v0::writeFrame(64, 10).empty() && v0::writeFrame(79, 1).empty());
     CH("reduced set point only 12..22", v0::writeFrame(81, 11).empty() && v0::writeFrame(81, 23).empty() && !v0::writeFrame(81, 12).empty() && !v0::writeFrame(81, 22).empty());
     CH("frost protection: 0 or 1, temperature 4..10", v0::writeFrame(88, 2).empty() && v0::writeFrame(88, -1).empty() && v0::writeFrame(89, 3).empty() && v0::writeFrame(89, 11).empty() && !v0::writeFrame(89, 4).empty() && !v0::writeFrame(89, 10).empty());
     CH("comfort power level only 1..4", v0::writeFrame(92, 0).empty() && v0::writeFrame(92, 5).empty() && !v0::writeFrame(92, 1).empty() && !v0::writeFrame(92, 4).empty());
-    CH("dangerous and other codes are never built", v0::writeFrame(27, 1).empty() && v0::writeFrame(28, 1).empty() && v0::writeFrame(82, 17).empty() && v0::writeFrame(91, 1).empty() && v0::writeFrame(65, 1020).empty() && v0::writeFrame(900, 1).empty() && v0::writeFrame(-1, 1).empty());
+    CH("dangerous and other codes are never built", v0::writeFrame(27, 1).empty() && v0::writeFrame(28, 1).empty() && v0::writeFrame(82, 17).empty() && v0::writeFrame(91, 1).empty() && v0::writeFrame(900, 1).empty() && v0::writeFrame(-1, 1).empty());
 
     std::string w; uint32_t c = 1000; LinkV0Probe pw([&](const uint8_t* b, size_t n) { w.append((const char*)b, n); }, [&]() { return c; });
     std::vector<std::string> lg; pw.onDebug([&](const char* d, const std::string& f) { lg.push_back(std::string(d) + ":" + f); });

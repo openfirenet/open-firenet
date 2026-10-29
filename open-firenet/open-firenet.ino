@@ -515,6 +515,8 @@ static String jsonState() {
   const char* verFrameLabel = m.version_profile == 0 ? "V3" : (m.version_profile == 1 ? "V28" : (m.version_profile == 2 ? "V1" : "?"));
   j += "\"version_frame\":\"" + String(verFrameLabel) + "\",";
   j += "\"generation\":" + String(m.generation) + ",";
+  // How many heating time slots a day the stove takes (the second one has no numeric code on firmware 2.25).
+  j += "\"schedule_slots_per_day\":" + String(m.v0_linked ? 1 : 2) + ",";
   // USB link diagnostics: host_connected = a USB host (the stove) has enumerated the bridge on its native USB port;
   // rx_bytes = bytes received from the stove since boot. Both stay false / 0 when the stove is plugged into the
   // board's UART/COM port, when the cable has no data wires, or when the stove is off.
@@ -552,6 +554,15 @@ static String jsonState() {
   j += "],\"controls_pos\":[";
   first = true;
   for (long v : m.controls_pos) { if (!first) j += ","; first = false; j += String(v); }
+  if (m.v0_linked && m.controls_pos.empty()) {
+    // Firmware 2.25 has no positional list: give the 14 slots where the Home Assistant integration reads them (positions 7 to 20).
+    for (int i = 0; i < 21; i++) {
+      long v = 0;
+      if (i >= 7) { auto it = m.controls.find(firenet::ctrlName(i)); if (it != m.controls.end()) v = it->second; }
+      if (i) j += ",";
+      j += String(v);
+    }
+  }
   j += "]}";
 
   return j;
@@ -1210,6 +1221,18 @@ static AppliedControls applyControlPairs(const std::vector<std::pair<std::string
       else if (kv.first == "frostProtectionTemp") put(89, (kv.second + 5) / 10, "frostProtectionTemp");
       else if (kv.first == "roomSensorPower") put(92, kv.second, "roomSensorPower");
       else if (kv.first == "heatingTimesActive") put(80, kv.second != 0 ? 1 : 0, "heatingTimesActive");
+      else if (kv.first.compare(0, 8, "heatTime") == 0 && kv.first.size() == 12) {
+        // heatTime<Day><slot>: the stove takes one range per day (first slot); the second slot can only stay empty.
+        static const char* const names[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+        int day = -1;
+        for (int d = 0; d < 7; d++) if (kv.first.compare(8, 3, names[d]) == 0) day = d;
+        const char slot = kv.first[11];
+        long start = (kv.second / 10000 / 100) * 60 + (kv.second / 10000) % 100, end = (kv.second % 10000 / 100) * 60 + kv.second % 100;
+        if (day < 0 || (slot != '1' && slot != '2')) DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
+        else if (slot == '2') { if (kv.second != 0) DBG.printf("[v0] refused: the stove on firmware 2.25 has one range per day (%s)\n", kv.first.c_str()); }
+        else if (kv.second < 0 || (kv.second / 10000) % 100 >= 60 || kv.second % 100 >= 60 || start > 1440 || end > 1440 || start > end) DBG.printf("[v0] refused: %s = %ld is not a range\n", kv.first.c_str(), kv.second);
+        else { put(65 + 2 * day, start, kv.first.c_str()); put(66 + 2 * day, end, kv.first.c_str()); }
+      }
       else DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
     }
     return {controlValue(m, "onOff", 0), controlValue(m, "mode", 2), controlValue(m, "targetStage", 70), controlValue(m, "roomTarget", 200), queued};
@@ -1782,6 +1805,7 @@ static void handleApiSchedule() {
     json += "\"setback_temperature\":" + String(sbTemp / 10.0f, 1) + ",";
     json += "\"setBackTemp\":" + String(sbTemp) + ",";
     json += "\"slots\":{" + jsonScheduleSlots() + "}";
+    json += ",\"slots_per_day\":" + String(m.v0_linked ? 1 : 2);
     if (m.v0_linked) {
       // Firmware 2.25: the daily range of each weekday, in minutes since midnight. Whether a day is switched on is not known.
       static const char* const days[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};

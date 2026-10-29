@@ -74,14 +74,31 @@ inline const char* controlName(int code) {
 // Temperatures of the other firmware versions are in tenths of a degree for the room, the stove of 2.25 gives whole degrees.
 inline long scaled(int code, long v) { return (code == 0 || code == 26 || code == 81 || code == 89) ? v * 10 : v; }
 
+// The stove holds its weekdays Sunday first; the controls are named Monday first.
+inline const char* const* dayNames() { static const char* const n[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}; return n; }
+
+// A daily range (minutes since midnight) as the slot value of the other firmware versions: HHMM of the start times 10000 plus HHMM of the end,
+// 0 for a day without range (start equal to end).
+inline long slotValue(long start, long end) {
+  if (start == end) return 0;
+  return ((start / 60) * 100 + start % 60) * 10000 + (end / 60) * 100 + end % 60;
+}
+
 // Returns true when the value was stored. Marks the stove as reachable through the numeric link.
 inline bool apply(StoveModel& m, int code, const std::string& text, uint32_t now) {
   long v;
   if (!parseInt(text, v)) return false;
   m.v0_linked = true; m.last_rx_ms = now; m.frames_in++;
   // 065 .. 078: start and end of the daily range, one pair per weekday in the stove's order (Sunday first), in minutes since midnight.
-  // The stove also holds a switch per day that no numeric code reaches (issue #110), so these are shown as they are, not as schedule slots.
-  if (code >= 65 && code <= 78) { m.v0_sched[code - 65] = v; return true; }
+  // The stove has a second range per day but no numeric code reaches it (issue #110), so the ranges are the first slot of each day and the second slot stays empty.
+  if (code >= 65 && code <= 78) {
+    const int d = (code - 65) / 2;
+    m.v0_sched[code - 65] = v;
+    const std::string day = dayNames()[d];
+    m.controls["heatTime" + day + "1"] = slotValue(m.v0_sched[2 * d], m.v0_sched[2 * d + 1]);
+    m.controls["heatTime" + day + "2"] = 0;
+    return true;
+  }
   if (const char* n = sensorName(code)) {
     m.sensors[n] = scaled(code, v);
     if (code == 27) m.main_state = (int)v;

@@ -47,6 +47,8 @@ inline bool startAllowed(long errMask, long mainState, long subState, long flame
 //   025 power:     30..100 percent in steps of 5 (manual mode).
 //   026 set point: whole degrees, 14..28 (comfort mode), the range of the page and of /api/controls for the other firmware versions.
 //   080 weekly schedule on / off: 0 or 1 (plain flag, read back like the others).
+//   065 .. 078 start and end of the daily range of each weekday (Sunday first), in minutes since midnight: 0..1440 (the first range only,
+//                  the second range of a day has no numeric code, issue #110). Both 0 means no range for that day.
 //   081 reduced set point: whole degrees, 12..22 (the stove itself keeps it at least 2 degrees under 026, 0x80034e5e).
 //   088 frost protection on / off: 0 or 1. 089 its temperature: whole degrees, 4..10. Both are plain byte stores in the
 //                  stove (0x80035362, 0x8003537a, into 0x6824+0x6e / +0x6f); the frost protection starts the stove by itself
@@ -62,6 +64,8 @@ inline std::string writeFrame(int code, long value) {
     case 25: ok = (value >= 30 && value <= 100 && value % 5 == 0); break;
     case 26: ok = (value >= 14 && value <= 28); break;
     case 80: ok = (value == 0 || value == 1); break;
+    case 65: case 66: case 67: case 68: case 69: case 70: case 71:
+    case 72: case 73: case 74: case 75: case 76: case 77: case 78: ok = (value >= 0 && value <= 1440); break;
     case 81: ok = (value >= 12 && value <= 22); break;
     case 88: ok = (value == 0 || value == 1); break;
     case 89: ok = (value >= 4 && value <= 10); break;

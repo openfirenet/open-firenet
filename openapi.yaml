@@ -597,6 +597,7 @@ components:
           enum: [V3, V28, V1, "?"]
           description: "Protocol variant the stove answered: `V3` (firmware 2.29), `V28` (2.28), `V1` (2.26 / 2.27)"
         generation: { type: integer }
+        schedule_slots_per_day: { type: integer, description: "How many heating time slots a day the stove takes: 2, or 1 for a stove with firmware 2.25" }
         usb:
           type: object
           description: USB link diagnostics
@@ -768,11 +769,12 @@ components:
         setBackTemp: { type: integer, description: "Same, in tenths of a degree" }
         slots:
           type: object
-          description: Two slots per day, `heatTime<Day><1|2>` with Day in Mon, Tue, Wed, Thu, Fri, Sat, Sun
+          description: Two slots per day, `heatTime<Day><1|2>` with Day in Mon, Tue, Wed, Thu, Fri, Sat, Sun. On a stove with firmware 2.25 only the first slot of a day is used; the second one is always 0.
           additionalProperties: { $ref: "#/components/schemas/TimeSlot" }
+        slots_per_day: { type: integer, description: "How many slots a day the stove takes: 2, or 1 for a stove with firmware 2.25" }
         day_ranges:
           type: object
-          description: "Only on a stove with firmware 2.25: the daily range of each weekday (Sun, Mon, ... Sat), `start` and `end` in minutes since midnight, as the stove holds them. Whether a day is switched on is not known, so `slots` stays empty on that stove."
+          description: "Only on a stove with firmware 2.25: the daily range of each weekday (Sun, Mon, ... Sat), `start` and `end` in minutes since midnight, as the stove holds them (the same ranges as the first slot of each day in `slots`)."
           additionalProperties:
             type: object
             properties:
