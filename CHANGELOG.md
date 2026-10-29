@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v4.8.2 (2026-10-28)
 
 ### New
 - First step towards stoves on firmware 2.25 (SUMO, SONO, INDUO), which do not understand the text frames of the other firmware versions. When such a stove has sent its start-up probe and nothing was acknowledged, the bridge now sends one acknowledgement and reads the stove state, temperatures, input states and its settings in the stove's own numeric format, and shows what the stove answers (state, room and flame temperature, inputs) on the page, in the API and over MQTT, and in the exchange log when a value changes. It can start the stove (only when it is off, cold and without error) and stop it, and set the mode (manual, automatic, comfort), the power of the manual mode (30 to 100 %, steps of 5), the room set point (14 to 28 degrees) and the reduced set point (12 to 22), the frost protection (on or off, 4 to 10 degrees) and the power level of the comfort mode (1 to 4), from the page, the API and MQTT; the stove does not confirm a command, so the bridge reads the value back and shows it. The weekly schedule is not available yet. The mode, the manual power, the room set point and the stop were tried on a stove; the start and the other settings were not. The room temperature has whole degrees only. The comfort and reduced set points, the mode and the frost protection of the stove are shown too. Please send the diagnostic file if you try it. (#110)
@@ -8,6 +8,10 @@
 
 ### Changes
 - The health line "Last restart" of the Diagnostics tab is now "Last restart reason" (in the four languages), so it is clear that it tells why the bridge last restarted, not whether it did.
+
+### Fixes
+- After a restart of the bridge, the pellets consumed, pellet operating hours, split log time and service countdown stay unknown until the stove has sent them, instead of showing 0. In Home Assistant the 0 was counted as a reset of the counter, which broke the statistics and any pellet stock tracking built on it. (open-firenet-ha#64)
+- The "crash:" line of the diagnostic file now formats the task and failure address on one line instead of showing "[object Object]".
 
 ## v4.8.1 (2026-10-26)
 

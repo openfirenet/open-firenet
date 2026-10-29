@@ -44,6 +44,10 @@ check('MQTT user masked, the rest kept', !out.includes('"user": "openfirenet"') 
 check('the state given by the caller is not modified', state.device.wifi_ssid === ssid && state.status.mac === mac);
 check('a missing part is said so', buildDiagFile({ when: 'x', lang: 'en', browser: 't', state: null, mqtt: null, schedule: null, log: null }).split('(not available)').length === 5);
 check('a value that is not a MAC address is left alone', diagMaskMac('') === '' && diagMaskMac('n/a') === 'n/a');
+const stateWithCrash = JSON.parse(JSON.stringify(state));
+stateWithCrash.health.crash = { task: 'loopTask', pc: '0x4037d155', cause: 0, fault_address: '0x00000000', elf_sha256: '3379f5276' };
+const outCrash = buildDiagFile({ when: 'x', lang: 'en', browser: 't', state: stateWithCrash, mqtt: null, schedule: null, log: null });
+check('crash line is formatted on one line and not [object Object]', outCrash.includes('crash: task loopTask, pc 0x4037d155, cause 0, fault 0x00000000, firmware 3379f5276') && !outCrash.includes('[object Object]'));
 
 console.log(`diagnostic file: ${checks} checks, ${failures} failures`);
 process.exit(failures ? 1 : 0);

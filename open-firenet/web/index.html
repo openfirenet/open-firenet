@@ -3995,7 +3995,16 @@ function buildDiagFile(parts) {
   out.push('Masked: Wi-Fi name, last three bytes of the MAC address, MQTT user. The Wi-Fi password is never included.');
   out.push('', '===== BRIDGE HEALTH =====');
   out.push(line('uptime_seconds', dev.uptime_seconds), line('free_heap', dev.free_heap), line('wifi_rssi', dev.wifi_rssi));
-  for (const k of Object.keys(h)) out.push(line(k, h[k]));
+  for (const k of Object.keys(h)) {
+    if (k === 'crash' && h[k] && typeof h[k] === 'object') {
+      const c = h[k];
+      const desc = 'task ' + (c.task || '?') + ', pc ' + (c.pc || '?') + ', cause ' + (c.cause !== undefined ? c.cause : '?')
+                 + (c.fault_address ? ', fault ' + c.fault_address : '') + (c.elf_sha256 ? ', firmware ' + c.elf_sha256 : '');
+      out.push(line(k, desc));
+    } else {
+      out.push(line(k, typeof h[k] === 'object' && h[k] !== null ? JSON.stringify(h[k]) : h[k]));
+    }
+  }
   out.push('', '===== LINK WITH THE STOVE =====');
   out.push(line('linked', s.version_ack), line('version_frame', s.version_frame), line('generation', s.generation));
   out.push(line('usb', JSON.stringify(s.usb)), line('frames_in', s.frames_in), line('frames_out', s.frames_out), line('revision', s.revision));
@@ -4792,25 +4801,25 @@ async function tick() {
 
     // Pellets & Service
     const pTot = sens.pellets_total_kg !== undefined ? sens.pellets_total_kg : (rawS.pelletsTotal !== undefined ? rawS.pelletsTotal : (s.sensors_pos ? s.sensors_pos[49] : 0));
-    document.getElementById('pelletsTotal').textContent = pTot.toLocaleString(bcpLanguageTag);
+    document.getElementById('pelletsTotal').textContent = pTot == null ? '--' : pTot.toLocaleString(bcpLanguageTag);   // null until the stove has sent it
     const pHours = sens.pellet_hours !== undefined ? sens.pellet_hours : (rawS.pelletHours !== undefined ? rawS.pelletHours : (s.sensors_pos ? s.sensors_pos[47] : 0));
-    document.getElementById('pelletHours').textContent = pHours.toLocaleString(bcpLanguageTag);
+    document.getElementById('pelletHours').textContent = pHours == null ? '--' : pHours.toLocaleString(bcpLanguageTag);
     // Split log time: shown only when the stove reports some (a stove that burns pellets alone sends 0).
     const logMin = sens.log_runtime !== undefined ? sens.log_runtime : 0;
     const logH = sens.log_runtime_hours !== undefined ? sens.log_runtime_hours : 0;
     document.getElementById('logRuntimeCard').style.display = logMin > 0 ? '' : 'none';
-    document.getElementById('logRuntimeHours').textContent = logH.toLocaleString(bcpLanguageTag);
+    document.getElementById('logRuntimeHours').textContent = logH == null ? '--' : logH.toLocaleString(bcpLanguageTag);
     document.getElementById('ignitionCount').textContent = rawS.ignitionCount !== undefined ? Number(rawS.ignitionCount).toLocaleString(bcpLanguageTag) : '--';
     const sCount = sens.service_countdown_kg !== undefined ? sens.service_countdown_kg : (rawS.serviceCountdown !== undefined ? rawS.serviceCountdown : (s.sensors_pos ? s.sensors_pos[50] : 700));
-    document.getElementById('serviceCount').textContent = sCount.toLocaleString(bcpLanguageTag);
+    document.getElementById('serviceCount').textContent = sCount == null ? '--' : sCount.toLocaleString(bcpLanguageTag);
     // Gauge of what is left before the next service: full right after a service, empty when it is due. The
     // interval is the stove's own kgTillCleaning when it reports one, 700 kg otherwise.
     const sInterval = rawS.kgTillCleaning > 0 ? rawS.kgTillCleaning : 700;
-    const sPct = Math.min(100, Math.max(0, Math.round((sCount / sInterval) * 100)));
+    const sPct = sCount == null ? 0 : Math.min(100, Math.max(0, Math.round((sCount / sInterval) * 100)));
     const sBar = document.getElementById('serviceBar');
     sBar.style.width = sPct + '%';
     sBar.classList.toggle('low', sPct < 20);
-    sBar.parentElement.title = t.serviceBarTitle + sCount.toLocaleString(bcpLanguageTag) + ' / ' + sInterval.toLocaleString(bcpLanguageTag) + ' kg';
+    sBar.parentElement.title = t.serviceBarTitle + (sCount == null ? '--' : sCount.toLocaleString(bcpLanguageTag)) + ' / ' + sInterval.toLocaleString(bcpLanguageTag) + ' kg';
 
     // Model & Net
     const modelNames = {
