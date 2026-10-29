@@ -217,7 +217,7 @@ private:
     return o;
   }
   struct Pending { int code; std::string frame; };
-  static constexpr size_t MAX_PENDING = 8;
+  static constexpr size_t MAX_PENDING = 24;   // a whole weekly schedule is 14 codes, plus a few settings
   std::vector<Pending> pending_;
   int readback_ = -1;
   TxFn tx_; NowFn now_; DbgFn dbg_; ValFn val_;

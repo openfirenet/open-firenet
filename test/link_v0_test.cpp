@@ -167,6 +167,7 @@ int main() {
     CH("an unchanged value is still not logged twice", lg.size() == before);
     // a new 0x16 (USB reconnected) drops what was waiting
     CH("queue accepts several", pw.requestWrite(25, 60) && pw.requestWrite(24, 0));
+    { bool all = true; for (int code = 65; code <= 78; code++) all = all && pw.requestWrite(code, 100); CH("a whole weekly schedule fits in the queue", all); }
     pw.onByte(0x16);
     w.clear(); c += LinkV0Probe::ENGAGE_MS; pw.poll(false);
     c += LinkV0Probe::READ_GAP_MS; pw.poll(false);

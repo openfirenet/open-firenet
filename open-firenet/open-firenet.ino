@@ -1231,7 +1231,11 @@ static AppliedControls applyControlPairs(const std::vector<std::pair<std::string
         if (day < 0 || (slot != '1' && slot != '2')) DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
         else if (slot == '2') { if (kv.second != 0) DBG.printf("[v0] refused: the stove on firmware 2.25 has one range per day (%s)\n", kv.first.c_str()); }
         else if (kv.second < 0 || (kv.second / 10000) % 100 >= 60 || kv.second % 100 >= 60 || start > 1440 || end > 1440 || start > end) DBG.printf("[v0] refused: %s = %ld is not a range\n", kv.first.c_str(), kv.second);
-        else { put(65 + 2 * day, start, kv.first.c_str()); put(66 + 2 * day, end, kv.first.c_str()); }
+        else {
+          // Only what changes is written: the page sends all seven days, and the stove display takes a day to be switched off after a write.
+          if (m.v0_sched[2 * day] != start) put(65 + 2 * day, start, kv.first.c_str());
+          if (m.v0_sched[2 * day + 1] != end) put(66 + 2 * day, end, kv.first.c_str());
+        }
       }
       else DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
     }
