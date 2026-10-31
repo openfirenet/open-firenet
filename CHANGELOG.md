@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### New
+- Spanish translation of the bridge page
+
 ## v4.8.2 (2026-10-28)
 
 ### Changes
