@@ -65,6 +65,10 @@ int main() {
     CH("no language chosen at first", lg.language == 0 && lg.json(true).find("\"language\":\"\"") != std::string::npos);
     CH("a language is taken", lg.apply("{\"language\":\"fr\"}") && lg.language == 2 && lg.json(true).find("\"language\":\"fr\"") != std::string::npos);
     CH("an unknown language is refused and changes nothing", !lg.apply("{\"language\":\"xx\"}") && !lg.apply("{\"language\":fr}") && lg.language == 2);
+    CH("Spanish is a screen language", lg.apply("{\"language\":\"es\"}") && lg.language == 5 && lg.json(true).find("\"language\":\"es\"") != std::string::npos);
+    DisplayConfig lgEs; lgEs.fromPrefs(lg.toPrefs());
+    CH("Spanish survives storage", lgEs.language == 5);
+    lg.apply("{\"language\":\"fr\"}");
     DisplayConfig lg2; lg2.fromPrefs(lg.toPrefs());
     CH("the language survives storage", lg2.language == 2);
     DisplayConfig lg3; lg3.fromPrefs("ip:1;4;50;0;120;10;1");

@@ -1,4 +1,4 @@
-// The words of the small screen, in the four languages of the page. Texts are UTF-8; the fonts hold the accents these
+// The words of the small screen, in the five languages of the page. Texts are UTF-8; the fonts hold the accents these
 // languages use (see tools/gen_display_assets.py). Index = DisplayConfig::language: 0 (not chosen yet) shows English.
 #pragma once
 #include <cstring>
@@ -14,8 +14,8 @@ static const char* const STATE_KEYS[] = {"off", "standby", "ignition", "flame_st
                                          "splitlog_check", "splitlog_refuel", "splitlog_no_refuel", "unknown"};
 static constexpr int STATE_COUNT = sizeof(STATE_KEYS) / sizeof(STATE_KEYS[0]);
 
-// Rows: en, fr, it, de.
-static const char* const WORDS[4][W_COUNT] = {
+// Rows: en, fr, it, de, es.
+static const char* const WORDS[5][W_COUNT] = {
   {"STOVE", "ROOM", "FLAME", "COMFORT", "POWER", "ADDRESS", "SERVICE IN", "RUNNING", "WI-FI", "MQTT", "UPDATE", "FIRMWARE",
    "Online", "Offline", "STOVE ERROR", "ALERT", "Hopper open", "No stove", "No Wi-Fi", "MANUAL", "AUTO", "Code", "LOG HOURS", "Pellet tank empty"},
   {"POÊLE", "PIÈCE", "FLAMME", "CONFORT", "PUISSANCE", "ADRESSE", "ENTRETIEN", "HEURES", "WI-FI", "MQTT", "MISE À JOUR", "FIRMWARE",
@@ -24,17 +24,20 @@ static const char* const WORDS[4][W_COUNT] = {
    "Online", "Offline", "ERRORE", "ALLARME", "Tramoggia aperta", "Nessuna stufa", "Niente Wi-Fi", "MANUALE", "AUTO", "Codice", "ORE LEGNA", "Serbatoio vuoto"},
   {"OFEN", "RAUM", "FLAMME", "KOMFORT", "LEISTUNG", "ADRESSE", "WARTUNG IN", "BETRIEB", "WLAN", "MQTT", "UPDATE", "FIRMWARE",
    "Online", "Offline", "OFENFEHLER", "ALARM", "Behälter offen", "Kein Ofen", "Kein WLAN", "MANUELL", "AUTO", "Code", "HOLZ-STD.", "Pelletbehälter leer"},
+  {"ESTUFA", "SALA", "LLAMA", "CONFORT", "POTENCIA", "DIRECCIÓN", "MANTENIM.", "HORAS", "WI-FI", "MQTT", "ACTUALIZAR", "FIRMWARE",
+   "Conectado", "Sin conexión", "ERROR ESTUFA", "ALERTA", "Tolva abierta", "Sin estufa", "Sin Wi-Fi", "MANUAL", "AUTO", "Código", "HORAS LEÑA", "Depósito vacío"},
 };
 
-static const char* const STATES[4][STATE_COUNT] = {
+static const char* const STATES[5][STATE_COUNT] = {
   {"Off", "Standby", "Ignition", "Flame Start", "Heating", "Grate Cleaning", "Burn Off", "Split Log", "Split Log Check", "Put On Split Logs", "Do Not Put Logs", "Unknown"},
   {"Arrêt", "Veille", "Allumage", "Démarrage flamme", "Chauffe", "Nettoyage grille", "Extinction", "Mode bûches", "Contrôle bûches", "Recharger en bûches", "Ne pas recharger", "Inconnu"},
   {"Spento", "Standby", "Accensione", "Avvio fiamma", "Riscaldamento", "Pulizia griglia", "Spegnimento", "Legna", "Controllo legna", "Aggiungere legna", "NON aggiungere legna", "Sconosciuto"},
   {"Aus", "Bereitschaft", "Zündung", "Flammenstart", "Heizen", "Rostreinigung", "Abbrand", "Scheitholz", "Scheitholz-Check", "Bitte Nachlegen", "NICHT Nachlegen", "Unbekannt"},
+  {"Apagada", "En espera", "Encendido", "Inicio de llama", "Calentando", "Limpieza de parrilla", "Apagado de llama", "Leña", "Control de leña", "Añadir leña", "NO añadir leña", "Desconocido"},
 };
 
-// language: 0 not chosen (English), 1 en, 2 fr, 3 it, 4 de.
-inline int row(int language) { return language >= 2 && language <= 4 ? language - 1 : 0; }
+// language: 0 not chosen (English), 1 en, 2 fr, 3 it, 4 de, 5 es.
+inline int row(int language) { return language >= 2 && language <= 5 ? language - 1 : 0; }
 inline const char* word(int language, Word w) { return WORDS[row(language)][w]; }
 // The state's text in the language, or `fallback` when the key is unknown (a state a later firmware adds).
 inline const char* stateName(int language, const char* key, const char* fallback) {
