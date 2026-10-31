@@ -318,7 +318,7 @@ paths:
                 dim_after: { type: integer, minimum: 30, maximum: 3600 }
                 dim_level: { type: integer, minimum: 0, maximum: 50 }
                 rotate: { type: boolean, description: Rotate the screen by 180 degrees }
-                language: { type: string, enum: [en, fr, it, de], description: Language of the texts on the screen }
+                language: { type: string, enum: [en, fr, it, de, es], description: Language of the texts on the screen }
                 screens:
                   type: array
                   items:
@@ -517,7 +517,7 @@ components:
         dim_after: { type: integer, minimum: 30, maximum: 3600, description: Seconds without activity before dimming }
         dim_level: { type: integer, minimum: 0, maximum: 50, description: "Backlight while dimmed, percent (0 = off)" }
         rotate: { type: boolean, description: "The screen is rotated by 180 degrees" }
-        language: { type: string, enum: ["", en, fr, it, de], description: "Language of the texts on the screen; empty until one is chosen (English is shown meanwhile)" }
+        language: { type: string, enum: ["", en, fr, it, de, es], description: "Language of the texts on the screen; empty until one is chosen (English is shown meanwhile)" }
         screens:
           type: array
           description: Every screen once, in the order they are shown
