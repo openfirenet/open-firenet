@@ -4558,11 +4558,12 @@ function applyFanArea(n) {
   }
 }
 
-// Eco mode can only be changed when the stove allows it (sensor ecoModePossible), except on firmware 2.28
+// Eco mode can only be switched on when the stove allows it (sensor ecoModePossible). Switching it off stays
+// possible while it is on, otherwise the stove keeps asking for logs (issue #131). Not on firmware 2.28
 // (version frame "V28"), where the bridge only sends the five basic settings.
 function ecoEditable(s) {
   const ctrl = (s && s.controls) || {};
-  return ctrl.eco_mode_possible === true && s.version_frame !== 'V28';
+  return (ctrl.eco_mode_possible === true || ctrl.eco_mode === true) && s.version_frame !== 'V28';
 }
 function toggleEco() {
   if (!lastState || !ecoEditable(lastState)) return;
