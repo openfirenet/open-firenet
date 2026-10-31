@@ -2,11 +2,12 @@
 
 ## Non publié
 
+### New
+- A stove error now shows a red banner at the top of the page, and error code 1 is shown as "Pellet tank empty" instead of "Code 1", on the page and on the key's screen (in the four languages).
+- Spanish translation of the bridge page.
+
 ### Fixes
 - The eco mode can now always be switched off. Before, the button was greyed out once the stove reported the mode as no longer possible, so a stove stuck in eco mode kept asking for a log. (#131)
-
-### New
-- Spanish translation of the bridge page
 
 ## v4.8.2 (2026-10-28)
 

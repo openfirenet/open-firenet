@@ -7,7 +7,7 @@ namespace firenet {
 namespace screentext {
 
 enum Word { W_STOVE, W_ROOM, W_FLAME, W_COMFORT, W_POWER, W_ADDRESS, W_SERVICE_IN, W_RUNNING, W_WIFI, W_MQTT, W_UPDATE, W_FIRMWARE,
-            W_ONLINE, W_OFFLINE, W_STOVE_ERROR, W_ALERT, W_HOPPER_OPEN, W_NO_STOVE, W_NO_WIFI, W_MANUAL, W_AUTO, W_CODE, W_RUNNING_LOGS, W_COUNT };
+            W_ONLINE, W_OFFLINE, W_STOVE_ERROR, W_ALERT, W_HOPPER_OPEN, W_NO_STOVE, W_NO_WIFI, W_MANUAL, W_AUTO, W_CODE, W_RUNNING_LOGS, W_PELLETS_EMPTY, W_COUNT };
 
 // The states, by the name the bridge gives them in its API ("stove.state").
 static const char* const STATE_KEYS[] = {"off", "standby", "ignition", "flame_start", "heating", "cleaning", "burn_off", "splitlog",
@@ -17,13 +17,13 @@ static constexpr int STATE_COUNT = sizeof(STATE_KEYS) / sizeof(STATE_KEYS[0]);
 // Rows: en, fr, it, de.
 static const char* const WORDS[4][W_COUNT] = {
   {"STOVE", "ROOM", "FLAME", "COMFORT", "POWER", "ADDRESS", "SERVICE IN", "RUNNING", "WI-FI", "MQTT", "UPDATE", "FIRMWARE",
-   "Online", "Offline", "STOVE ERROR", "ALERT", "Hopper open", "No stove", "No Wi-Fi", "MANUAL", "AUTO", "Code", "LOG HOURS"},
+   "Online", "Offline", "STOVE ERROR", "ALERT", "Hopper open", "No stove", "No Wi-Fi", "MANUAL", "AUTO", "Code", "LOG HOURS", "Pellet tank empty"},
   {"POÊLE", "PIÈCE", "FLAMME", "CONFORT", "PUISSANCE", "ADRESSE", "ENTRETIEN", "HEURES", "WI-FI", "MQTT", "MISE À JOUR", "FIRMWARE",
-   "En ligne", "Hors ligne", "ERREUR", "ALERTE", "Trémie ouverte", "Pas de poêle", "Pas de Wi-Fi", "MANUEL", "AUTO", "Code", "HEURES BOIS"},
+   "En ligne", "Hors ligne", "ERREUR", "ALERTE", "Trémie ouverte", "Pas de poêle", "Pas de Wi-Fi", "MANUEL", "AUTO", "Code", "HEURES BOIS", "Réservoir vide"},
   {"STUFA", "STANZA", "FIAMMA", "COMFORT", "POTENZA", "INDIRIZZO", "MANUTENZ.", "ORE", "WI-FI", "MQTT", "AGGIORNA", "FIRMWARE",
-   "Online", "Offline", "ERRORE", "ALLARME", "Tramoggia aperta", "Nessuna stufa", "Niente Wi-Fi", "MANUALE", "AUTO", "Codice", "ORE LEGNA"},
+   "Online", "Offline", "ERRORE", "ALLARME", "Tramoggia aperta", "Nessuna stufa", "Niente Wi-Fi", "MANUALE", "AUTO", "Codice", "ORE LEGNA", "Serbatoio vuoto"},
   {"OFEN", "RAUM", "FLAMME", "KOMFORT", "LEISTUNG", "ADRESSE", "WARTUNG IN", "BETRIEB", "WLAN", "MQTT", "UPDATE", "FIRMWARE",
-   "Online", "Offline", "OFENFEHLER", "ALARM", "Behälter offen", "Kein Ofen", "Kein WLAN", "MANUELL", "AUTO", "Code", "HOLZ-STD."},
+   "Online", "Offline", "OFENFEHLER", "ALARM", "Behälter offen", "Kein Ofen", "Kein WLAN", "MANUELL", "AUTO", "Code", "HOLZ-STD.", "Pelletbehälter leer"},
 };
 
 static const char* const STATES[4][STATE_COUNT] = {

@@ -642,6 +642,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 .state-icon-box.active { color: #f97316; }
 .mode-btn .m-icon .ic { width: 1.5rem; height: 1.5rem; }
 #refusedBanner .ic, #linkHintBanner .ic, #hopperLidBanner .ic { color: var(--amber); }
+#stoveErrorBanner .ic { color: #ef4444; }
 #apBanner .ic { color: var(--blue); }
 /* Colour trial: one hue per icon, filled for the "solid" shapes */
 .ic-flame { color: #f97316; fill: color-mix(in srgb, #f97316 45%, transparent); }
@@ -752,6 +753,13 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <span class="ic-slot ic-lg" data-ic="triangle-alert"></span>
     <div>
       <b id="hopperLidBannerTitle">Trappe du réservoir à pellets ouverte</b>
+    </div>
+  </div>
+
+  <div id="stoveErrorBanner" style="display:none;background:rgba(239,68,68,0.15);border:1px solid #ef4444;border-radius:10px;padding:12px 16px;font-size:0.9rem;align-items:center;gap:12px">
+    <span class="ic-slot ic-lg" data-ic="triangle-alert"></span>
+    <div>
+      <b id="stoveErrorBannerTitle"></b>
     </div>
   </div>
 
@@ -1766,6 +1774,9 @@ const I18N = {
     apBannerTitle: "Mode Point d'Accès actif",
     apBannerDesc: "Sélectionnez votre réseau WiFi ci-dessous pour connecter Open Firenet à votre box.",
     hopperLidBannerTitle: "Trappe du réservoir à pellets ouverte",
+    stoveErrorTitle: "Erreur du poêle",
+    stoveErrorCode: "Code",
+    stoveErrorPelletsEmpty: "Réservoir de pellets vide",
     linkHintNoHostTitle: "La clé n'est pas reliée au poêle en USB",
     linkHintNoHostDesc: "Branchez le poêle sur le port USB natif de la carte (marqué « USB », pas « UART » ou « COM »), avec un câble de données, et vérifiez que le poêle est sous tension.",
     linkHintSilentTitle: "Le poêle ne répond pas",
@@ -2105,6 +2116,9 @@ const I18N = {
     apBannerTitle: "Access Point mode active",
     apBannerDesc: "Select your WiFi network below to connect Open Firenet to your router.",
     hopperLidBannerTitle: "Pellet hopper lid open",
+    stoveErrorTitle: "Stove error",
+    stoveErrorCode: "Code",
+    stoveErrorPelletsEmpty: "Pellet tank empty",
     linkHintNoHostTitle: "The bridge is not connected to the stove over USB",
     linkHintNoHostDesc: "Plug the stove into the board's native USB port (labelled \"USB\", not \"UART\" or \"COM\"), with a data cable, and check that the stove is powered.",
     linkHintSilentTitle: "The stove does not answer",
@@ -2464,6 +2478,9 @@ const I18N = {
     "apBannerTitle": "Modalità Access Point attiva",
     "apBannerDesc": "Seleziona la tua rete Wi-Fi qui sotto per connettere Open Firenet al router.",
     "hopperLidBannerTitle": "Coperchio del serbatoio pellet aperto",
+    "stoveErrorTitle": "Errore della stufa",
+    "stoveErrorCode": "Codice",
+    "stoveErrorPelletsEmpty": "Serbatoio pellet vuoto",
     "linkHintNoHostTitle": "Il bridge non è collegato alla stufa tramite USB",
     "linkHintNoHostDesc": "Collega la stufa alla porta USB nativa della scheda (indicata come \"USB\", non \"UART\" o \"COM\") con un cavo dati e verifica che la stufa sia alimentata.",
     "linkHintSilentTitle": "La stufa non risponde",
@@ -2843,6 +2860,9 @@ const I18N = {
     apBannerTitle: "Access Point Modus aktiv",
     apBannerDesc: "Wählen Sie unten Ihr WLAN aus, um Open Firenet mit Ihrem Router zu verbinden.",
     hopperLidBannerTitle: "Pelletbehälter-Deckel offen",
+    stoveErrorTitle: "Ofenfehler",
+    stoveErrorCode: "Code",
+    stoveErrorPelletsEmpty: "Pelletbehälter leer",
     linkHintNoHostTitle: "Der Stick ist nicht per USB mit dem Ofen verbunden",
     linkHintNoHostDesc: "Den Ofen an den nativen USB-Anschluss der Platine anschließen (mit „USB“ beschriftet, nicht „UART“ oder „COM“), mit einem Datenkabel, und prüfen, ob der Ofen Strom hat.",
     linkHintSilentTitle: "Der Ofen antwortet nicht",
@@ -5078,6 +5098,19 @@ async function tick() {
 
     if (rawS.hopperLidClosed !== undefined) {
       document.getElementById('hopperLidBanner').style.display = (rawS.hopperLidClosed === 0) ? 'flex' : 'none';
+    }
+
+    // Stove error: code 1 is "pellet tank empty", the other codes are shown as numbers.
+    const errBanner = document.getElementById('stoveErrorBanner');
+    if (errBanner) {
+      const errCode = stObj.error_code || 0;
+      if (errCode !== 0) {
+        const what = errCode === 1 ? t.stoveErrorPelletsEmpty : t.stoveErrorCode + ' ' + errCode;
+        document.getElementById('stoveErrorBannerTitle').textContent = t.stoveErrorTitle + ': ' + what;
+        errBanner.style.display = 'flex';
+      } else {
+        errBanner.style.display = 'none';
+      }
     }
 
     const mainSt = stObj.state_code !== undefined ? stObj.state_code : (rawS.mainState !== undefined ? rawS.mainState : (s.sensors_pos ? s.sensors_pos[31] : 1));
