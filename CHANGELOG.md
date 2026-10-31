@@ -5,6 +5,9 @@
 ### Fixes
 - The eco mode can now always be switched off. Before, the button was greyed out once the stove reported the mode as no longer possible, so a stove stuck in eco mode kept asking for a log. (#131)
 
+### New
+- Spanish translation of the bridge page
+
 ## v4.8.2 (2026-10-28)
 
 ### Changes
