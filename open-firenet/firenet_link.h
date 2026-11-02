@@ -36,6 +36,8 @@ struct StoveModel {
   // are defaults, or the unnamed values of a frame posted before the names were registered, whose positions are
   // not known: a command built from them would write wrong settings (seen 2026-10-08: stove switched on at 100 %).
   bool controls_synced = false;
+  bool v0_linked = false;      // a stove on firmware 2.25 answers the numeric reads (firenet_link_v0.h), see firenet_v0_map.h
+  long v0_sched[14] = {};      // firmware 2.25: start and end of the daily range of each weekday (Sunday first), in minutes since midnight
   uint32_t link_losses = 0;   // times an acknowledged link was dropped by the stove since boot
 };
 
@@ -106,6 +108,8 @@ public:
       silence_pending_ = false;
       if (!rx_.empty()) { dispatch(rx_); rx_.clear(); }
     }
+    // Paused while the read-only 2.25 trial talks to the stove: our text frames would be mixed into its frames.
+    if (paused_) { txq_.clear(); return; }
     if (!model_.version_ack && txq_.empty() &&
         (!version_sent_ || (now_() - last_version_ms_) >= VERSION_RETRY_MS)) {
       sendVersion();
@@ -115,6 +119,7 @@ public:
     // émission cadencée : une trame par TX_GAP_MS
     if (!txq_.empty() && (now_() - last_tx_ms_) >= tx_gap_ms_) emitOne();
   }
+  void setPaused(bool p) { paused_ = p; }
   bool txIdle() const { return txq_.empty(); }
   size_t txPending() const { return txq_.size(); }
 
@@ -701,8 +706,10 @@ public:
   void transferCompleted() { send("TRANSFER_COMPLETED"); }
 
   const StoveModel& model() const { return model_; }
+  StoveModel& modelMutable() { return model_; }   // for the numeric link of firmware 2.25 (firenet_v0_map.h)
   void setRevision(long r) { model_.revision = r; }
 
+  bool paused_ = false;
   static const uint32_t SILENCE_MS = 40;       // choix d'implémentation (§4.3 : silence, durée non prouvée)
   static const uint32_t VERSION_RETRY_MS = 1000;
   // Délai entre trames vers le poêle, réglable à chaud (UI, /api/txgap), borné à [TX_GAP_MIN_MS, TX_GAP_MAX_MS].

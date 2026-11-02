@@ -47,6 +47,7 @@ static const ControlParam CONTROL_PARAMS[] = {
   {"roomTempOffset",        ParamKind::Offset10,   "room_temperature_offset room_temp_offset"},
   {"roomTempOffset",        ParamKind::OffsetAuto, "roomTempOffset tempOffset roomOffset offset"},
   {"ecoMode",               ParamKind::Bool,       "ecoMode eco_mode"},
+  {"roomSensorPower",       ParamKind::Int,        "roomSensorPower room_sensor_power power_request"},
   {"heatingTimesActive",    ParamKind::Bool,       "heatingTimesActive heating_times_active scheduleActive"},
   {"setBackTemp",           ParamKind::Temp10,     "setBackTemp setback_temperature setbackTemp tempEco"},
 };

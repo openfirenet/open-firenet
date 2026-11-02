@@ -25,6 +25,8 @@
 #include "tusb.h"   // écriture CDC directe, sans la condition DTR d'Arduino
 #include "esp_wifi.h"  // connexion STA robuste (méthode open-firenet, coexistence USB)
 #include "firenet_link.h"
+#include "firenet_link_v0.h"
+#include "firenet_v0_map.h"
 #include "firenet_api.h"
 #include "firenet_web_guard.h"
 #include "firenet_crash.h"
@@ -147,6 +149,7 @@ static long controlValue(const firenet::StoveModel& m, const char* name, long de
 
 // --------------------------------------------------------- liaison protocole
 firenet::DongleLink* g_link = nullptr;
+firenet::LinkV0Probe* g_v0 = nullptr;   // read-only trial for stoves on firmware 2.25 (issue #110)
 static uint32_t lastPoll = 0;
 
 static void txToStove(const uint8_t* d, size_t n) {
@@ -496,7 +499,7 @@ static String jsonState() {
     // over Wi-Fi (1,310,720 bytes on a board flashed with Arduino's default partition scheme).
     (unsigned)ESP.getFreeSketchSpace(),
     g_otaHash.length() == 64 ? "true" : "false",
-    m.version_ack ? "true" : "false"
+    (m.version_ack || m.v0_linked) ? "true" : "false"
   );
 
   String j = String(buf) + jsonStoveSections() + ",";
@@ -506,12 +509,14 @@ static String jsonState() {
   j += "\"wifi_power_saving\":" + String(g_wifiPowerSaving?"true":"false") + ",";
   j += "\"uptime_seconds\":" + String(millis() / 1000UL) + ",";
   j += "\"write_enabled\":true,";
-  j += "\"version_ack\":" + String(m.version_ack ? "true" : "false") + ",";
+  j += "\"version_ack\":" + String((m.version_ack || m.v0_linked) ? "true" : "false") + ",";
   // version_profile: which family's probe got acked (DongleLink::DETECT_V3=0, DETECT_V28=1, DETECT_V1=2); a
   // detected 2.28 still runs the DOMO/V3 protocol (generation=1), this label is for display only.
   const char* verFrameLabel = m.version_profile == 0 ? "V3" : (m.version_profile == 1 ? "V28" : (m.version_profile == 2 ? "V1" : "?"));
   j += "\"version_frame\":\"" + String(verFrameLabel) + "\",";
   j += "\"generation\":" + String(m.generation) + ",";
+  // How many heating time slots a day the stove takes (the second one has no numeric code on firmware 2.25).
+  j += "\"schedule_slots_per_day\":" + String(m.v0_linked ? 1 : 2) + ",";
   // USB link diagnostics: host_connected = a USB host (the stove) has enumerated the bridge on its native USB port;
   // rx_bytes = bytes received from the stove since boot. Both stay false / 0 when the stove is plugged into the
   // board's UART/COM port, when the cable has no data wires, or when the stove is off.
@@ -549,6 +554,15 @@ static String jsonState() {
   j += "],\"controls_pos\":[";
   first = true;
   for (long v : m.controls_pos) { if (!first) j += ","; first = false; j += String(v); }
+  if (m.v0_linked && m.controls_pos.empty()) {
+    // Firmware 2.25 has no positional list: give the 14 slots where the Home Assistant integration reads them (positions 7 to 20).
+    for (int i = 0; i < 21; i++) {
+      long v = 0;
+      if (i >= 7) { auto it = m.controls.find(firenet::ctrlName(i)); if (it != m.controls.end()) v = it->second; }
+      if (i) j += ",";
+      j += String(v);
+    }
+  }
   j += "]}";
 
   return j;
@@ -919,6 +933,7 @@ static void handleSerialProvisioning() {
   while (STOVE.available()) {
     uint8_t b = (uint8_t)STOVE.read();
     if (g_link) g_link->onByte(b);
+    if (g_v0) g_v0->onByte(b);
     char c = (char)b;
     if (c == '\n' || c == '\r') {
       if (stoveLine.length() > 0) {
@@ -1182,6 +1197,50 @@ static void handleAccess() {
 // MQTT. The base settings it ends up sending are returned for the answer.
 static AppliedControls applyControlPairs(const std::vector<std::pair<std::string, std::string>>& pairs) {
   const auto& m = g_link->model();
+  if (m.v0_linked && g_v0) {
+    // Stove on firmware 2.25 (numeric link): start (only when the stove is off, cold and without error), stop, mode, manual power, the set points, the frost protection and the comfort power level are written, each one
+    // alone and read back by the link (firenet_link_v0.h). A start is refused. Whatever else was commanded is ignored.
+    const auto cmd = firenet::parseControlCommands(pairs);
+    bool queued = false;
+    auto put = [&](int code, long value, const char* name) {
+      if (g_v0->requestWrite(code, value)) { queued = true; DBG.printf("[v0] write queued: %s -> %03d=%ld\n", name, code, value); }
+      else DBG.printf("[v0] write refused: %s = %ld\n", name, value);
+    };
+    for (const auto& kv : cmd) {
+      if (kv.first == "onOff") {
+        if (kv.second == 0) put(23, 0, "onOff");
+        else if (firenet::v0::startAllowed(sensorValue(m, "errMask32", 1), sensorValue(m, "mainState", 0), sensorValue(m, "subState", 99),
+                                           sensorValue(m, "flame", 1000), controlValue(m, "onOff", 1))) put(23, 1, "onOff");
+        else DBG.println("[v0] start refused: the stove has an error, is not off or waiting, is not cold, or is already on");
+      }
+      else if (kv.first == "mode") put(24, kv.second, "mode");
+      else if (kv.first == "targetStage") put(25, kv.second, "targetStage");
+      else if (kv.first == "roomTarget") put(26, (kv.second + 5) / 10, "roomTarget");   // tenths of a degree -> whole degrees
+      else if (kv.first == "setBackTemp") put(81, (kv.second + 5) / 10, "setBackTemp");
+      else if (kv.first == "frostProtectionActive") put(88, kv.second, "frostProtectionActive");
+      else if (kv.first == "frostProtectionTemp") put(89, (kv.second + 5) / 10, "frostProtectionTemp");
+      else if (kv.first == "roomSensorPower") put(92, kv.second, "roomSensorPower");
+      else if (kv.first == "heatingTimesActive") put(80, kv.second != 0 ? 1 : 0, "heatingTimesActive");
+      else if (kv.first.compare(0, 8, "heatTime") == 0 && kv.first.size() == 12) {
+        // heatTime<Day><slot>: the stove takes one range per day (first slot); the second slot can only stay empty.
+        static const char* const names[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+        int day = -1;
+        for (int d = 0; d < 7; d++) if (kv.first.compare(8, 3, names[d]) == 0) day = d;
+        const char slot = kv.first[11];
+        long start = (kv.second / 10000 / 100) * 60 + (kv.second / 10000) % 100, end = (kv.second % 10000 / 100) * 60 + kv.second % 100;
+        if (day < 0 || (slot != '1' && slot != '2')) DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
+        else if (slot == '2') { if (kv.second != 0) DBG.printf("[v0] refused: the stove on firmware 2.25 has one range per day (%s)\n", kv.first.c_str()); }
+        else if (kv.second < 0 || (kv.second / 10000) % 100 >= 60 || kv.second % 100 >= 60 || start > 1440 || end > 1440 || start > end) DBG.printf("[v0] refused: %s = %ld is not a range\n", kv.first.c_str(), kv.second);
+        else {
+          // Only what changes is written: the page sends all seven days, and the stove display takes a day to be switched off after a write.
+          if (m.v0_sched[2 * day] != start) put(65 + 2 * day, start, kv.first.c_str());
+          if (m.v0_sched[2 * day + 1] != end) put(66 + 2 * day, end, kv.first.c_str());
+        }
+      }
+      else DBG.printf("[v0] ignored on firmware 2.25: %s\n", kv.first.c_str());
+    }
+    return {controlValue(m, "onOff", 0), controlValue(m, "mode", 2), controlValue(m, "targetStage", 70), controlValue(m, "roomTarget", 200), queued};
+  }
   // A command is the stove's current settings plus the commanded ones: nothing is sent before the stove has posted
   // its settings under their names (a few seconds after the link comes up), see Model::controls_synced.
   if (!m.version_ack || !m.controls_synced) return {0, 0, 0, 0, false};
@@ -1280,6 +1339,10 @@ static void handleApiControls() {
   }
   if (web.hasArg("name") && web.hasArg("value")) pairs.push_back({web.arg("name").c_str(), web.arg("value").c_str()});
   const AppliedControls r = applyControlPairs(pairs);
+  if (!r.sent && m.v0_linked) {
+    web.send(422, "application/json", "{\"ok\":false,\"error\":\"not_accepted\",\"message\":\"Nothing was sent. For a stove on firmware 2.25 the bridge accepts only start (when the stove is off, cold and without error) and stop, mode, power (30 to 100 in steps of 5), target and reduced temperature, frost protection and comfort power level.\"}");
+    return;
+  }
   if (!r.sent) {
     web.sendHeader("Retry-After", "5");
     web.send(503, "application/json", "{\"ok\":false,\"error\":\"stove_not_ready\",\"message\":\"The stove is not linked, or has not sent its settings yet. Nothing was sent; try again in a few seconds.\"}");
@@ -1585,7 +1648,7 @@ static void mqttDiscoveryStep() {
 // call, so a full refresh is spread over a few seconds.
 static void mqttPublish() {
   const auto& m = g_link->model();
-  bool linked = m.version_ack && !m.sensors_pos.empty();
+  bool linked = (m.version_ack && !m.sensors_pos.empty()) || m.v0_linked;
   if (g_mqttCfg.discovery) {
     // Announce again once the stove has told its model, so that the device shows it.
     long modelId = sensorValue(m, "model", -1);
@@ -1745,7 +1808,16 @@ static void handleApiSchedule() {
     json += "\"heatingTimesActive\":" + String(htActive) + ",";
     json += "\"setback_temperature\":" + String(sbTemp / 10.0f, 1) + ",";
     json += "\"setBackTemp\":" + String(sbTemp) + ",";
-    json += "\"slots\":{" + jsonScheduleSlots() + "}}";
+    json += "\"slots\":{" + jsonScheduleSlots() + "}";
+    json += ",\"slots_per_day\":" + String(m.v0_linked ? 1 : 2);
+    if (m.v0_linked) {
+      // Firmware 2.25: the daily range of each weekday, in minutes since midnight. Whether a day is switched on is not known.
+      static const char* const days[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+      json += ",\"day_ranges\":{";
+      for (int d = 0; d < 7; d++) json += String(d ? "," : "") + "\"" + days[d] + "\":{\"start\":" + String(m.v0_sched[2 * d]) + ",\"end\":" + String(m.v0_sched[2 * d + 1]) + "}";
+      json += "}";
+    }
+    json += "}";
     web.send(200, "application/json", json);
     return;
   }
@@ -1854,12 +1926,23 @@ void setup() {
       logEntry("drop", f);
       return;
     }
+    // While the numeric link of firmware 2.25 is active, the text link only sees its answers as noise; the "v0 rx" lines
+    // already hold every change, and the raw ones used to push the start of the session out of the small log ring.
+    if (g_v0 && g_v0->engaged() && strcmp(dir, "rx") == 0) return;
     std::string safe = firenet::sanitizeForLog(f);
     DBG.printf("[%s %u] ", dir, (unsigned)safe.size());
     for (char c : safe) { if (c=='\n') DBG.print("\\n"); else if (c=='\r') DBG.print("\\r");
                        else if (c>=32 && c<127) DBG.print(c); else DBG.print('.'); }
     DBG.println();
     logEntry(dir, safe);
+  });
+  g_v0 = new firenet::LinkV0Probe(txToStove, nowMs);
+  g_v0->onDebug([](const char* dir, const std::string& f){
+    DBG.printf("[%s] %s\n", dir, f.c_str());
+    logEntry(dir, f);
+  });
+  g_v0->onValue([](int code, const std::string& text){
+    firenet::v0map::apply(g_link->modelMutable(), code, text, millis());
   });
 
   prefs.begin("firenet", true);
@@ -2021,6 +2104,7 @@ void loop() {
 
   // 1) traiter les trames du poêle
   g_link->poll();
+  if (g_v0) { g_v0->poll(g_link->model().version_ack); g_link->setPaused(g_v0->engaged()); }
 
   // 1b) Watchdog RX : une fois la version acquittée, le poêle répond en continu
   // (POST_CDCDEVICE_STATUS à chaque cycle). Si plus AUCUN octet reçu pendant
