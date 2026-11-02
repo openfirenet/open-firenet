@@ -3,6 +3,7 @@
 ## Non publié
 
 ### New
+- The Stove page can be arranged: "Customize the cards" lets you move every block (the state with the start button, the metric cards, the controls) by dragging it with the mouse or with arrows, make them narrower or wider, hide the metric cards, and choose 4 to 8 columns (the page gets wider on a large screen). The page is a list of lines, each with its own columns where blocks stack, so cards can sit in a column beside the controls, which keep at least their usual width; a strip between lines starts a new one. "Reset" puts everything back. While you arrange them, the rest of the page (stove button, controls, tabs) is locked so nothing can be changed by a stray tap. The layout is kept in your browser only. Tried in a headless browser on the example data, not on a stove.
 - A stove error now shows a red banner at the top of the page, and error code 1 is shown as "Pellet tank empty" instead of "Code 1", on the page and on the key's screen (in the four languages).
 - Spanish translation of the bridge page.
 - The key's screen can be set to Spanish (Screen language, in the Bridge tab).
