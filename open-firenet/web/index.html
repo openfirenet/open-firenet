@@ -206,9 +206,9 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   border: 1px solid var(--border);
 }
 .power-btn.btn-off:hover { color: var(--text); border-color: #3b455c; }
-/* Square button, the height of the metric cards without their frame: icon above its label. */
-.power-btn { flex-direction: column; justify-content: center; gap: 6px; width: 79px; height: 79px; padding: 6px; border-radius: 14px; font-size: 0.72rem; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
-.power-btn .power-icon { width: 24px; height: 24px; }
+/* Square button of the state card only (the other .power-btn buttons of the page keep their usual shape): icon above its label, the height of the metric cards without their frame. */
+#powerBtn { flex-direction: column; justify-content: center; gap: 6px; width: 79px; height: 79px; padding: 6px; border-radius: 14px; font-size: 0.72rem; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+#powerBtn .power-icon { width: 24px; height: 24px; }
 
 /* Grid metrics */
 .grid-metrics {
@@ -3471,6 +3471,7 @@ curLang = knownLang(localStorage.getItem('lang')) || browserLang();
 // Flags drawn as SVG: the emoji flags show as "FR", "EN"... on Windows.
 const FLAGS = {
   fr: '<rect width="1" height="2" fill="#0055a4"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ef4135"/>',
+  es: '<rect width="3" height="2" fill="#c60b1e"/><rect y="0.5" width="3" height="1" fill="#ffc400"/>',
   it: '<rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ce2b37"/>',
   de: '<rect width="3" height="0.67" fill="#000"/><rect y="0.67" width="3" height="0.67" fill="#dd0000"/><rect y="1.33" width="3" height="0.67" fill="#ffce00"/>',
   en: '<rect width="3" height="2" fill="#012169"/><path d="M0 0L3 2M3 0L0 2" stroke="#fff" stroke-width="0.4"/><path d="M0 0L3 2M3 0L0 2" stroke="#c8102e" stroke-width="0.14"/><path d="M1.5 0V2M0 1H3" stroke="#fff" stroke-width="0.66"/><path d="M1.5 0V2M0 1H3" stroke="#c8102e" stroke-width="0.4"/>'
