@@ -160,7 +160,10 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
 .hero-labels p { color: var(--text-dim); font-size: 0.9rem; }
 
 /* State, button and connection share the width as 1 : auto : 1, so the button sits in the middle of the card. */
-.hero-state, .hero-conn { flex: 1 1 0; min-width: min-content; }
+/* A minimum width, not min-content: the texts may break anywhere on a phone, so min-content is one letter and the three parts would never wrap.
+   More specific than the phone rule that sets min-width 0 on .hero-state. */
+.hero-card > .hero-state { flex: 1 1 0; min-width: 190px; }
+.hero-card > .hero-conn { flex: 1 1 0; min-width: 205px; }
 /* The connection of the key to the stove, mirroring the state on the left: text then round mark. */
 .hero-conn { display: flex; align-items: center; justify-content: flex-end; gap: 18px; text-align: right; }
 .hero-conn .hero-labels p { color: var(--green); }
