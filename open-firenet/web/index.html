@@ -3926,7 +3926,18 @@ async function loadLogSize() {
   try {
     const r = await fetch('/api/log_size');
     if (!r.ok) return;
-    document.getElementById('logSizeSelect').value = String((await r.json()).kb);
+    const d = await r.json();
+    const sel = document.getElementById('logSizeSelect');
+    if (d.options && Array.isArray(d.options) && sel) {
+      sel.innerHTML = '';
+      d.options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = String(opt);
+        o.textContent = opt + ' kB';
+        sel.appendChild(o);
+      });
+    }
+    sel.value = String(d.kb);
   } catch (e) { /* the page keeps working without it */ }
 }
 let _logSizeTimer = null;
@@ -5083,16 +5094,29 @@ async function scanWifi() {
 
 // Bridge health card of the Diagnostics tab: one row per value of the "health" object of /api/state.
 let lastHealthState = null;
+function formatMemory(dev, h, t) {
+  const kb = (v) => t.healthKb.replace('{v}', Math.round(v / 1024));
+  let res = kb(dev.free_heap);
+  if (h && h.min_free_heap !== undefined) {
+    res += ' (' + t.healthMemoryMin.replace('{v}', kb(h.min_free_heap)) + ')';
+  }
+  if (dev.psram_size && dev.psram_size > 0) {
+    const freeMb = dev.free_psram !== undefined ? (dev.free_psram / (1024 * 1024)).toFixed(1) : '?';
+    const totalMb = Math.round(dev.psram_size / (1024 * 1024));
+    res += ' · PSRAM ' + freeMb + ' / ' + totalMb + ' MB';
+  }
+  return res;
+}
+
 function renderBridgeInfo(s) {
   const body = document.getElementById('bridgeInfoRows');
   if (!body || !s) return;
   const t = I18N[curLang] || I18N.en, h = s.health || {}, dev = s.device || {};
-  const kb = (v) => t.healthKb.replace('{v}', Math.round(v / 1024));
   const rows = [];
   if (dev.version) rows.push([t.bridgeInfoVersion, dev.version]);
   rows.push([t.lblUptime, formatUptime((s.uptime_seconds !== undefined) ? s.uptime_seconds : dev.uptime_seconds)]);
   if (h.restart_reason) rows.push([t.healthRestart, t.restartReasons[h.restart_reason] || h.restart_reason]);
-  if (dev.free_heap !== undefined) rows.push([t.healthMemory, kb(dev.free_heap)]);
+  if (dev.free_heap !== undefined) rows.push([t.healthMemory, formatMemory(dev, null, t)]);
   if (h.chip_temperature !== undefined && h.chip_temperature !== null) rows.push([t.healthTemp, Number(h.chip_temperature).toFixed(1) + ' °C']);
   body.textContent = '';
   rows.forEach(([name, value]) => {
@@ -5109,13 +5133,12 @@ function renderHealth(s) {
   const t = I18N[curLang] || I18N.en;
   const h = s.health || {};
   const dev = s.device || {};
-  const kb = (v) => t.healthKb.replace('{v}', Math.round(v / 1024));
   const rows = [];
   const upSec = (s.uptime_seconds !== undefined) ? s.uptime_seconds : dev.uptime_seconds;
   rows.push([t.lblUptime, formatUptime(upSec)]);
   if (h.restart_reason) rows.push([t.healthRestart, t.restartReasons[h.restart_reason] || h.restart_reason]);
   if (dev.free_heap !== undefined) {
-    rows.push([t.healthMemory, kb(dev.free_heap) + (h.min_free_heap !== undefined ? ' (' + t.healthMemoryMin.replace('{v}', kb(h.min_free_heap)) + ')' : '')]);
+    rows.push([t.healthMemory, formatMemory(dev, h, t)]);
   }
   if (h.chip_temperature !== undefined && h.chip_temperature !== null) rows.push([t.healthTemp, Number(h.chip_temperature).toFixed(1) + ' °C']);
   if (dev.wifi_rssi !== undefined) rows.push(['Wi-Fi', dev.wifi_rssi + ' dBm']);

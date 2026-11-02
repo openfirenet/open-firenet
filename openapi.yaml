@@ -644,6 +644,9 @@ components:
         wifi_rssi: { type: integer, description: Wi-Fi signal in dBm }
         uptime_seconds: { type: integer }
         free_heap: { type: integer, description: Free memory in bytes }
+        firmware_variant: { type: string, description: "Firmware variant: standard or psram" }
+        psram_size: { type: integer, description: "Total PSRAM size in bytes (0 when absent or disabled)" }
+        free_psram: { type: integer, description: "Free PSRAM memory in bytes (0 when absent or disabled)" }
         ota_slot_bytes: { type: integer, description: Size in bytes of the slot a wireless update is written to. A firmware larger than this must be installed over USB }
         ota_password_set: { type: boolean, description: "A password is asked for wireless updates. It is set or removed over USB with the installer, never over the network" }
         connected: { type: boolean, description: Same as `version_ack` }
