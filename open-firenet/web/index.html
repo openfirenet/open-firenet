@@ -3468,13 +3468,14 @@ curLang = knownLang(localStorage.getItem('lang')) || browserLang();
 })();
 
 
-// Flags drawn as SVG: the emoji flags show as "FR", "EN"... on Windows.
+// Flags drawn as SVG: the emoji flags show as "FR", "EN"... on Windows. All are flat and drawn with crisp edges: at 20 px a third
+// of the width is not a whole number of pixels, and a blended column made the French and Italian ones look wavy.
 const FLAGS = {
-  fr: '<rect width="1" height="2" fill="#0055a4"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ef4135"/>',
-  es: '<rect width="3" height="2" fill="#c60b1e"/><rect y="0.5" width="3" height="1" fill="#ffc400"/>',
-  it: '<rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ce2b37"/>',
-  de: '<rect width="3" height="0.67" fill="#000"/><rect y="0.67" width="3" height="0.67" fill="#dd0000"/><rect y="1.33" width="3" height="0.67" fill="#ffce00"/>',
-  en: '<rect width="3" height="2" fill="#012169"/><path d="M0 0L3 2M3 0L0 2" stroke="#fff" stroke-width="0.4"/><path d="M0 0L3 2M3 0L0 2" stroke="#c8102e" stroke-width="0.14"/><path d="M1.5 0V2M0 1H3" stroke="#fff" stroke-width="0.66"/><path d="M1.5 0V2M0 1H3" stroke="#c8102e" stroke-width="0.4"/>'
+  fr: '<g shape-rendering="crispEdges"><rect width="1" height="2" fill="#0055a4"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ef4135"/></g>',
+  es: '<g shape-rendering="crispEdges"><rect width="3" height="2" fill="#c60b1e"/><rect y="0.5" width="3" height="1" fill="#ffc400"/></g>',
+  it: '<g shape-rendering="crispEdges"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ce2b37"/></g>',
+  de: '<g shape-rendering="crispEdges"><rect width="3" height="0.67" fill="#000"/><rect y="0.67" width="3" height="0.67" fill="#dd0000"/><rect y="1.33" width="3" height="0.67" fill="#ffce00"/></g>',
+  en: '<g shape-rendering="crispEdges"><rect width="3" height="2" fill="#012169"/><path d="M0 0L3 2M3 0L0 2" stroke="#fff" stroke-width="0.5"/><rect x="1.2" width="0.6" height="2" fill="#fff"/><rect y="0.7" width="3" height="0.6" fill="#fff"/><rect x="1.3" width="0.4" height="2" fill="#c8102e"/><rect y="0.8" width="3" height="0.4" fill="#c8102e"/></g>'
 };
 function flagSvg(l) { return '<svg class="flag" viewBox="0 0 3 2" preserveAspectRatio="none" aria-hidden="true">' + (FLAGS[l] || '<rect width="3" height="2" fill="#475569"/>') + '</svg>'; }
 // Replaces a <select> of languages by a menu with flags (a native menu cannot show images). The <select> stays, hidden, and keeps the value.
