@@ -131,12 +131,12 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   background: linear-gradient(135deg, #181e2b 0%, #131722 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 16px 20px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 .hero-state { display: flex; align-items: center; gap: 18px; }
@@ -156,9 +156,20 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   box-shadow: 0 0 20px var(--primary-glow);
   border-color: rgba(229,57,53,0.5);
 }
-.hero-labels h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+.hero-labels h2 { font-size: 1.4rem; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
 .hero-labels p { color: var(--text-dim); font-size: 0.9rem; }
 
+/* State, button and connection share the width as 1 : auto : 1, so the button sits in the middle of the card. */
+.hero-state, .hero-conn { flex: 1 1 0; min-width: min-content; }
+/* The connection of the key to the stove, mirroring the state on the left: text then round mark. */
+.hero-conn { display: flex; align-items: center; justify-content: flex-end; gap: 18px; text-align: right; }
+.hero-conn .hero-labels p { color: var(--green); }
+.hero-conn .hero-labels h2 { white-space: nowrap; }
+.conn-box { border-color: rgba(16,185,129,0.3); }
+.conn-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green-glow); }
+.hero-conn.off .hero-labels p { color: var(--text-dim); }
+.hero-conn.off .conn-box { border-color: var(--border); }
+.hero-conn.off .conn-dot { background: var(--text-muted); box-shadow: none; }
 .power-btn {
   background: var(--primary);
   color: white;
@@ -192,6 +203,9 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   border: 1px solid var(--border);
 }
 .power-btn.btn-off:hover { color: var(--text); border-color: #3b455c; }
+/* Square button, the height of the metric cards without their frame: icon above its label. */
+.power-btn { flex-direction: column; justify-content: center; gap: 6px; width: 79px; height: 79px; padding: 6px; border-radius: 14px; font-size: 0.72rem; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.power-btn .power-icon { width: 24px; height: 24px; }
 
 /* Grid metrics */
 .grid-metrics {
@@ -209,6 +223,37 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
   gap: 12px;
 }
 /* The service gauge runs along the bottom edge of its card, so the value stays where the other cards have theirs. */
+/* Layout of the blocks of the stove page, chosen by the owner: a grid of narrow rows (masonry), so a block takes the
+   rows its height needs and cards can sit beside the tall controls. Spans and rows are set by the script. */
+main:has(#page-stove.active) { max-width: var(--stove-max, 960px); }
+#page-stove.active { gap: 16px; }
+#cardsLines { display: flex; flex-direction: column; gap: 16px; }
+.cards-line { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); grid-auto-rows: 2px; grid-auto-flow: row dense; column-gap: 16px; row-gap: 0; align-items: start; margin-bottom: -16px; }
+.cards-line.line-empty { display: none; }
+.cards-newline { display: none; }
+.cards-editing .cards-newline { display: flex; align-items: center; justify-content: center; height: 28px; border: 1px dashed var(--border); border-radius: 10px; color: var(--text-muted); font-size: 0.75rem; }
+.cards-editing .cards-line { outline: 1px dashed var(--border); outline-offset: 6px; border-radius: 12px; min-height: 40px; }
+.cards-editing .cards-line.line-empty { display: grid; }
+[data-card].user-hidden { display: none !important; }
+.cards-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; justify-content: flex-end; font-size: 0.8rem; }
+.cards-bar a { color: var(--text-dim); }
+.cards-bar .edit-only { display: none; align-items: center; gap: 6px; color: var(--text-dim); }
+.cards-editing .cards-bar .edit-only { display: inline-flex; }
+.cards-bar .edit-only button { background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: 6px; width: 24px; height: 24px; padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.cards-bar .edit-only button:disabled { opacity: 0.3; cursor: default; }
+.card-tools { display: none; gap: 4px; justify-content: flex-end; flex: none; width: 100%; margin: -6px 0 0; }
+.cards-editing .card-tools { display: flex; }
+.cards-editing [data-card].user-hidden:not([style*="none"]) { display: flex !important; opacity: 0.4; }
+.cards-editing header, .cards-editing #cardsLines [data-card] > :not(.card-tools) { opacity: 0.45; }
+.cards-editing #cardsLines [data-card] { cursor: grab; }
+#cardsLines [data-card].dragging { opacity: 0.3; }
+#cardsLines [data-card].drag-over { outline: 2px dashed var(--primary); outline-offset: 2px; }
+#cardDropMark { position: fixed; z-index: 50; pointer-events: none; display: none; box-sizing: border-box; border: 0 dashed var(--primary); }
+#cardDropMark.bar { display: block; border-top-width: 4px; border-radius: 2px; }
+#cardDropMark.col { display: block; border-width: 2px; border-radius: 12px; background: rgba(249,115,22,0.06); }
+.card-tools button { background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: 6px; width: 28px; height: 28px; padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.card-tools button:disabled { opacity: 0.3; cursor: default; }
+.card-tools .gap { flex: 1; }
 .card-gauge { position: relative; overflow: hidden; }
 .card-gauge .progress-bar { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 0; }
 .card-header {
@@ -269,7 +314,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; display: flex; flex-dire
 }
 .progress-fill { height: 100%; background: linear-gradient(90deg, var(--amber), var(--green)); transition: width 0.5s; }
 .progress-fill.low { background: var(--amber); }
-main.no-data .grid-metrics, main.no-data .control-deck, main.no-data #powerBtn { opacity: 0.35; pointer-events: none; }
+main.no-data #cardsLines .card, main.no-data .control-deck, main.no-data #powerBtn { opacity: 0.35; pointer-events: none; }
 
 /* Control Deck */
 .control-deck {
@@ -642,6 +687,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 .state-icon-box.active { color: #f97316; }
 .mode-btn .m-icon .ic { width: 1.5rem; height: 1.5rem; }
 #refusedBanner .ic, #linkHintBanner .ic, #hopperLidBanner .ic { color: var(--amber); }
+#stoveErrorBanner .ic { color: #ef4444; }
 #apBanner .ic { color: var(--blue); }
 /* Colour trial: one hue per icon, filled for the "solid" shapes */
 .ic-flame { color: #f97316; fill: color-mix(in srgb, #f97316 45%, transparent); }
@@ -755,28 +801,43 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     </div>
   </div>
 
+  <div id="stoveErrorBanner" style="display:none;background:rgba(239,68,68,0.15);border:1px solid #ef4444;border-radius:10px;padding:12px 16px;font-size:0.9rem;align-items:center;gap:12px">
+    <span class="ic-slot ic-lg" data-ic="triangle-alert"></span>
+    <div>
+      <b id="stoveErrorBannerTitle"></b>
+    </div>
+  </div>
+
   <!-- Page 1: the stove dashboard and controls -->
   <div class="page active" id="page-stove">
+  <div class="cards-bar"><span class="edit-only" id="cardsHint"></span><span class="edit-only"><span id="lblCardsCols"></span> <button type="button" id="colsMinus" onclick="setCardsCols(-1)"></button><b id="colsVal"></b><button type="button" id="colsPlus" onclick="setCardsCols(1)"></button></span><a href="#" id="lnkCardsEdit" onclick="toggleCardsEdit(); return false;"></a> <a href="#" id="lnkCardsReset" class="edit-only" onclick="resetCards(); return false;"></a></div>
+  <div id="cardsLines"></div>
   <!-- Hero Card: Main Stove State -->
-  <div class="hero-card">
+  <div class="hero-card" data-card="hero">
+    <div class="card-tools"></div>
     <div class="hero-state">
       <div class="state-icon-box" id="stateIconBox"><span class="ic-slot" data-ic="circle"></span></div>
       <div class="hero-labels">
         <h2 id="mainStateTitle">Veille (Standby)</h2>
         <p id="subStateDesc">Poêle en attente de consigne</p>
-        <span class="badge badge-live" id="connBadge" style="display:inline-flex;margin-top:8px;white-space:nowrap"><span class="dot"></span> <span id="connState"></span></span>
       </div>
     </div>
-    <div>
-      <button class="power-btn btn-off" id="powerBtn" onclick="togglePower()">
-        <svg class="power-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg> <span id="powerBtnText">Allumer</span>
-      </button>
+    <button class="power-btn btn-off" id="powerBtn" onclick="togglePower()">
+      <svg class="power-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+      <span id="powerBtnText">Allumer</span>
+    </button>
+    <div class="hero-conn" id="connBadge">
+      <div class="hero-labels">
+        <h2 id="connTitle"></h2>
+        <p id="connSub"></p>
+      </div>
+      <div class="state-icon-box conn-box"><span class="conn-dot"></span></div>
     </div>
   </div>
 
-  <!-- 4 Core Metrics -->
-  <div class="grid-metrics">
-    <div class="card">
+  <!-- Metric cards: order and visibility are chosen by the owner (see "cardsLayout") -->
+    <div class="card" data-card="room">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblRoomHeader">T° ambiante</span>
         <span class="ic-slot" data-ic="thermometer"></span>
@@ -786,7 +847,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-card="flame">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblFlameHeader">T° flamme</span>
         <span class="ic-slot" data-ic="flame"></span>
@@ -796,7 +858,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-card="power">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblPowerHeader">Puissance</span>
         <span class="ic-slot" data-ic="zap"></span>
@@ -806,7 +869,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-card="pellets">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblPelletsHeader">Granulés</span>
         <span class="ic-slot" data-ic="package"></span>
@@ -815,10 +879,9 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <span id="pelletsTotal">--</span><span class="unit">kg</span>
       </div>
     </div>
-  </div>
 
-  <div class="grid-metrics">
-    <div class="card">
+    <div class="card" data-card="runtime">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblRuntimeHeader">Fonctionnement</span>
         <span class="ic-slot" data-ic="timer"></span>
@@ -828,7 +891,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
     </div>
 
-    <div class="card" id="logRuntimeCard" style="display:none">
+    <div class="card" data-card="logruntime" id="logRuntimeCard" style="display:none">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblLogRuntimeHeader">Fonctionnement bois</span>
         <span class="ic-slot" data-ic="timer"></span>
@@ -838,7 +902,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       </div>
     </div>
 
-    <div class="card card-gauge">
+    <div class="card card-gauge" data-card="service">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblServiceHeader">Entretien dans</span>
         <span class="ic-slot" data-ic="wrench"></span>
@@ -849,7 +914,8 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <div class="progress-bar"><div class="progress-fill" id="serviceBar" style="width:100%"></div></div>
     </div>
 
-    <div class="card">
+    <div class="card" data-card="ignitions">
+      <div class="card-tools"></div>
       <div class="card-header">
         <span id="lblIgnitionsHeader">Allumages</span>
         <span class="ic-slot" data-ic="sparkles"></span>
@@ -858,10 +924,10 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <span id="ignitionCount">--</span>
       </div>
     </div>
-  </div>
 
   <!-- Control Deck -->
-  <div class="control-deck">
+  <div class="control-deck" data-card="deck">
+    <div class="card-tools"></div>
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px">
       <div class="deck-title" style="margin:0">
         <span class="ic-slot" data-ic="sliders-horizontal"></span> <span id="lblDeckTitle">Pilotage du Poêle</span>
@@ -1307,7 +1373,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:0.85rem">
         <span id="lblScreenLanguage" style="color:var(--text-dim)">Langue de l'écran :</span>
         <select class="lang-select" id="screenLanguage" style="padding:4px 24px 4px 8px;font-size:0.8rem" onchange="onScreenLanguage(this.value)">
-          <option value="en">English</option><option value="fr">Français</option><option value="it">Italiano</option><option value="de">Deutsch</option>
+          <option value="en">English</option><option value="fr">Français</option><option value="it">Italiano</option><option value="de">Deutsch</option><option value="es">Español</option>
         </select>
       </div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem">
@@ -1497,6 +1563,11 @@ const IC_PATHS = {
   "circle-help": '<circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" />',
   "clipboard-copy": '<rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /><path d="M16 4h2a2 2 0 0 1 2 2v4" /><path d="M21 14H11" /><path d="m15 10-4 4 4 4" />',
   "download": '<path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" />',
+  "chevron-left": '<path d="m15 18-6-6 6-6" />',
+  "chevron-right": '<path d="m9 18 6-6-6-6" />',
+  "eye-off": '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /><path d="m2 2 20 20" />',
+  "minus": '<path d="M5 12h14" />',
+  "plus": '<path d="M5 12h14" /><path d="M12 5v14" />',
   "eye": '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" />',
   "fan": '<path d="M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618l1.45-5.412Z" /><path d="M12 12v.01" />',
   "flame": '<path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4" />',
@@ -1598,6 +1669,18 @@ const I18N = {
     sliderStage: "Puissance (Auto & Manuel)",
     multiAirTitle: "VENTILATION MULTIAIR",
     multiAirShow: "Mon poêle a MultiAir : afficher ses réglages",
+    cardsCustomize: "Personnaliser les cartes",
+    cardsDone: "Terminer",
+    cardsReset: "Réinitialiser",
+    cardsEarlier: "Déplacer avant",
+    cardsLater: "Déplacer après",
+    cardsHide: "Masquer",
+    cardsShow: "Afficher",
+    cardsNarrower: "Rétrécir",
+    cardsWider: "Élargir",
+    cardsColumns: "Colonnes",
+    cardsHint: "Glissez un bloc dans une colonne, sur un autre bloc ou sur « Nouvelle ligne », ou utilisez les flèches.",
+    cardsNewLine: "Nouvelle ligne",
     multiAirHide: "Masquer les réglages MultiAir",
     fan1Title: "MultiAir 1",
     fan2Title: "MultiAir 2",
@@ -1766,6 +1849,9 @@ const I18N = {
     apBannerTitle: "Mode Point d'Accès actif",
     apBannerDesc: "Sélectionnez votre réseau WiFi ci-dessous pour connecter Open Firenet à votre box.",
     hopperLidBannerTitle: "Trappe du réservoir à pellets ouverte",
+    stoveErrorTitle: "Erreur du poêle",
+    stoveErrorCode: "Code",
+    stoveErrorPelletsEmpty: "Réservoir de pellets vide",
     linkHintNoHostTitle: "La clé n'est pas reliée au poêle en USB",
     linkHintNoHostDesc: "Branchez le poêle sur le port USB natif de la carte (marqué « USB », pas « UART » ou « COM »), avec un câble de données, et vérifiez que le poêle est sous tension.",
     linkHintSilentTitle: "Le poêle ne répond pas",
@@ -1937,6 +2023,18 @@ const I18N = {
     sliderStage: "Power (Auto & Manual)",
     multiAirTitle: "MULTIAIR VENTILATION",
     multiAirShow: "My stove has MultiAir: show its settings",
+    cardsCustomize: "Customize the cards",
+    cardsDone: "Done",
+    cardsReset: "Reset",
+    cardsEarlier: "Move earlier",
+    cardsLater: "Move later",
+    cardsHide: "Hide",
+    cardsShow: "Show",
+    cardsNarrower: "Narrower",
+    cardsWider: "Wider",
+    cardsColumns: "Columns",
+    cardsHint: "Drag a block into a column, onto another block or onto a new line, or use the arrows.",
+    cardsNewLine: "New line",
     multiAirHide: "Hide the MultiAir settings",
     fan1Title: "MultiAir 1",
     fan2Title: "MultiAir 2",
@@ -2105,6 +2203,9 @@ const I18N = {
     apBannerTitle: "Access Point mode active",
     apBannerDesc: "Select your WiFi network below to connect Open Firenet to your router.",
     hopperLidBannerTitle: "Pellet hopper lid open",
+    stoveErrorTitle: "Stove error",
+    stoveErrorCode: "Code",
+    stoveErrorPelletsEmpty: "Pellet tank empty",
     linkHintNoHostTitle: "The bridge is not connected to the stove over USB",
     linkHintNoHostDesc: "Plug the stove into the board's native USB port (labelled \"USB\", not \"UART\" or \"COM\"), with a data cable, and check that the stove is powered.",
     linkHintSilentTitle: "The stove does not answer",
@@ -2276,6 +2377,18 @@ const I18N = {
     "sliderStage": "Potenza (Auto e Manuale)",
     "multiAirTitle": "VENTILAZIONE MULTIAIR",
     "multiAirShow": "La mia stufa ha MultiAir: mostra le impostazioni",
+    "cardsCustomize": "Personalizza le schede",
+    "cardsDone": "Fine",
+    "cardsReset": "Ripristina",
+    "cardsEarlier": "Sposta prima",
+    "cardsLater": "Sposta dopo",
+    "cardsHide": "Nascondi",
+    "cardsShow": "Mostra",
+    "cardsNarrower": "Più stretta",
+    "cardsWider": "Più larga",
+    "cardsColumns": "Colonne",
+    "cardsHint": "Trascina un blocco in una colonna, su un altro blocco o su una nuova riga, o usa le frecce.",
+    "cardsNewLine": "Nuova riga",
     "multiAirHide": "Nascondi le impostazioni MultiAir",
     "fan1Title": "MultiAir 1",
     "fan2Title": "MultiAir 2",
@@ -2464,6 +2577,9 @@ const I18N = {
     "apBannerTitle": "Modalità Access Point attiva",
     "apBannerDesc": "Seleziona la tua rete Wi-Fi qui sotto per connettere Open Firenet al router.",
     "hopperLidBannerTitle": "Coperchio del serbatoio pellet aperto",
+    "stoveErrorTitle": "Errore della stufa",
+    "stoveErrorCode": "Codice",
+    "stoveErrorPelletsEmpty": "Serbatoio pellet vuoto",
     "linkHintNoHostTitle": "Il bridge non è collegato alla stufa tramite USB",
     "linkHintNoHostDesc": "Collega la stufa alla porta USB nativa della scheda (indicata come \"USB\", non \"UART\" o \"COM\") con un cavo dati e verifica che la stufa sia alimentata.",
     "linkHintSilentTitle": "La stufa non risponde",
@@ -2675,6 +2791,18 @@ const I18N = {
     sliderStage: "Leistung (Auto & Manuell)",
     multiAirTitle: "MULTIAIR GEBLÄSE",
     multiAirShow: "Mein Ofen hat MultiAir: Einstellungen anzeigen",
+    cardsCustomize: "Karten anpassen",
+    cardsDone: "Fertig",
+    cardsReset: "Zurücksetzen",
+    cardsEarlier: "Nach vorn",
+    cardsLater: "Nach hinten",
+    cardsHide: "Ausblenden",
+    cardsShow: "Einblenden",
+    cardsNarrower: "Schmaler",
+    cardsWider: "Breiter",
+    cardsColumns: "Spalten",
+    cardsHint: "Block in eine Spalte, auf einen anderen Block oder in eine neue Zeile ziehen, oder die Pfeile benutzen.",
+    cardsNewLine: "Neue Zeile",
     multiAirHide: "MultiAir-Einstellungen ausblenden",
     fan1Title: "MultiAir 1",
     fan2Title: "MultiAir 2",
@@ -2843,6 +2971,9 @@ const I18N = {
     apBannerTitle: "Access Point Modus aktiv",
     apBannerDesc: "Wählen Sie unten Ihr WLAN aus, um Open Firenet mit Ihrem Router zu verbinden.",
     hopperLidBannerTitle: "Pelletbehälter-Deckel offen",
+    stoveErrorTitle: "Ofenfehler",
+    stoveErrorCode: "Code",
+    stoveErrorPelletsEmpty: "Pelletbehälter leer",
     linkHintNoHostTitle: "Der Stick ist nicht per USB mit dem Ofen verbunden",
     linkHintNoHostDesc: "Den Ofen an den nativen USB-Anschluss der Platine anschließen (mit „USB“ beschriftet, nicht „UART“ oder „COM“), mit einem Datenkabel, und prüfen, ob der Ofen Strom hat.",
     linkHintSilentTitle: "Der Ofen antwortet nicht",
@@ -2965,6 +3096,360 @@ const I18N = {
       bakeTarget: "Backofen-Solltemperatur (°C)",
       roomTempOffset: "Raumfühler-Offset (°C ×10)"
     }
+  },
+  es: {
+    langName: "Español",
+    langFlag: "ES",
+    dayUnit: "d",
+    modelFallback: "Modelo",
+    bcpLanguageTag: 'es-ES',
+    pageTitle: "Open Firenet — Dashboard",
+    langNext: "ES",
+    online: "En línea",
+    waiting: "Esperando la estufa",
+    connected: "Estufa conectada",
+    connectedShort: "conectada",
+    noDataTitle: "Esperando la estufa",
+    noDataDesc: "Aún no se han recibido datos de la estufa",
+    offline: "Desconectado",
+    commError: "Error de comunicación",
+    powerOn: "Encender",
+    powerOff: "Apagar",
+    confirmYes: "Confirmar",
+    confirmNo: "Cancelar",
+    confirmOn: "¿Está seguro de que desea ENCENDER la estufa?",
+    confirmOff: "¿Está seguro de que desea APAGAR la estufa?",
+    roomHeader: "Temp. habitación",
+    flameHeader: "Temp. llama",
+    powerHeader: "Potencia",
+    pelletsHeader: "Pellets",
+    serviceHeader: "Servicio en",
+    ignitionsHeader: "Encendidos",
+    runtimeHeader: "Tiempo de funcionamiento",
+    logRuntimeHeader: "Tiempo de funcionamiento en leña",
+    serviceBarTitle: "Tiempo antes del siguiente mantenimiento: ",
+    deckTitle: "Controles de la estufa",
+    subtabDirect: "Controles directos",
+    subtabSched: "Horario",
+    subtabParams: "Configuración",
+    paramsSectionTitle: "PARAMETROS AVANZADOS",
+    schedSectionTitle: "PLANIFICACIÓN SEMANAL",
+    regulationMode: "MODO DE REGULACIÓN",
+    modeTitle2: "Confort",
+    modeTitle1: "Auto",
+    modeTitle0: "Manual",
+    sliderTemp: "Temperatura de consigna (Confort)",
+    btnApply: "Aplicar",
+    btnApplySent: "Enviado ✓",
+    btnApplyError: "Error",
+    sliderStage: "Potencia (Auto & Manual)",
+    multiAirTitle: "VENTILACIÓN MULTIAIR",
+    multiAirShow: "Mi estufa tiene MultiAir: mostrar su configuración",
+    cardsCustomize: "Personalizar las tarjetas",
+    cardsDone: "Listo",
+    cardsReset: "Restablecer",
+    cardsEarlier: "Mover antes",
+    cardsLater: "Mover después",
+    cardsHide: "Ocultar",
+    cardsShow: "Mostrar",
+    cardsNarrower: "Más estrecha",
+    cardsWider: "Más ancha",
+    cardsColumns: "Columnas",
+    cardsHint: "Arrastra un bloque a una columna, sobre otro bloque o a una nueva línea, o usa las flechas.",
+    cardsNewLine: "Nueva línea",
+    multiAirHide: "Ocultar la configuración de MultiAir",
+    fan1Title: "MultiAir 1",
+    fan2Title: "MultiAir 2",
+    fanSpeed: "Velocidad",
+    fanArea: "Corrección de convección",
+    fanOn: "Activo",
+    fanOff: "Apagado",
+    fanAuto: "Auto",
+    frostTitle: "PROTECCIÓN CONTRA HELADAS",
+    frostToggle: "Protección contra heladas",
+    frostTemp: "Temperatura de consigna",
+    frostOn: "Activo",
+    frostOff: "Apagado",
+    ecoToggle: "Modo Eco",
+    ecoUnavailable: "No disponible en esta estufa.",
+    ecoReadOnly: "Solo lectura en el firmware de esta estufa.",
+    bakeTitle: "HORNO (DOMO BACK)",
+    bakeSubTitle: "Temperatura de consigna del horno",
+    bakeTemp: "Temperatura del horno",
+    offsetTitle: "CALIBRACIÓN DEL SENSOR DE HABITACIÓN",
+    offsetSubTitle: "Desplazamiento de la temperatura de la habitación",
+    offsetDesc: "Desplazamiento de calibración aplicado",
+    pageStove: "Estufa",
+    pageBridge: "Pincho",
+    pageDiag: "Diagnósticos",
+    pageScreen: "Pantalla",
+    screenTitle: "Pantalla",
+    screenListTitle: "Pantallas mostradas",
+    screenHelp: "Elija lo que muestra la pantalla de la tecla y en qué orden: marque para habilitar, arrastre una tarjeta o use las flechas para moverla. Se omite una pantalla sin datos (por ejemplo, el servicio en una estufa que no los informa).",
+    screenSeconds: "Tiempo por pantalla:",
+    screenNoData: "sin datos",
+    screenUp: "Mover hacia arriba",
+    screenDown: "Mover hacia abajo",
+    screen_state: "Estado de la estufa",
+    screen_room: "Temperatura de la habitación",
+    screen_flame: "Temperatura de la llama",
+    screen_power: "Potencia o consigna",
+    screen_ip: "Dirección IP",
+    screen_pellets: "Pellets hasta el servicio",
+    screen_hours: "Horas de funcionamiento",
+    screen_log_hours: "Horas de funcionamiento del modo leña",
+    screen_wifi: "Wi-Fi",
+    screen_mqtt: "MQTT",
+    screen_version: "Versión del firmware",
+    screen_logo: "Logo de Open Firenet",
+    screenBright: "Retroiluminación:",
+    screenDim: "Atenuar la retroiluminación a",
+    screenDimAfter: "después de",
+    screenDimEnd: "sin presionar",
+    screenRotate: "Girar la pantalla 180°",
+    screenLanguage: "Idioma de la pantalla:",
+    screenDimHelp: "0 % apaga la pantalla. Una pulsación en el botón BOOT de la tecla o una alerta la enciende de nuevo.",
+    screenApply: "Aplicar",
+    screenCancel: "Cancelar",
+    screenUnsaved: "Cambios no guardados",
+    screenBoardTitle: "Material",
+    screenBoardLabel: "Placa con pantalla:",
+    screenBoardNone: "Ninguna",
+    screenBoardWarn: "Solo habilite esto en una LilyGO T-Dongle-S3. En otra placa, estos pines pueden usarse para otra cosa: la pantalla enviaría señales rápidas a través de ellos. Se aplica en el próximo reinicio. Apague \"Pantalla encendida\" para apagar la pantalla por completo (incluida la retroiluminación): los ajustes a continuación se bloquean.",
+    screenOnLabel: "Pantalla encendida",
+    screenBoardConfirm1: "¿Habilitar la pantalla de la LilyGO T-Dongle-S3? Solo hágalo si su tecla realmente es esa placa: de lo contrario, se enviarán señales a pines que pueden usarse para otra cosa.",
+    screenBoardConfirm2: "Última confirmación: ¿está seguro de que esta tecla es una LilyGO T-Dongle-S3 con su pantalla?",
+    screenBoardRestartNeeded: "Se necesita un reinicio para aplicar esta elección.",
+    screenBoardRestartAsk: "Selección guardada. ¿Reiniciar el pincho ahora?",
+    screenBoardRestartBtn: "Reiniciar",
+    diagLink: "Conexión con la estufa",
+    diagLogs: "Registro de intercambio",
+    diagValues: "Todos los valores",
+    bridgeTabNet: "Red",
+    bridgeTabSystem: "Sistema",
+    bridgeInfo: "Información",
+    bridgeInfoVersion: "Versión del firmware",
+    bridgeRestart: "Reiniciar",
+    bridgeRestartDesc: "Reinicia el pincho. La estufa sigue funcionando; la conexión vuelve en aproximadamente un minuto.",
+    fwUpdateTitle: "Actualización del firmware",
+    fwCurrentVersion: "Versión instalada:",
+    fwAvailableVersion: "Disponible:",
+    btnFwCheck: "Comprobar",
+    btnFwInstall: "Instalar",
+    fwAutoCheck: "Comprobar automáticamente las actualizaciones",
+    fwInterval: "Intervalo:",
+    fwAutoHelp: "Deshabilitado por defecto. Cuando está habilitado, el pincho comprueba silenciosamente las versiones de GitHub sin instalar automáticamente. Cero tráfico de internet cuando está desmarcado.",
+    fwUpToDate: "Su pincho está actualizado.",
+    fwChecking: "Comprobando GitHub para actualizaciones...",
+    fwAvailable: "¡Una nueva versión está disponible!",
+    fwStoveBlocked: "Instalación bloqueada: la estufa debe estar apagada.",
+    fwDownloading: "Descargando firmware...",
+    fwVerifying: "Verificando la firma criptográfica...",
+    fwInstalling: "Flasheando firmware...",
+    fwRestarting: "¡Actualización exitosa! Reiniciando el pincho...",
+    fwError: "Actualización fallida: ",
+    confirmInstall: "¿Realmente desea instalar la versión ",
+    linkHintMore: "Abrir diagnósticos →",
+    schedActive: "Horario de calefacción activo",
+    schedActiveDesc: "Habilita o deshabilita el horario de calefacción semanal.",
+    setbackTemp: "Temperatura de mantenimiento (Eco)",
+    quickCopy: "Acciones rápidas:",
+    btnCopyWeekdays: "Lun ➔ Lun-Vie",
+    btnCopyAll: "Lun ➔ Toda la semana",
+    copiedWeekdays: "Horario copiado a Lunes-Viernes",
+    copiedAll: "Horario copiado a toda la semana",
+    btnSaveSchedule: "Guardar horario de calefacción",
+    schedSaved: "¡Horario guardado con éxito!",
+    days: { Mon: "Lunes", Tue: "Martes", Wed: "Miércoles", Thu: "Jueves", Fri: "Viernes", Sat: "Sábado", Sun: "Domingo" },
+    logRx: "Estufa → Pincho (RX)",
+    logTx: "Pincho → Estufa (TX)",
+    txGapTitle: "Retraso entre tramas enviadas a la estufa",
+    txGapDefault: "Por defecto (150)",
+    txGapHelp: "Se aplica inmediatamente y se mantiene después de un reinicio. Demasiado bajo: la estufa puede procesar solo una de cada dos tramas.",
+    logAuto: "Auto",
+    logDownload: "Descargar",
+    logClear: "Borrar",
+    btnRestart: "Reiniciar pincho",
+    confirmRestart: "¿Reiniciar el pincho? El enlace con la estufa se perderá durante unos segundos.",
+    restartToast: "Reiniciando…",
+    sensorSearchPlaceholder: "Filtrar {n} sensores...",
+    thSensorName: "Sensor",
+    thSensorId: "D interno",
+    thSensorVal: "Valor",
+    netTitle: "Configuración de red",
+    captiveHint: "Si el botón no hace nada, abra http://192.168.4.1 en Safari o Chrome.",
+    mqttDesc: "Publica el estado de la estufa en un broker MQTT y acepta comandos, para Jeedom, openHAB, Node-RED, Domoticz… Opcional.",
+    mqttEnabled: "Activar MQTT",
+    mqttDiscovery: "Descubrimiento en Home Assistant",
+    mqttTls: "Conexión cifrada (TLS)",
+    mqttTlsHelp: "Para un broker que escucha con TLS, normalmente en el puerto 8883. Su certificado debe estar firmado por una autoridad pública, o por la suya propia si pega su certificado a continuación.",
+    mqttCa: "Certificate of your authority (PEM), optional",
+    mqttCaKeep: "Saved. Leave empty to keep it, or paste another one.",
+    mqttCaPlaceholder: "-----BEGIN CERTIFICATE-----",
+    mqttCaRemove: "Remove the saved certificate",
+    mqttDiscoveryHelp: "The stove appears by itself in Home Assistant (MQTT integration). Leave it off if you already use the Open Firenet integration: you would get the stove twice.",
+    mqttHost: "Dirección del broker",
+    mqttPort: "Puerto",
+    mqttUser: "Usuario (opcional)",
+    mqttPass: "Contraseña (opcional)",
+    mqttPassKeep: "Sin cambios",
+    mqttBase: "Topico base",
+    mqttSave: "Guardar",
+    mqttSaving: "Guardando…",
+    mqttSaved: "Guardado ✓",
+    refusedTitle: "El pincho no responde bajo este nombre",
+    refusedDesc: "Por su seguridad solo acepta su dirección IP y open-firenet.local. Ábralo por su dirección, luego agregue \"{host}\" en la pestaña Pincho, sección Acceso:",
+    wifiPsTitle: "Ahorro de energía Wi-Fi",
+    wifiPsDesc: "Cuando está activado, el pincho consume menos energía, y puede tardar hasta un cuarto de segundo en responder. Desactívelo si el pincho pierde a menudo la conexión Wi-Fi, o si desea que responda más rápido. El cambio se aplica de inmediato.",
+    wifiPsToggle: "Ahorro de energía",
+    wifiPsSaved: "Guardado ✓",
+    wifiPsError: "No se pudo guardar",
+    logSizeTitle: "Historial de los intercambios con la estufa",
+    logSizeDesc: "Mantiene los últimos mensajes intercambiados con la estufa, para el registro de la pestaña Diagnóstico y el archivo de diagnóstico. 16 kB deja más memoria libre; 32 kB mantiene el doble de historial, útil al buscar un problema. Se aplica en el próximo reinicio.",
+    logSizeSaved: "Guardado ✓ - reinicie el pincho para aplicarlo",
+    accessTitle: "Acceso a la página",
+    accessDesc: "El pincho responde en su dirección IP y en open-firenet.local. Si lo abre bajo otro nombre, por ejemplo el que le da su router, agréguelo aquí. Nunca responde a una página de otro sitio web.",
+    accessHosts: "Nombres adicionales (uno por línea, 8 como máximo)",
+    accessSave: "Guardar",
+    accessSaved: "Guardado ✓",
+    accessError: "No se pudo guardar",
+    mqttSaveFailed: "No guardado",
+    mqttStatus: { "disabled": "Desactivado", "connected": "Conectado", "connecting": "Conectando…", "waiting for Wi-Fi": "Esperando Wi-Fi", "broker unreachable": "Broker inalcanzable", "refused: wrong user or password": "Rechazado: usuario o contraseña incorrectos", "refused by the broker": "Rechazado por el broker", "no answer from the broker": "Sin respuesta del broker", "connection lost": "Conexión perdida", "certificate not trusted": "Certificado no confiable", "secure connection failed": "Fallo en la conexión segura" },
+    netModePrefix: "Mode: ",
+    netRssiPrefix: "Señal RSSI: ",
+    joinWifi: "Conéctese a una red WiFi (2.4 GHz):",
+    btnScan: "Buscar",
+    selectNetwork: "-- Seleccione la red detectada --",
+    scanning: "Buscando redes 2.4 GHz...",
+    scanError: "Error al buscar WiFi",
+    apBannerTitle: "Modo Punto de Acceso activo",
+    apBannerDesc: "Seleccione su red WiFi a continuación para conectar Open Firenet a su router.",
+    hopperLidBannerTitle: "Tapa del deposito de pellets abierta",
+    stoveErrorTitle: "Error de la estufa",
+    stoveErrorCode: "Código",
+    stoveErrorPelletsEmpty: "Depósito de pellets vacío",
+    linkHintNoHostTitle: "El pincho no está conectado a la estufa por USB",
+    linkHintNoHostDesc: "Conecte la estufa al puerto USB nativo de la placa (etiquetado como \"USB\", no \"UART\" o \"COM\"), con un cable de datos, y verifique que la estufa esté encendida.",
+    linkHintSilentTitle: "La estufa no responde",
+    linkHintSilentDesc: "El pincho está conectado por USB pero la estufa aún no ha enviado nada. Apague y encienda la estufa; si no cambia nada, envíe el registro (pestaña Diagnóstico).",
+    ssidPlaceholder: "Nombre de la red (SSID)",
+    passPlaceholder: "Contraseña",
+    btnForgetWifi: "Olvidar WiFi",
+    btnSaveWifi: "Guardar y reiniciar",
+    cdcPort: "Enlace serie USB",
+    cdcAck: "Versión de la estufa reconocida",
+    cdcGen: "Generación del protocolo",
+    cdcRev: "Revisión actual de la estufa",
+    cdcIn: "Tramas entrantes de la estufa (IN)",
+    cdcOut: "Tramas salientes de la estufa (OUT)",
+    cdcSpeed: "Operativo (Full Speed)",
+    lblUptime: "Tiempo de actividad del pincho",
+    diagHealth: "Estado del pincho",
+    diagFile: "Archivo de diagnóstico",
+    diagFileHint: "Un archivo para adjuntar a un informe: estado, enlace, todos los valores y registro. El nombre de la red Wi-Fi y la dirección MAC están enmascarados en él.",
+    healthRestart: "Última razón de reinicio",
+    healthMemory: "Memoria libre",
+    healthMemoryMin: "mínimo {v}",
+    healthTemp: "Temperatura del chip",
+    healthWifiDrops: "Desconexiones de Wi-Fi",
+    healthLastFrame: "Última trama de la estufa",
+    healthAgo: "hace {v}",
+    healthNever: "nunca",
+    healthLink: "Enlace con la estufa: establecido / perdido",
+    healthRxDropped: "Bytes perdidos de la estufa",
+    healthMqttDrops: "Desconexiones de MQTT",
+    healthKb: "{v} kB",
+    restartReasons: {
+      power_on: "Encendido",
+      brownout: "Voltaje de alimentación demasiado bajo",
+      crash: "Fallo",
+      watchdog: "Congelación (watchdog)",
+      reset_button: "Botón de reinicio",
+      usb: "Reinicio por USB",
+      user: "Reinicio solicitado",
+      wifi_change: "Cambio de Wi-Fi",
+      update: "Actualización",
+      stove_silent: "Sin respuesta de la estufa (60 s)",
+      stove_lost: "Enlace con la estufa perdido (5 min)",
+      software: "Reinicio por software",
+      unknown: "Desconocido"
+    },
+    yes: "Sí",
+    no: "No",
+    confirmSaveWifi: "La placa se reiniciará e intentará unirse a ",
+    saveWifiSuccess: "¡Configuración guardada! La placa se está reiniciando.\n\nVuelva a conectar su dispositivo a su red WiFi doméstica y vaya a:\nhttp://open-firenet.local",
+    rebootTitle: "Conectando a la red doméstica...",
+    rebootDesc: "La placa se está reiniciando para unirse a su router WiFi. Vuelva a conectar su smartphone o PC a su red doméstica y luego acceda al panel de control:",
+    confirmForgetWifi: "¿Borrar la configuración de WiFi y volver al modo Punto de Acceso?",
+    forgetWifiSuccess: "WiFi borrado. La placa se está reiniciando en modo AP.",
+    orderSent: "Orden enviada: ",
+    errorPrefix: "Error: ",
+    netError: "Error de red",
+    stateMap: {
+      0: { title: "Apagado", desc: "Estufa completamente apagada", icon: "power-off", active: false },
+      1: { title: "En espera", desc: "Esperando demanda de calor", icon: "circle", active: false },
+      2: { title: "Encendido", desc: "Precalentando bujia y pellets", icon: "flame", active: true },
+      3: { title: "Inicio de llama", desc: "Estabilizando la combustión de la llama", icon: "flame", active: true },
+      4: { title: "Calentamiento", desc: "Combustión activa regulada", icon: "flame", active: true },
+      5: { title: "Limpieza de rejilla", desc: "Ciclo automático de limpieza", icon: "brush-cleaning", active: true },
+      6: { title: "Enfriamiento", desc: "Enfriamiento y post-ventilación", icon: "wind", active: true },
+      7: { title: "Modo Leña", desc: "Com bustión de leña activa", icon: "trees", active: true },
+      11: { title: "Control leña", desc: "La estufa verifica si la leña está ardiendo", icon: "trees", active: false },
+      13: { title: "Control leña", desc: "La estufa verifica si la leña está ardiendo", icon: "trees", active: false },
+      14: { title: "Control leña", desc: "La estufa verifica si la leña está ardiendo", icon: "trees", active: false },
+      16: { title: "Control leña", desc: "La estufa verifica si la leña está ardiendo", icon: "trees", active: false },
+      17: { title: "Control leña", desc: "La estufa verifica si la leña está ardiendo", icon: "trees", active: false },
+      50: { title: "Control leña", desc: "La estufa verifica si la leña está ardiendo", icon: "trees", active: false },
+      20: { title: "Modo Leña", desc: "Combustión de leña activa", icon: "trees", active: true },
+      21: { title: "Modo Leña", desc: "Combustión de leña activa", icon: "trees", active: true },
+      splitlog_refuel: { title: "Reponer leña", desc: "La estufa pide más leña", icon: "trees", active: true },
+      splitlog_no_refuel: { title: "NO poner leña", desc: "El fuego está demasiado bajo para añadir leña", icon: "trees", active: true }
+    },
+    sensorDesc: {
+      roomTemp: "Temperatura de la habitación (°C)",
+      flame: "Temperatura de la cámara de combustión (°C)",
+      boardSensor: "Temperatura de la placa principal (°C)",
+      pelletsTotal: "Consumo total de pellets (kg)",
+      pelletHours: "Tiempo total de funcionamiento de pellets (h)",
+      logRuntime: "Tiempo total de funcionamiento de leña (min)",
+      serviceCountdown: "Cuenta regresiva de servicio (kg)",
+      mainState: "Estado principal de la estufa",
+      subState: "Subestado detallado",
+      stageCur: "Potencia actual (%)",
+      stageCur1: "Potencia demandada (%)",
+      stageTgt2: "Potencia objetivo (%)",
+      idFanMeas: "Velocidad del ventilador de tiro de chimenea (RPM)",
+      idFanSet: "Punto de consigna del ventilador de tiro de chimenea (RPM)",
+      augerSet: "Punto de consigna del sinfín de alimentación de pellets (RPM)",
+      model: "Modelo de la estufa",
+      appVerBoard: "Versión del firmware de la placa principal",
+      appVersion: "Versión de la app del pincho",
+      blVersion: "Versión del bootloader del pincho",
+      appRevision: "Revisión de la app del pincho",
+      firmwareBuild: "Subversión del firmware",
+      language: "Idioma configurado (3 = FR)",
+      rssi: "Intensidad de la señal WiFi (dBm)",
+      errMask32: "Máscara de errores activa (32 bits)",
+      errSub: "Subcódigo de error activo",
+      serviceOffset: "Offset del contador de servicio",
+      serviceMinutes: "Minutos totales desde el servicio",
+      statusWarning: "Advertencias activas (máscara de bits)",
+      airFlaps: "Aletas de aire (%)",
+      airFlapsTarget: "Objetivo de las aletas de aire (%)",
+      ignitionCount: "Número total de encendidos",
+      onOffCycles: "Número total de ciclos encendido/apagado",
+      hopperLidClosed: "Tapa del depósito de pellets cerrada",
+      convectionFan1Active: "MultiAir 1 activo",
+      convectionFan1Level: "Velocidad de MultiAir 1 (0=Auto, 1-5)",
+      convectionFan1Area: "Corrección de MultiAir 1 (%)",
+      convectionFan2Active: "MultiAir 2 activo",
+      convectionFan2Level: "Velocidad de MultiAir 2 (0=Auto, 1-5)",
+      convectionFan2Area: "Corrección de MultiAir 2 (%)",
+      frostProtectionActive: "Protección contra heladas activa",
+      frostProtectionTemp: "Temperatura de protección contra heladas (°C ×10)",
+      bakeTarget: "Temperatura objetivo de horneado (°C)",
+      roomTempOffset: "Offset del sensor de la habitación (°C ×10)"
+    }
   }
 };
 
@@ -3016,6 +3501,7 @@ flagMenu(document.getElementById('screenLanguage'));
 function applyLang() {
   const t = I18N[curLang] || I18N.en;
   document.documentElement.lang = curLang;
+  renderCards();
   document.getElementById('pageTitle').textContent = t.pageTitle;
   const ls = document.getElementById('langSelect');
   if (ls) ls.value = curLang;
@@ -3263,10 +3749,15 @@ function showCtrlTab(id) {
 }
 
 // The dot of the Stove tab mirrors the dashboard badge: same state, its text as a tooltip.
+// The connection block of the dashboard: the stove model and mainboard firmware once linked, e.g. "DOMO v2.29" over "connected".
+function setConn(title, sub) {
+  document.getElementById('connTitle').textContent = title;
+  document.getElementById('connSub').textContent = sub;
+}
 function syncConnDot() {
   const dot = document.getElementById('connDot'), tab = document.getElementById('pageBtnStove');
   dot.classList.toggle('off', document.getElementById('connBadge').classList.contains('off'));
-  tab.title = document.getElementById('connState').textContent;
+  tab.title = (document.getElementById('connTitle').textContent + ' ' + document.getElementById('connSub').textContent).trim();
 }
 
 // Pages: one address per page (#stove, #bridge, #diagnostics) so that the documentation and the banners can link
@@ -4219,11 +4710,12 @@ function applyFanArea(n) {
   }
 }
 
-// Eco mode can only be changed when the stove allows it (sensor ecoModePossible), except on firmware 2.28
+// Eco mode can only be switched on when the stove allows it (sensor ecoModePossible). Switching it off stays
+// possible while it is on, otherwise the stove keeps asking for logs (issue #131). Not on firmware 2.28
 // (version frame "V28"), where the bridge only sends the five basic settings.
 function ecoEditable(s) {
   const ctrl = (s && s.controls) || {};
-  return ctrl.eco_mode_possible === true && s.version_frame !== 'V28';
+  return (ctrl.eco_mode_possible === true || ctrl.eco_mode === true) && s.version_frame !== 'V28';
 }
 function toggleEco() {
   if (!lastState || !ecoEditable(lastState)) return;
@@ -4627,6 +5119,296 @@ function renderHealth(s) {
   }
 }
 
+// Layout of the stove page (state, metric cards, controls), chosen by the owner. The page is a list of lines; each
+// line has the same number of columns (4 to 8) and any number of blocks, and a block can sit in a column of its line
+// beside the tall controls. Inside a line the blocks are laid out in narrow rows (masonry): a block takes the rows its
+// height needs, so blocks of one column stack. Kept in this browser only (like the MultiAir choice); without storage
+// the page keeps its default layout.
+const CARD_IDS = ['hero', 'room', 'flame', 'power', 'pellets', 'runtime', 'logruntime', 'service', 'ignitions', 'deck'];
+const CARD_DEFAULT_LINES = [['hero'], ['room', 'flame', 'power', 'pellets', 'runtime', 'logruntime', 'service', 'ignitions'], ['deck']];
+const CARD_COLS_MIN = 4, CARD_COLS_MAX = 8;               // the controls need four columns, which is the page as it was
+const CARD_SPAN = { hero: [3, 8, 4], deck: [4, 8, 4] };   // id: [narrowest, widest, default] in columns; the others are 1 to 8, default 1
+const CARD_NOHIDE = ['hero', 'deck'];                     // the state block and the controls cannot be hidden
+const CARD_COL_MIN_PX = 200, CARD_COL_PX = 218, CARD_GAP = 16, CARD_ROW = 2;
+function cardSpanRange(id) { return CARD_SPAN[id] || [1, CARD_COLS_MAX, 1]; }
+let _cardsLayout = null;
+function cardsLayout() {
+  if (_cardsLayout === null) {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('cardsLayout') || 'null'); } catch (e) { saved = null; }
+    if (!saved || typeof saved !== 'object') saved = {};
+    const seen = {}, lines = [];
+    (Array.isArray(saved.lines) ? saved.lines : []).forEach(l => {
+      const ids = (Array.isArray(l) ? l : []).filter(id => CARD_IDS.includes(id) && !seen[id]);
+      ids.forEach(id => { seen[id] = true; });
+      if (ids.length) lines.push(ids);
+    });
+    if (!lines.length) CARD_DEFAULT_LINES.forEach(l => lines.push(l.slice()));
+    CARD_IDS.forEach(id => { if (!seen[id] && lines.every(l => !l.includes(id))) lines.push([id]); });
+    const hidden = (Array.isArray(saved.hidden) ? saved.hidden : []).filter(id => CARD_IDS.includes(id) && !CARD_NOHIDE.includes(id));
+    const span = {}, start = {};   // start: first column of a block, 0 = wherever its line puts it
+    CARD_IDS.forEach(id => {
+      const r = cardSpanRange(id), v = saved.span && Number(saved.span[id]), st = saved.start && Number(saved.start[id]);
+      span[id] = v >= r[0] && v <= r[1] ? v : r[2];
+      start[id] = st >= 1 && st <= CARD_COLS_MAX ? Math.floor(st) : 0;
+    });
+    const cols = Number(saved.cols) >= CARD_COLS_MIN && Number(saved.cols) <= CARD_COLS_MAX ? Number(saved.cols) : CARD_COLS_MIN;
+    _cardsLayout = { lines: lines, hidden: hidden, span: span, cols: cols, start: start };
+  }
+  return _cardsLayout;
+}
+function saveCardsLayout() {
+  const lay = cardsLayout();
+  lay.lines = lay.lines.filter(l => l.length);
+  try { localStorage.setItem('cardsLayout', JSON.stringify(lay)); } catch (e) { /* kept for this page only */ }
+  renderCards();
+}
+function cardEl(id) { return document.querySelector('#page-stove [data-card="' + id + '"]'); }
+function cardPos(id) {
+  const lines = cardsLayout().lines;
+  for (let li = 0; li < lines.length; li++) { const i = lines[li].indexOf(id); if (i >= 0) return { li: li, i: i }; }
+  return { li: -1, i: -1 };
+}
+// Columns that fit: the chosen number, or fewer when the window is narrower (a phone shows one or two).
+function cardsFitCols(page) {
+  return Math.max(1, Math.min(cardsLayout().cols, Math.floor((page.clientWidth + CARD_GAP) / (CARD_COL_MIN_PX + CARD_GAP))));
+}
+function cardRows(el) {
+  const h = el.getBoundingClientRect().height;
+  el.style.gridRowEnd = h > 0 ? 'span ' + Math.ceil((h + CARD_GAP) / CARD_ROW) : 'auto';
+}
+function applyCardsGrid() {
+  const page = document.getElementById('page-stove');
+  if (!page) return;
+  const lay = cardsLayout();
+  // The page grows with the number of columns (960 px for four, as before).
+  document.documentElement.style.setProperty('--stove-max', (lay.cols * CARD_COL_PX + (lay.cols - 1) * CARD_GAP + 40) + 'px');
+  if (!page.classList.contains('active')) return;
+  const cols = cardsFitCols(page);
+  page.style.setProperty('--cols', cols);
+  page.querySelectorAll('.cards-line > [data-card]').forEach(el => {
+    const id = el.dataset.card, st = lay.start[id];
+    let sp = Math.min(lay.span[id], cols);
+    if (st > 0 && cols > 1) {
+      // Keep the block inside the grid, and never narrower than its minimum: shift it left when it does not fit.
+      const from = Math.min(st, cols - Math.min(cardSpanRange(id)[0], cols) + 1);
+      sp = Math.min(sp, cols - from + 1);
+      el.style.gridColumn = from + ' / span ' + sp;
+    } else {
+      el.style.gridColumn = 'span ' + sp;
+    }
+    cardRows(el);
+  });
+}
+function renderCards() {
+  const page = document.getElementById('page-stove');
+  if (!page) return;
+  const lay = cardsLayout(), t = I18N[curLang] || I18N.en, editing = page.classList.contains('editing');
+  const host = document.getElementById('cardsLines');
+  // Rebuild the lines only when their content changed (moving a block makes it lose the focus).
+  const sig = JSON.stringify(lay.lines) + '|' + curLang;
+  if (host.dataset.sig !== sig) {
+    host.dataset.sig = sig;
+    const blocks = {};
+    CARD_IDS.forEach(id => { blocks[id] = cardEl(id); });
+    host.textContent = '';
+    const zone = i => {
+      const z = document.createElement('div');
+      z.className = 'cards-newline';
+      z.dataset.newline = i;
+      z.textContent = '+ ' + t.cardsNewLine;
+      return z;
+    };
+    lay.lines.forEach((ids, i) => {
+      host.appendChild(zone(i));
+      const ln = document.createElement('div');
+      ln.className = 'cards-line';
+      ln.dataset.line = i;
+      ids.forEach(id => ln.appendChild(blocks[id]));
+      host.appendChild(ln);
+    });
+    host.appendChild(zone(lay.lines.length));
+  }
+  CARD_IDS.forEach(id => {
+    const card = cardEl(id), pos = cardPos(id);
+    if (!card) return;
+    const hid = lay.hidden.includes(id), r = cardSpanRange(id), sp = lay.span[id];
+    card.classList.toggle('user-hidden', hid);
+    const btn = (act, title, icon, off) => '<button type="button" data-act="' + act + '" title="' + escHtml(title) + '"' + (off ? ' disabled' : '') + '>' + ic(icon) + '</button>';
+    const first = pos.li === 0 && pos.i === 0, last = pos.li === lay.lines.length - 1 && pos.i === lay.lines[pos.li].length - 1;
+    let h = btn('earlier', t.cardsEarlier, 'chevron-left', first) + btn('later', t.cardsLater, 'chevron-right', last);
+    h += '<span class="gap"></span>' + btn('narrower', t.cardsNarrower, 'minus', sp <= r[0]) + btn('wider', t.cardsWider, 'plus', sp >= r[1]);
+    if (!CARD_NOHIDE.includes(id)) h += '<span class="gap"></span>' + btn('hide', hid ? t.cardsShow : t.cardsHide, hid ? 'eye-off' : 'eye');
+    const tools = card.querySelector(':scope > .card-tools');
+    tools.innerHTML = h;
+    tools.querySelectorAll('button').forEach(b => { b.onclick = () => moveCard(id, b.dataset.act); });
+  });
+  host.querySelectorAll('.cards-line').forEach(ln => {
+    ln.classList.toggle('line-empty', ![].some.call(ln.children, el => getComputedStyle(el).display !== 'none'));
+  });
+  document.getElementById('lnkCardsEdit').textContent = editing ? t.cardsDone : t.cardsCustomize;
+  document.getElementById('lnkCardsReset').textContent = t.cardsReset;
+  document.getElementById('cardsHint').textContent = t.cardsHint;
+  document.getElementById('lblCardsCols').textContent = t.cardsColumns;
+  document.getElementById('colsVal').textContent = lay.cols;
+  document.getElementById('colsMinus').innerHTML = ic('minus');
+  document.getElementById('colsMinus').disabled = lay.cols <= CARD_COLS_MIN;
+  document.getElementById('colsPlus').innerHTML = ic('plus');
+  document.getElementById('colsPlus').disabled = lay.cols >= CARD_COLS_MAX;
+  applyCardsGrid();
+}
+function moveCard(id, act) {
+  const lay = cardsLayout(), pos = cardPos(id), line = lay.lines[pos.li];
+  if (act === 'earlier' || act === 'later') {
+    // Swap with the nearest block of the line that is on screen; at the end of the line the block goes to the
+    // neighbouring line (or to a new one).
+    const dir = act === 'earlier' ? -1 : 1;
+    let j = pos.i + dir;
+    while (j >= 0 && j < line.length && getComputedStyle(cardEl(line[j])).display === 'none') j += dir;
+    if (j >= 0 && j < line.length) {
+      [line[pos.i], line[j]] = [line[j], line[pos.i]];
+    } else {
+      line.splice(pos.i, 1);
+      const to = pos.li + dir;
+      if (to >= 0 && to < lay.lines.length) { if (dir < 0) lay.lines[to].push(id); else lay.lines[to].unshift(id); }
+      else lay.lines.splice(dir < 0 ? 0 : lay.lines.length, 0, [id]);
+      lay.start[id] = 0;
+    }
+  } else if (act === 'hide') {
+    lay.hidden = lay.hidden.includes(id) ? lay.hidden.filter(x => x !== id) : lay.hidden.concat(id);
+  } else if (act === 'narrower' || act === 'wider') {
+    const r = cardSpanRange(id);
+    lay.span[id] = Math.max(r[0], Math.min(r[1], lay.span[id] + (act === 'wider' ? 1 : -1)));
+  }
+  saveCardsLayout();
+}
+function setCardsCols(delta) {
+  const lay = cardsLayout();
+  lay.cols = Math.max(CARD_COLS_MIN, Math.min(CARD_COLS_MAX, lay.cols + delta));
+  saveCardsLayout();
+}
+// Drag and drop with a mouse. What is under the cursor decides: a block (the dragged block goes before it in its
+// upper half, after it in its lower half), an empty part of a line (the end of that column) or a "new line" strip.
+// On a touch screen the arrows do the same.
+let _cardDrag = null;
+function cardDropColumn(line, e) {
+  const cols = cardsFitCols(document.getElementById('page-stove')), r = line.getBoundingClientRect();
+  if (cols < 2) return 0;
+  const w = (r.width - CARD_GAP * (cols - 1)) / cols;
+  return Math.max(1, Math.min(cols, Math.floor((e.clientX - r.left) / (w + CARD_GAP)) + 1));
+}
+// Where a dragged block would land, shown as a dashed orange mark: a bar above or below the block it is over, the
+// column of the line it is over, or the strip of a new line.
+function cardDropMark(e, hit) {
+  let m = document.getElementById('cardDropMark');
+  if (!m) { m = document.createElement('div'); m.id = 'cardDropMark'; document.body.appendChild(m); }
+  if (hit.zone) {
+    const r = hit.zone.getBoundingClientRect();
+    m.className = 'col';
+    m.style.left = r.left + 'px'; m.style.width = r.width + 'px'; m.style.top = r.top + 'px'; m.style.height = r.height + 'px';
+    return;
+  }
+  const line = hit.line, lr = line.getBoundingClientRect(), cols = cardsFitCols(document.getElementById('page-stove'));
+  const w = (lr.width - CARD_GAP * (cols - 1)) / cols, col = cardDropColumn(line, e) || 1;
+  const span = Math.min(cardsLayout().span[_cardDrag], cols - col + 1);
+  m.style.left = (lr.left + (col - 1) * (w + CARD_GAP)) + 'px';
+  m.style.width = (span * w + (span - 1) * CARD_GAP) + 'px';
+  if (hit.block) {
+    const br = hit.block.getBoundingClientRect();
+    m.className = 'bar';
+    m.style.top = (hit.after ? br.bottom + 6 : br.top - 10) + 'px';
+    m.style.height = '0px';
+  } else {
+    m.className = 'col';
+    m.style.top = lr.top + 'px';
+    m.style.height = (lr.height - CARD_GAP) + 'px';
+  }
+}
+function cardDropHit(e) {
+  const t = e.target;
+  if (!t || !t.closest) return null;
+  const b = t.closest('[data-card]'), ln = t.closest('.cards-line'), z = t.closest('.cards-newline');
+  if (z) return { zone: z };
+  if (b && b.parentElement && b.parentElement.classList.contains('cards-line')) {
+    if (b.dataset.card === _cardDrag) return null;
+    const br = b.getBoundingClientRect();
+    return { block: b, line: b.parentElement, after: e.clientY >= br.top + br.height / 2 };
+  }
+  if (ln) return { line: ln };
+  return null;
+}
+function cardDragInit() {
+  const page = document.getElementById('page-stove');
+  const clear = () => {
+    page.querySelectorAll('.dragging, .drag-over').forEach(el => el.classList.remove('dragging', 'drag-over'));
+    const m = document.getElementById('cardDropMark');
+    if (m) m.className = '';
+  };
+  page.addEventListener('dragstart', e => {
+    const b = e.target.closest && e.target.closest('[data-card]');
+    if (!b || !page.classList.contains('editing')) return;
+    _cardDrag = b.dataset.card;
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', _cardDrag); } catch (x) { /* some browsers refuse */ }
+    b.classList.add('dragging');
+  });
+  page.addEventListener('dragover', e => {
+    if (!_cardDrag) return;
+    const hit = cardDropHit(e);
+    page.querySelectorAll('.drag-over').forEach(el => { if (!hit || el !== hit.block) el.classList.remove('drag-over'); });
+    const m = document.getElementById('cardDropMark');
+    if (!hit) { if (m) m.className = ''; return; }
+    e.preventDefault();
+    if (hit.block) hit.block.classList.add('drag-over');
+    cardDropMark(e, hit);
+  });
+  page.addEventListener('drop', e => {
+    const hit = _cardDrag && cardDropHit(e);
+    if (!hit) { clear(); _cardDrag = null; return; }
+    e.preventDefault();
+    const lay = cardsLayout(), id = _cardDrag;
+    const from = lay.lines[cardPos(id).li];
+    if (hit.zone) {
+      const fresh = [id];
+      lay.lines.splice(Number(hit.zone.dataset.newline), 0, fresh);
+      from.splice(from.indexOf(id), 1);
+      lay.start[id] = 0;
+    } else {
+      const to = lay.lines[Number(hit.line.dataset.line)];
+      const col = cardDropColumn(hit.line, e);
+      from.splice(from.indexOf(id), 1);
+      to.splice(hit.block ? to.indexOf(hit.block.dataset.card) + (hit.after ? 1 : 0) : to.length, 0, id);
+      lay.start[id] = col;
+    }
+    clear(); _cardDrag = null;
+    saveCardsLayout();
+  });
+  page.addEventListener('dragend', () => { clear(); _cardDrag = null; });
+  // The grid follows the width of the page and the height of every block (the controls change height with their tab).
+  if (window.ResizeObserver) {
+    let lastW = 0;
+    new ResizeObserver(() => { if (page.clientWidth !== lastW) { lastW = page.clientWidth; applyCardsGrid(); } }).observe(page);
+    const rows = new ResizeObserver(list => list.forEach(en => cardRows(en.target)));
+    CARD_IDS.forEach(id => rows.observe(cardEl(id)));
+  }
+}
+// While the blocks are being arranged, everything else on the page is inert (no click, slider or key), so that a
+// stray tap cannot change a setting or start the stove unseen. Only the arrangement buttons answer.
+function toggleCardsEdit() {
+  const page = document.getElementById('page-stove');
+  const editing = page.classList.toggle('editing');
+  document.querySelectorAll('header, #cardsLines [data-card] > :not(.card-tools)').forEach(el => { el.inert = editing; });
+  page.querySelectorAll('[data-card]').forEach(el => { el.draggable = editing; });
+  document.body.classList.toggle('cards-editing', editing);
+  renderCards();
+}
+function resetCards() {
+  _cardsLayout = null;
+  try { localStorage.removeItem('cardsLayout'); } catch (e) { /* nothing kept */ }
+  renderCards();
+}
+cardDragInit();
+
 // MultiAir settings shown by the owner's choice, for a model the page does not know as equipped. Kept in this
 // browser only; without storage (private window) the choice lasts until the page is closed.
 let _multiAirShown = null;
@@ -4715,7 +5497,7 @@ async function tick() {
       showPage('bridge');   // first setup: straight to the Wi-Fi form
     }
 
-    document.getElementById('connState').textContent = s.version_ack ? t.connected : t.waiting;
+    setConn(s.version_ack ? t.connected : t.waiting, '');
     document.getElementById('connBadge').classList.toggle('off', !s.version_ack);
     const fwVer = (s.device && s.device.version) || '';
     document.getElementById('fwVersion').textContent = fwVer ? (/^v/i.test(fwVer) ? fwVer : 'v' + fwVer) : '';
@@ -4742,6 +5524,19 @@ async function tick() {
 
     if (rawS.hopperLidClosed !== undefined) {
       document.getElementById('hopperLidBanner').style.display = (rawS.hopperLidClosed === 0) ? 'flex' : 'none';
+    }
+
+    // Stove error: code 1 is "pellet tank empty", the other codes are shown as numbers.
+    const errBanner = document.getElementById('stoveErrorBanner');
+    if (errBanner) {
+      const errCode = stObj.error_code || 0;
+      if (errCode !== 0) {
+        const what = errCode === 1 ? t.stoveErrorPelletsEmpty : t.stoveErrorCode + ' ' + errCode;
+        document.getElementById('stoveErrorBannerTitle').textContent = t.stoveErrorTitle + ': ' + what;
+        errBanner.style.display = 'flex';
+      } else {
+        errBanner.style.display = 'none';
+      }
     }
 
     const mainSt = stObj.state_code !== undefined ? stObj.state_code : (rawS.mainState !== undefined ? rawS.mainState : (s.sensors_pos ? s.sensors_pos[31] : 1));
@@ -4839,7 +5634,7 @@ async function tick() {
     const mName = (stObj.brand === 'ANIMO' ? 'ANIMO ' : '') + (stObj.model_name || modelNames[mId] || (mId != null ? mFallback : 'RIKA'));
     const vStr = stObj.mainboard_version ? (' v' + stObj.mainboard_version) : '';
     // One badge in the dashboard: stove model and mainboard firmware once linked, e.g. "DOMO v2.29 connecté".
-    if (s.version_ack) document.getElementById('connState').textContent = mName + vStr + ' ' + t.connectedShort;
+    if (s.version_ack) setConn(mName + vStr, t.connectedShort);
     syncConnDot();
 
     // MultiAir (RIKA models sold with it: 4=ROCO MA, 13=DOMO, 17=PARO, 22=SONO, 23=DOMO BACK, 25=SUMO MA, 26=CONNECT, 29=PRIMO MA)
@@ -5043,7 +5838,7 @@ async function tick() {
     if ((_screenCfg.board || 'none') !== 'none' && document.getElementById('bridge-screen').style.display !== 'none' && !document.querySelector('.scr-card.dragging')) renderScreenCards();
     setSensorPlaceholder();
   } catch(e) {
-    document.getElementById('connState').textContent = t.offline;
+    setConn(t.offline, '');
     document.getElementById('connBadge').classList.add('off');
     syncConnDot();
   }

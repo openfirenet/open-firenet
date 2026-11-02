@@ -39,8 +39,8 @@ public:
   uint16_t dimAfter;        // seconds
   uint8_t dimLevel;         // backlight while dimmed, percent (0 = off)
   bool rotate;              // the screen is rotated by 180 degrees
-  uint8_t language;         // 0 = not chosen yet (English), 1 en, 2 fr, 3 it, 4 de
-  static const char* languageName(int l) { static const char* const N[5] = {"", "en", "fr", "it", "de"}; return l >= 0 && l <= 4 ? N[l] : ""; }
+  uint8_t language;         // 0 = not chosen yet (English), 1 en, 2 fr, 3 it, 4 de, 5 es
+  static const char* languageName(int l) { static const char* const N[6] = {"", "en", "fr", "it", "de", "es"}; return l >= 0 && l <= 5 ? N[l] : ""; }
 
   // {"seconds":4,"screens":[{"id":"state","enabled":true}, ...]}; `seconds` and `screens` are both optional. The screens
   // listed come first, in that order; the ones left out follow in their previous order, unchanged. Returns false (and
@@ -84,7 +84,7 @@ public:
       size_t q2 = body.find('"', q1 + 1);
       if (q2 == std::string::npos) return false;
       std::string v = body.substr(q1 + 1, q2 - q1 - 1);
-      int l = 0; for (int i = 1; i <= 4; i++) if (v == languageName(i)) l = i;
+      int l = 0; for (int i = 1; i <= 5; i++) if (v == languageName(i)) l = i;
       if (!l) return false;
       c.language = (uint8_t)l;
     }
@@ -156,7 +156,7 @@ public:
       if (f.size() > 3 && f[3] >= DIM_AFTER_MIN && f[3] <= DIM_AFTER_MAX) c.dimAfter = (uint16_t)f[3];
       if (f.size() > 4 && f[4] >= 0 && f[4] <= DIM_LEVEL_MAX) c.dimLevel = (uint8_t)f[4];
       if (f.size() > 5) c.rotate = f[5] != 0;
-      if (f.size() > 6 && f[6] >= 0 && f[6] <= 4) c.language = (uint8_t)f[6];
+      if (f.size() > 6 && f[6] >= 0 && f[6] <= 5) c.language = (uint8_t)f[6];
     }
     std::vector<uint8_t> seen; size_t p = 0; int n = 0;
     while (p < list.size()) {

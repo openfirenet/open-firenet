@@ -409,7 +409,11 @@ private:
     const int lg = s.config.language; auto TXT = [lg](screentext::Word w) { return screentext::word(lg, w); };
     const char* cap = ""; const char* line = ""; const uint8_t* ic = ICON_TRIANGLE_ALERT; Rgb col = C_RED; char v[24];
     switch (a) {
-      case A_ERROR:  cap = TXT(screentext::W_STOVE_ERROR); snprintf(v, sizeof v, "%s %ld", TXT(screentext::W_CODE), s.errCode); line = v; ic = ICON_CIRCLE_ALERT; break;
+      case A_ERROR:  cap = TXT(screentext::W_STOVE_ERROR); ic = ICON_CIRCLE_ALERT;
+                     // Code 1 is "pellet tank empty"; the other codes are shown as numbers.
+                     if (s.errCode == 1) line = TXT(screentext::W_PELLETS_EMPTY);
+                     else { snprintf(v, sizeof v, "%s %ld", TXT(screentext::W_CODE), s.errCode); line = v; }
+                     break;
       case A_HOPPER: cap = TXT(screentext::W_ALERT); line = TXT(screentext::W_HOPPER_OPEN); ic = ICON_LOCK_OPEN; col = C_AMBER; break;
       case A_SILENT: cap = TXT(screentext::W_ALERT); line = TXT(screentext::W_NO_STOVE); ic = ICON_UNPLUG; col = C_AMBER; break;
       case A_NOWIFI: cap = TXT(screentext::W_ALERT); line = TXT(screentext::W_NO_WIFI); ic = ICON_WIFI_OFF; col = C_AMBER; break;
