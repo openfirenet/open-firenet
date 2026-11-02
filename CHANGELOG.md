@@ -4,7 +4,7 @@
 
 ### Fixes
 - The Save, Install and similar buttons of the page (Weekly schedule, Wi-Fi, access, MQTT, Screen, firmware update) were shown as large squares in 4.9.0, with their label cut in two; they have their usual shape again. Only the start / stop button of the state card is square.
-- The language menu of the page shows the Spanish flag instead of a grey square, and all the flags are flat with crisp edges instead of a blurred stripe (the French and Italian ones looked wavy).
+- The language menu of the page shows the Spanish flag instead of a grey square.
 
 ## v4.9.0 (2026-11-02)
 
