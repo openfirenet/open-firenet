@@ -2,8 +2,9 @@
 
 Reverse-engineered protocol for the RIKA Firenet 2.0 WiFi dongle, as understood from
 live testing against real stoves (RIKA DOMO, mainboard firmware 2.29; RIKA INDUO,
-firmware 2.26 and 2.27) and the disassembly of the stove firmware (INDUO 2.27,
-INDUO II 2.28, DOMO 2.29) and of the official dongle firmware.
+firmware 2.26 and 2.27; RIKA SUMO, firmware 2.25, partly) and the disassembly of the
+stove firmware (SUMO 2.25, INDUO 2.27, INDUO II 2.28, DOMO 2.29) and of the official
+dongle firmware.
 
 This document describes the protocol as we understand it — the wire format, the
 message flow, and the behaviours you must reproduce for a stove to accept a
@@ -60,8 +61,12 @@ Rules read in the stove firmware, and why the order matters:
 - 2.28 recognises both `GET_WIFI_VERSION=0` and `GET_CDCDEVICE_VERSION`: it must get the
   2.28 frame before the 2.26/2.27 one, whose `APP=111` it would reject.
 
+A fourth family, **2.25**, answers none of these frames: it has no text commands at all
+and speaks numeric frames (see [Firmware 2.25](#firmware-225-sumo-sono-induo-numeric-frames)).
+
 Open Firenet therefore probes 2.29 → 2.28 → 2.26/2.27, about 3 s each, one frame at a
-time, and keeps the first one acknowledged. After a link reset it tries the family that
+time, and keeps the first one acknowledged. If none is acknowledged it falls back to the
+2.25 numeric dialect (below). After a link reset it tries the family that
 worked first. `version_frame` in `/api/state` reports it (`V3`, `V28`, `V1`).
 
 ### 2. Announcement (Status Handshake)
@@ -555,6 +560,100 @@ Open Firenet also restarts itself after 60 s without any data from the stove; on
 
 ---
 
+## Firmware 2.25 (SUMO, SONO, INDUO): numeric frames
+
+Stoves on mainboard firmware 2.25 have none of the `GET_*` / `POST_*` text commands above.
+They answer a small numeric protocol instead: one three-digit **code** per value. Most of
+what follows was read in the stove firmware (SUMO 2.25 disassembly); the parts that were
+also seen on a real stove (one SUMO, issue #110: logs and photos of its display) are
+marked **seen**, the others **read in firmware** (not tried) or **not proven**.
+
+### Detecting the family
+
+- After its USB device is configured the stove sends `0x16 0x33` once (read in firmware).
+  None of the three text version frames above is ever answered.
+- Open Firenet's rule: when the stove has sent its `0x16` probe and no text version frame
+  was acknowledged for 8 s, the bridge sends one `ACK` (`0x06`) and starts reading codes.
+  The stove's receiver only collects frames in its "probe sent" state or after an `ACK`
+  was seen (read in firmware).
+- If nothing answers after about ten rounds of reads, the bridge stops until the next
+  `0x16`. In `/api/state`, `version_frame` stays `?` (no text frame was acknowledged).
+
+### Frames
+
+| Frame | Bytes | Meaning |
+|---|---|---|
+| Read | `02` `NNN` `03` | Read of the code `NNN` (`000` … `999`) |
+| Write | `02` `NNN=value` `03` | Write of one setting |
+| Value | `02` digits `03` | The stove's answer (text for the `9xx` codes) |
+| Acknowledge | `06` / `15` | `ACK` / `NAK` |
+
+- The stove answers a read in about 40 ms (**seen**); the bridge reads one code every
+  250 ms.
+- **A write is answered with nothing at all**, not even an `ACK` / `NAK` (read in
+  firmware: its decoder only empties its buffer). The only confirmation is to **read the
+  same code back**, which the bridge does after every write.
+- Values are plain integers. The temperatures are in **whole degrees** (the other
+  firmware versions use tenths): the bridge multiplies them by 10 to show them like the
+  others.
+- The stove checks almost nothing on a write (`025` takes 0 … 255), so the bridge only
+  sends the values the stove display allows.
+
+### Live readings
+
+| Code | Meaning | Status |
+|---|---|---|
+| `000` | Room temperature, whole °C | seen |
+| `001` | Flame temperature | seen |
+| `027` / `028` | Main state / sub state (the sub-state sequence of an ignition matches the other firmware versions) | seen |
+| `012` | Pressure switch | seen (matched with the display) |
+| `013` | Grate contact | seen (matched with the display) |
+| `032` | Ignition element | seen (matched with the display) |
+| `002` … `004` | Error values (0 at rest) | by comparison with the other versions, not proven |
+| `005` | Auger, per mille | by comparison, not proven |
+| `007` | Flue fan, measured | by comparison, not proven |
+| `019` | Auger current | by comparison, not proven |
+| `016`, `017`, `029` | Digital inputs (the external request is one of `016` / `017`) | not identified |
+
+### Settings
+
+| Code | Meaning | Values written | Status |
+|---|---|---|---|
+| `023` | On / off | `0` stop, `1` start | stop: seen. **Start: not tried on a stove** |
+| `024` | Mode | `0` manual, `1` automatic, `2` comfort | seen |
+| `025` | Power of the manual mode, % | 30 … 100, steps of 5 | seen |
+| `026` | Room set point (comfort mode) | 14 … 28 °C | seen |
+| `080` | Weekly schedule on / off | `0` / `1` | seen |
+| `065` … `078` | Weekly schedule, see below | 0 … 1440 minutes | seen |
+| `081` | Reduced (setback) set point | 12 … 22 °C, at least 2 below `026` (the stove keeps that gap itself) | read in firmware, not tried |
+| `088` / `089` | Frost protection on / off, switch-on temperature | `0` / `1`; 4 … 10 °C | read in firmware, not tried |
+| `092` | Power level of the comfort mode | 1 … 4 | read in firmware, not tried |
+| `091` | Room sensor offset | never written | read only as `0`; probably tenths of a degree, not proven |
+
+The codes `034` … `064`, `082` … `087`, `090` and the texts `900` … `917` (versions, the
+stove clock) are read in turn and logged; their meaning is not mapped.
+
+**Start.** The start path of the stove does not look at its error word: it sets its "on"
+flag first and only then checks, and with an error it clears the flag again and goes to
+burn-off (read in firmware). The bridge therefore only sends a start when the stove is off
+or waiting, without error, with a cold flame sensor (below 100) and its "on" flag not set.
+The stove itself refuses an ignition above 139 degrees.
+
+### Weekly schedule
+
+- One daily range per weekday, **Sunday first**: the codes `065` … `078` are the start and
+  the end of Sunday, Monday, … Saturday, in minutes since midnight (0 … 1440). Both equal
+  (for example both 0) means no range that day.
+- **One range per day.** The stove has a second range per day, but no numeric code reaches
+  it (issue #110). The bridge presents the range as the first slot of the other firmware
+  versions (`HHMM × 10000 + HHMM`) and the second slot as 0.
+- **The switch of each day is not reachable.** `080` is the switch of the whole schedule.
+- Seen on the SUMO: writing the ranges of all seven days switched some days off on the
+  display (Monday, Saturday and Sunday were on before). The bridge now writes only the
+  days that changed. Why the stove switches a day off is not established.
+
+---
+
 ## Notes and caveats
 
 - The stove never asserts DTR — write directly to the USB CDC FIFO.
@@ -566,6 +665,8 @@ Open Firenet also restarts itself after 60 s without any data from the stove; on
   2.26 / 2.27 echo the registered names: parse them by name.
 - `roomTarget` / room temperature are **×10** on the wire in both directions.
 - `GET_REVISION` must precede `TRANSFER_COMPLETED`, or nothing is returned.
+- 2.25 uses neither dialect: numeric frames `STX NNN ETX` / `STX NNN=value ETX`, whole degrees, no answer to a
+  write (read it back).
 - 2.26 / 2.27 use `GET_FIRENET_STATUS` / `POST_FIRENET_STATUS` (19 fields,
   plain-text SSID, 8-digit id) instead of the CDC device-status commands. 2.28 uses the
   CDC commands, with an 8-digit id.
