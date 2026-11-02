@@ -199,8 +199,9 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
 </p>
 
 - **Modern glassmorphism UI**: mobile-first, responsive dark theme.
-- **Language selector with flags**: 🇬🇧 English / 🇫🇷 Français / 🇩🇪 Deutsch instant toggle.
-- **Live stove status header**: operational state badges (Standby, Ignition, Start, Regulation, Cleaning, Burnoff, Splitlog), room temperature, flame temperature, Wi-Fi RSSI.
+- **Language selector with flags**: 🇬🇧 English / 🇫🇷 Français / 🇮🇹 Italiano / 🇩🇪 Deutsch / 🇪🇸 Español instant toggle.
+- **Live stove status header**: operational state (Standby, Ignition, Start, Regulation, Cleaning, Burnoff, Splitlog), the start / stop button, the stove model and mainboard firmware once linked, room temperature, flame temperature, Wi-Fi RSSI. A red banner at the top of the page shows a stove error.
+- **Your own layout of the Stove page**: *Customize the cards* lets you move every block (the state, each metric card, the controls) by dragging it or with arrows, make it narrower or wider, hide the metric cards, and choose 4 to 8 columns. The page is a list of lines, each with its own columns where blocks stack, so cards can sit beside the controls (which keep at least their usual width). While you arrange, the rest of the page is locked so a stray tap changes nothing. The layout is kept in your browser only: nothing is stored on the bridge.
 - **Control Deck ("Stove Controls")** with segmented navigation:
   - **🔥 Direct Controls**:
     - Power **ON / OFF** toggle
@@ -220,7 +221,7 @@ Once connected, open **`http://open-firenet.local`** in any web browser (or use 
   - **📅 Weekly Heating Schedule**:
     - Independent schedule activation toggle (**Heating schedule active**) — works across all heating modes
     - **Setback Temperature (Eco)**: setback temperature applied outside scheduled heating slots (10.0°C – 25.0°C)
-    - **14 Weekly time slots** (2 slots per day, Monday to Sunday):
+    - **14 Weekly time slots** (2 slots per day, Monday to Sunday; a stove with firmware 2.25 takes one slot a day, so the second one is hidden):
       - Native HTML5 time pickers (`HH:MM` start and end)
       - Quick copy actions (e.g. Monday $\rightarrow$ Weekdays or Full Week)
       - Per-day clear button (quick reset)
@@ -275,7 +276,8 @@ What matters is the **mainboard firmware version** of the stove (menu Info on th
 | **2.29** (e.g. DOMO, DOMO BACK, PRIMO MULTIAIR) | ✅ Supported | All values and settings |
 | **2.28** (e.g. LIVO, INDUO II, SONO) | ✅ Supported | All values and settings, MultiAir included (no baking oven on these stoves) |
 | **2.26 / 2.27** (e.g. INDUO) | ✅ Supported | All values and settings (no MultiAir / baking oven on these stoves) |
-| **2.25 and older** | ❓ Untested | Feedback welcome |
+| **2.25** (e.g. SUMO) | ⚠️ Partial | Early support (bridge firmware 4.9 or later): the bridge reads the state, temperatures and inputs, and sets the mode, the manual power, the room set point, the reduced set point, the frost protection, the comfort power level and the weekly schedule (one time range a day, no per-day switch), and starts and stops the stove. Tried on one stove: the mode, the manual power, the room set point, the stop and the weekly schedule. **Not tried on a stove:** the start and the other settings. Room temperature in whole degrees. Please send the diagnostic file if you try it. Protocol notes in [PROTOCOL.md](PROTOCOL.md) |
+| **Older than 2.25** | ❓ Untested | Feedback welcome |
 
 ---
 
@@ -407,7 +409,7 @@ Since firmware 4.0 the bridge answers its own page and programs on your network 
 - `room_temperature` is `null` and `room_sensor_connected` is `false` when no RIKA room sensor is connected.
 - `stove.model`, `stove.model_name`, `stove.brand`, `stove.mainboard_version` and `stove.firmware_build` are `null` until the stove has sent them (the bridge is not linked yet).
 - `usb.host_connected` is `true` once a USB host (the stove) has detected the bridge on the board's native USB port, and `usb.rx_bytes` counts the bytes received from the stove since boot. `false` / `0` usually means the stove is plugged into the wrong port of the board (UART / COM), a charge-only cable, or a stove that is off.
-- `version_frame` tells which protocol variant the stove answered: `V3` (firmware 2.29), `V28` (2.28), `V1` (2.26 / 2.27).
+- `version_frame` tells which protocol variant the stove answered: `V3` (firmware 2.29), `V28` (2.28), `V1` (2.26 / 2.27). It is `?` as long as no text version frame was acknowledged, which is the case of a stove on firmware 2.25 (it speaks numeric frames, see [PROTOCOL.md](PROTOCOL.md)).
 - `raw_sensors` holds every value reported by the stove under its name; the names follow the official RIKA ones (`statusWarning`, `airFlaps`, `errCount0`...), see [PROTOCOL.md](PROTOCOL.md).
 
 ### `POST /api/controls` (Direct controls & MultiAir)
@@ -462,7 +464,7 @@ On firmware 2.28 the settings are sent as on 2.26 / 2.27.
 
 ### Weekly Heating Schedule API (`/api/schedule`)
 
-The heating schedule controls heating windows across the 7 days of the week (2 slots per day). Time slots are encoded over the wire as decimal integers: `(StartHH * 100 + StartMM) * 10000 + (EndHH * 100 + EndMM)`. For example, `06:00` to `08:30` is encoded as `6000830`, and `0` indicates a disabled slot.
+The heating schedule controls heating windows across the 7 days of the week (2 slots per day; 1 on a stove with firmware 2.25, see below). Time slots are encoded over the wire as decimal integers: `(StartHH * 100 + StartMM) * 10000 + (EndHH * 100 + EndMM)`. For example, `06:00` to `08:30` is encoded as `6000830`, and `0` indicates a disabled slot.
 
 #### `GET /api/schedule`
 
@@ -521,6 +523,8 @@ Supported fields:
 - `heatingTimesActive` (or `scheduleActive`): boolean or `0`/`1`
 - `setback_temperature` (or `setBackTemp`): float in °C (e.g. `16.5`) or raw integer ×10 (`165`)
 - `heatTimeMon1`, `heatTimeMon2`, `heatTimeTue1`, ..., `heatTimeSun2`: integer slot encoding (`0` = disabled)
+
+**Stoves with firmware 2.25** take one range a day: only `heatTime<Day>1` is used and the second slot is always `0`. `GET /api/schedule` and `GET /api/state` tell it with `slots_per_day` / `schedule_slots_per_day` (`1` instead of `2`), and `GET /api/schedule` adds `day_ranges`: the range of each weekday (`Sun` ... `Sat`) as `start` and `end` in minutes since midnight, as the stove holds it. The switch of each day cannot be read or set on these stoves. A save writes only the days that changed.
 
 
 ---
@@ -593,7 +597,7 @@ Reports from your stove, tests, translations, documentation and code are all wel
 
 ## Translations
 
-The web page, the Home Assistant integration and the installer are in English, French and German. Adding a language needs no programming: see [docs/TRANSLATING.md](docs/TRANSLATING.md).
+The web page, the Home Assistant integration and the installer are in English, French, Italian, German and Spanish. Adding a language needs no programming: see [docs/TRANSLATING.md](docs/TRANSLATING.md).
 
 ## Development
 
