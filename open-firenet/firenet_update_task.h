@@ -98,7 +98,9 @@ private:
   static constexpr uint32_t FIRST_AUTO_DELAY_MS = 10UL * 60UL * 1000UL;
   static constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
   static constexpr const char* BASE = "https://github.com/openfirenet/open-firenet/releases/latest/download/";
-  static constexpr const char* IMAGE_NAME = "open-firenet-ota.bin";
+  static const char* imageName() {
+    return psramFound() ? "open-firenet-ota-psram.bin" : "open-firenet-ota.bin";
+  }
   // Public key of the release signature (same as the installer's OFFICIAL_PUBLIC_KEY and minisign.pub).
   static constexpr const char* PUBKEY = "RWQhzS5dR0kodMCMiFMESBDRDhxMyRaA4yNbIcAMD2B9kQS21I+FABT4";
 
@@ -168,7 +170,7 @@ private:
     if (!upd::verifyRelease(sums, sig, PUBKEY, hashFn(), edFn(), comment)) { set(State::Error, "signature"); return; }
     upd::Version v = upd::versionFromComment(comment);
     if (!v.ok) { set(State::Error, "version"); return; }
-    std::string h = upd::hashFor(sums, IMAGE_NAME);
+    std::string h = upd::hashFor(sums, imageName());
     if (h.empty()) { set(State::Error, "no image in release"); return; }
     std::string vs = std::to_string(v.major) + "." + std::to_string(v.minor) + "." + std::to_string(v.patch);
     lock(); latest_ = vs; unlock();
@@ -192,7 +194,7 @@ private:
     HTTPClient h;
     h.setConnectTimeout(HTTP_TIMEOUT_MS); h.setTimeout(HTTP_TIMEOUT_MS);
     h.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-    std::string url = std::string(BASE) + IMAGE_NAME;
+    std::string url = std::string(BASE) + imageName();
     if (!h.begin(c, url.c_str())) { set(State::Error, "begin"); return; }
     int code = h.GET();
     if (code != HTTP_CODE_OK) { h.end(); set(State::Error, "http " + std::to_string(code)); return; }
