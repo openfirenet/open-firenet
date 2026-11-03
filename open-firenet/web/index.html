@@ -1877,6 +1877,7 @@ const I18N = {
     healthRestart: "Cause du dernier redémarrage",
     healthMemory: "Mémoire libre",
     healthMemoryMin: "minimum {v}",
+    healthPsramInactive: "détectée, inactive",
     healthTemp: "Température de la puce",
     healthWifiDrops: "Déconnexions Wi-Fi",
     healthLastFrame: "Dernière trame du poêle",
@@ -2231,6 +2232,7 @@ const I18N = {
     healthRestart: "Last restart reason",
     healthMemory: "Free memory",
     healthMemoryMin: "lowest {v}",
+    healthPsramInactive: "detected, inactive",
     healthTemp: "Chip temperature",
     healthWifiDrops: "Wi-Fi disconnections",
     healthLastFrame: "Last frame from the stove",
@@ -2605,6 +2607,7 @@ const I18N = {
     "healthRestart": "Motivo dell'ultimo riavvio",
     "healthMemory": "Memoria libera",
     "healthMemoryMin": "minimo {v}",
+    "healthPsramInactive": "rilevata, inattiva",
     "healthTemp": "Temperatura del chip",
     "healthWifiDrops": "Disconnessioni Wi-Fi",
     "healthLastFrame": "Ultimo messaggio dalla stufa",
@@ -2999,6 +3002,7 @@ const I18N = {
     healthRestart: "Grund des letzten Neustarts",
     healthMemory: "Freier Speicher",
     healthMemoryMin: "Minimum {v}",
+    healthPsramInactive: "erkannt, inaktiv",
     healthTemp: "Chip-Temperatur",
     healthWifiDrops: "WLAN-Verbindungsabbrüche",
     healthLastFrame: "Letzte Nachricht vom Ofen",
@@ -3353,6 +3357,7 @@ const I18N = {
     healthRestart: "Última razón de reinicio",
     healthMemory: "Memoria libre",
     healthMemoryMin: "mínimo {v}",
+    healthPsramInactive: "detectada, inactiva",
     healthTemp: "Temperatura del chip",
     healthWifiDrops: "Desconexiones de Wi-Fi",
     healthLastFrame: "Última trama de la estufa",
@@ -5104,6 +5109,9 @@ function formatMemory(dev, h, t) {
     const freeMb = dev.free_psram !== undefined ? (dev.free_psram / (1024 * 1024)).toFixed(1) : '?';
     const totalMb = Math.round(dev.psram_size / (1024 * 1024));
     res += ' · PSRAM ' + freeMb + ' / ' + totalMb + ' MB';
+  } else if (dev.hardware_psram && dev.hardware_psram_size) {
+    const totalMb = Math.round(dev.hardware_psram_size / (1024 * 1024));
+    res += ' · PSRAM ' + totalMb + ' MB (' + (t.healthPsramInactive || 'inactive') + ')';
   }
   return res;
 }

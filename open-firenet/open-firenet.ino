@@ -480,6 +480,8 @@ static String jsonState() {
       "\"app_version\":\"" OPENFIRENET_VERSION "\","
       "\"firmware_version\":\"" OPENFIRENET_VERSION "\","
       "\"firmware_variant\":\"%s\","
+      "\"hardware_psram\":%s,"
+      "\"hardware_psram_size\":%u,"
       "\"psram_size\":%u,"
       "\"free_psram\":%u,"
       "\"ip\":\"%s\","
@@ -493,6 +495,8 @@ static String jsonState() {
       "\"connected\":%s"
     "},",
       psramFound() ? "psram" : "standard",
+      firenet::hasHardwarePsram() ? "true" : "false",
+      (unsigned)firenet::hardwarePsramBytes(),
       psramFound() ? (unsigned)ESP.getPsramSize() : 0,
       psramFound() ? (unsigned)ESP.getFreePsram() : 0,
     (g_isApMode?WiFi.softAPIP():WiFi.localIP()).toString().c_str(),
@@ -1916,6 +1920,11 @@ void setup() {
   if (psramFound()) {
     char b[64];
     snprintf(b, sizeof(b), "PSRAM: %u KB total, %u KB free", (unsigned)(ESP.getPsramSize() / 1024), (unsigned)(ESP.getFreePsram() / 1024));
+    logEntry("sys", b);
+    DBG.println(b);
+  } else if (firenet::hasHardwarePsram()) {
+    char b[80];
+    snprintf(b, sizeof(b), "PSRAM: %u KB detected via eFuse (standard build)", (unsigned)(firenet::hardwarePsramBytes() / 1024));
     logEntry("sys", b);
     DBG.println(b);
   } else {

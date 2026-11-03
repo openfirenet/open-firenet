@@ -21,6 +21,27 @@ extern const uint8_t firenet_crt_bundle_end[] asm("_binary_x509_crt_bundle_end")
 
 namespace firenet {
 
+inline uint32_t hardwarePsramBytes() {
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32S3_DEV)
+  uint32_t word4 = *((volatile uint32_t*)0x60007054);
+  uint32_t word5 = *((volatile uint32_t*)0x60007058);
+  uint32_t cap = (((word5 >> 19) & 0x01) << 2) | ((word4 >> 3) & 0x03);
+  switch (cap) {
+    case 1: return 8UL * 1024UL * 1024UL;
+    case 2: return 2UL * 1024UL * 1024UL;
+    case 3: return 16UL * 1024UL * 1024UL;
+    case 4: return 4UL * 1024UL * 1024UL;
+    default: break;
+  }
+#endif
+  if (psramFound()) return (uint32_t)ESP.getPsramSize();
+  return 0;
+}
+
+inline bool hasHardwarePsram() {
+  return psramFound() || (hardwarePsramBytes() > 0);
+}
+
 class Updater {
 public:
   enum class State : uint8_t { Idle, Checking, Available, Downloading, Verifying, Installing, Error, Restarting };
@@ -99,7 +120,7 @@ private:
   static constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
   static constexpr const char* BASE = "https://github.com/openfirenet/open-firenet/releases/latest/download/";
   static const char* imageName() {
-    return psramFound() ? "open-firenet-ota-psram.bin" : "open-firenet-ota.bin";
+    return hasHardwarePsram() ? "open-firenet-ota-psram.bin" : "open-firenet-ota.bin";
   }
   // Public key of the release signature (same as the installer's OFFICIAL_PUBLIC_KEY and minisign.pub).
   static constexpr const char* PUBKEY = "RWQhzS5dR0kodMCMiFMESBDRDhxMyRaA4yNbIcAMD2B9kQS21I+FABT4";

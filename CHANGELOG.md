@@ -4,7 +4,7 @@
 
 ### New
 - Boards with octal PSRAM (ESP32-S3 with 8 MB embedded PSRAM): the firmware can now be built with PSRAM support enabled (`open-firenet-ota-psram.bin` and `open-firenet-factory-psram.bin`). When detected, the exchange log buffer is automatically placed in PSRAM (256 kB default) instead of internal SRAM, leaving internal memory completely free for Wi-Fi and system operations.
-- The bridge reports its firmware variant (`device.firmware_variant`), total and free PSRAM (`device.psram_size`, `device.free_psram`) in `/api/state`, and the diagnostic tab of the page displays both internal memory and PSRAM status.
+- The bridge reports its firmware variant (`device.firmware_variant`), total and free PSRAM (`device.psram_size`, `device.free_psram`) in `/api/state`, and the diagnostic tab of the page displays both internal memory and PSRAM status. Physical PSRAM is also detected via silicon eFuses (`device.hardware_psram`, `device.hardware_psram_size`) even when running a standard build, and the self-update task automatically migrates boards with PSRAM to the matching PSRAM OTA build.
 
 ### Changes
 - Stoves on firmware 2.25: the bridge now sends a start even when the stove is still hot after a stop. The stove waits by itself until it has cooled down enough (139 °C at the flame sensor) before it ignites. Before, the bridge refused the start with "not accepted" until the flame sensor was under 100 °C. (#143)

@@ -645,6 +645,8 @@ components:
         uptime_seconds: { type: integer }
         free_heap: { type: integer, description: Free memory in bytes }
         firmware_variant: { type: string, description: "Firmware variant: standard or psram" }
+        hardware_psram: { type: boolean, description: "True when the board has physical PSRAM detected via silicon eFuses" }
+        hardware_psram_size: { type: integer, description: "Physical PSRAM size in bytes detected via silicon eFuses (0 when none)" }
         psram_size: { type: integer, description: "Total PSRAM size in bytes (0 when absent or disabled)" }
         free_psram: { type: integer, description: "Free PSRAM memory in bytes (0 when absent or disabled)" }
         ota_slot_bytes: { type: integer, description: Size in bytes of the slot a wireless update is written to. A firmware larger than this must be installed over USB }
