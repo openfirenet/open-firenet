@@ -123,13 +123,12 @@ int main() {
     CH("write frame 024", v0::writeFrame(24, 2) == std::string("\x02" "024=2" "\x03", 7));
     CH("write frame 023 stop", v0::writeFrame(23, 0) == std::string("\x02" "023=0" "\x03", 7));
     CH("start frame 023=1, but no other value", v0::writeFrame(23, 1) == std::string("\x02" "023=1" "\x03", 7) && v0::writeFrame(23, 2).empty() && v0::writeFrame(23, 255).empty());
-    CH("a start is allowed only on a cold, idle stove without error",
-       v0::startAllowed(0, 1, 0, 20, 0) && v0::startAllowed(0, 11, 1, 20, 0) &&
-       !v0::startAllowed(1, 1, 0, 20, 0) &&        // an error
-       !v0::startAllowed(0, 2, 2, 20, 0) && !v0::startAllowed(0, 4, 1, 200, 0) && !v0::startAllowed(0, 6, 1, 20, 0) &&   // not off or waiting
-       !v0::startAllowed(0, 1, 2, 20, 0) &&        // sub state above 1
-       !v0::startAllowed(0, 1, 0, 100, 0) && !v0::startAllowed(0, 1, 0, 300, 0) &&   // not cold
-       !v0::startAllowed(0, 1, 0, 20, 1));         // already on
+    CH("a start is allowed only on an idle stove without error, hot or not (the stove waits until it has cooled down)",
+       v0::startAllowed(0, 1, 0, 0) && v0::startAllowed(0, 11, 1, 0) &&
+       !v0::startAllowed(1, 1, 0, 0) &&            // an error
+       !v0::startAllowed(0, 2, 2, 0) && !v0::startAllowed(0, 4, 1, 0) && !v0::startAllowed(0, 6, 1, 0) &&   // not off or waiting
+       !v0::startAllowed(0, 1, 2, 0) &&            // sub state above 1
+       !v0::startAllowed(0, 1, 0, 1));             // already on
     CH("power only 30..100 in steps of 5", v0::writeFrame(25, 25).empty() && v0::writeFrame(25, 105).empty() && v0::writeFrame(25, 53).empty() && !v0::writeFrame(25, 30).empty() && !v0::writeFrame(25, 100).empty());
     CH("mode only 0..2", v0::writeFrame(24, 3).empty() && v0::writeFrame(24, -1).empty());
     CH("set point only 14..28", v0::writeFrame(26, 13).empty() && v0::writeFrame(26, 29).empty() && !v0::writeFrame(26, 14).empty() && !v0::writeFrame(26, 28).empty());
