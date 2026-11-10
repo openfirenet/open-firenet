@@ -31,17 +31,19 @@ inline std::string readFrame(int code) {
 }
 
 // Whether a start (023=1) may be sent: the stove is off or waiting (main state 1, or 11 as the stove's own start code accepts), with no
-// error, a cold flame sensor (the stove itself refuses an ignition above 139 degrees, 0x80023022) and its "on" flag not set yet.
+// error and its "on" flag not set yet. The flame temperature is not checked: a stove still hot waits by itself. In state 1 with the
+// "on" flag set, it only moves on to ignition once the flame temperature (fn 0x80026cb0, the value of code 001) is at most 139 degrees
+// (0x80023018..0x80023034); above that it stays in state 1 and keeps the flag (issue #143).
 // The numbers are those of the values the bridge has read back from the stove.
-inline bool startAllowed(long errMask, long mainState, long subState, long flameTemp, long onOff) {
-  return errMask == 0 && (mainState == 1 || mainState == 11) && subState <= 1 && flameTemp < 100 && onOff == 0;
+inline bool startAllowed(long errMask, long mainState, long subState, long onOff) {
+  return errMask == 0 && (mainState == 1 || mainState == 11) && subState <= 1 && onOff == 0;
 }
 
 // "STX NNN=value ETX": write of one setting. Only these codes are ever built, each with the values the stove display
 // allows (the stove itself checks almost nothing: 025 takes 0..255, 026 and 081 only keep each other 2 degrees apart):
 //   023 on / off:  0 (stop) or 1 (start). The start path of the stove (fn 0x80024488) does not look at its error word
 //                  (0x3594+4) and sets the "on" flag before anything is checked, so a start is only sent when
-//                  startAllowed() says the stove is cold, idle and without error. With an error the stove clears the flag
+//                  startAllowed() says the stove is idle and without error. With an error the stove clears the flag
 //                  at once and goes to burn-off (state 6, fn 0x800240cc, 0x800240e4 and 0x80024238), so a start made then does nothing.
 //   024 mode:      0 manual, 1 automatic, 2 comfort (the stove itself refuses more than 2).
 //   025 power:     30..100 percent in steps of 5 (manual mode).
