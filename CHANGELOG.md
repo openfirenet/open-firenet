@@ -5,6 +5,9 @@
 ### Changes
 - Stoves on firmware 2.25: the bridge now sends a start even when the stove is still hot after a stop. The stove waits by itself until it has cooled down enough (139 °C at the flame sensor) before it ignites. Before, the bridge refused the start with "not accepted" until the flame sensor was under 100 °C. (#143)
 
+### Fixes
+- Diagnostic file: the Wi-Fi name is now also masked in the stove's status frames of the log section, where the stove echoes it in another form than the bridge sent. (#145)
+
 ## v4.9.1 (2026-11-03)
 
 ### Fixes
