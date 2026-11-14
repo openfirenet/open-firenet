@@ -4449,13 +4449,25 @@ function diagMaskMac(mac) {
 function diagHex(text) {
   return Array.from(new TextEncoder().encode(text)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
 }
-// Log text: the stove status frames carry the Wi-Fi name alone on a line, as text or as hexadecimal.
+// Log text: the stove status frames carry the Wi-Fi name alone on a line, as text or as hexadecimal. The stove
+// does not always echo it exactly as the bridge sent it (issue #145), so the Wi-Fi name line of each status
+// frame (16th line after the frame name, just before the password line the bridge already masks) is masked by
+// its place too.
 function diagMaskLog(log, ssid, mac) {
   let out = log;
   if (ssid) {
     const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    out = out.replace(new RegExp('^(' + esc(ssid) + '|' + diagHex(ssid) + ')$', 'gm'), '<wifi name>');
+    out = out.replace(new RegExp('^(' + esc(ssid) + '|' + diagHex(ssid) + ')$', 'gim'), '<wifi name>');
   }
+  let line = -1;
+  out = out.split('\n').map(l => {
+    if (/^\[\d+\]\[\w+\] \w+_STATUS=/.test(l)) { line = 0; return l; }
+    if (l.startsWith('[')) { line = -1; return l; }
+    if (line >= 0 && ++line === 16 && l.replace(/\r$/, '') !== '' && l.replace(/\r$/, '') !== '0') {
+      return '<wifi name>' + (l.endsWith('\r') ? '\r' : '');
+    }
+    return l;
+  }).join('\n');
   if (mac) out = out.split(mac).join(diagMaskMac(mac)).split(mac.toLowerCase()).join(diagMaskMac(mac));
   return out;
 }

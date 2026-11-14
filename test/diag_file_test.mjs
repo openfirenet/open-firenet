@@ -44,7 +44,16 @@ check('MQTT user masked, the rest kept', !out.includes('"user": "openfirenet"') 
 check('the state given by the caller is not modified', state.device.wifi_ssid === ssid && state.status.mac === mac);
 check('a missing part is said so', buildDiagFile({ when: 'x', lang: 'en', browser: 't', state: null, mqtt: null, schedule: null, log: null }).split('(not available)').length === 5);
 check('a value that is not a MAC address is left alone', diagMaskMac('') === '' && diagMaskMac('n/a') === 'n/a');
-const stateWithCrash = JSON.parse(JSON.stringify(state));
+// A status frame echoed by the stove, with the Wi-Fi name written another way than the bridge sent it (issue #145).
+const echoed = '4672697A21426F78';
+const rxLog = '[56687344][rx] POST_CDCDEVICE_STATUS=0;\r\n' + ['0', '1', '0', '0', '0', '5', '0', '999', '201', '12201', '0', '-48', '', '', '3',
+  echoed, '********', '', '1'].join('\r\n') + '\r\n[56687448][tx] GET_REVISION=-48; revision=0; frequency=60; \n0\n1\n0\n0\n0\n5\n0\n999\n201\n12201\n0\n-48\n\n\n3\nKEEP\n';
+const outRx = buildDiagFile({ when: 'x', lang: 'en', browser: 't', state, mqtt: null, schedule: null, log: rxLog });
+check('Wi-Fi name line of a status frame masked by its place', !outRx.includes(echoed) && outRx.includes('<wifi name>\r\n********'));
+check('the other lines of the frame and of other entries are kept', outRx.includes('12201\r\n0\r\n-48') && outRx.includes('\nKEEP\n'));
+check('Wi-Fi name in lowercase hexadecimal masked', !buildDiagFile({ when: 'x', lang: 'en', browser: 't', state, mqtt: null, schedule: null,
+  log: 'x\n' + hex.toLowerCase() + '\n' }).includes(hex.toLowerCase()));
+const stateWithCrash =JSON.parse(JSON.stringify(state));
 stateWithCrash.health.crash = { task: 'loopTask', pc: '0x4037d155', cause: 0, fault_address: '0x00000000', elf_sha256: '3379f5276' };
 const outCrash = buildDiagFile({ when: 'x', lang: 'en', browser: 't', state: stateWithCrash, mqtt: null, schedule: null, log: null });
 check('crash line is formatted on one line and not [object Object]', outCrash.includes('crash: task loopTask, pc 0x4037d155, cause 0, fault 0x00000000, firmware 3379f5276') && !outCrash.includes('[object Object]'));
