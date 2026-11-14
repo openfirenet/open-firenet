@@ -273,7 +273,7 @@ What matters is the **mainboard firmware version** of the stove (menu Info on th
 | Mainboard firmware | Status | Notes |
 |:---:|:---|:---|
 | **2.30** (e.g. INDUO) | ✅ Supported | All values and settings, wood operation included (bridge firmware 4.1 or later). Reported working on one stove so far, an INDUO, in pellet and in split log operation ([#89](https://github.com/openfirenet/open-firenet/issues/89)) |
-| **2.29** (e.g. DOMO, DOMO BACK, PRIMO MULTIAIR) | ✅ Supported | All values and settings |
+| **2.29** (e.g. DOMO, DOMO BACK, PRIMO MULTIAIR, SUMO) | ✅ Supported | All values and settings. A SUMO can be on 2.25 or on 2.29: check its menu Info ([#145](https://github.com/openfirenet/open-firenet/issues/145)) |
 | **2.28** (e.g. LIVO, INDUO II, SONO) | ✅ Supported | All values and settings, MultiAir included (no baking oven on these stoves) |
 | **2.26 / 2.27** (e.g. INDUO) | ✅ Supported | All values and settings (no MultiAir / baking oven on these stoves) |
 | **2.25** (e.g. SUMO) | ⚠️ Partial | Early support (bridge firmware 4.9 or later): the bridge reads the state, temperatures and inputs, and sets the mode, the manual power, the room set point, the reduced set point, the frost protection, the comfort power level and the weekly schedule (one time range a day, no per-day switch), and starts and stops the stove. Tried on one stove: the mode, the manual power, the room set point, the stop and the weekly schedule. **Not tried on a stove:** the start and the other settings. Room temperature in whole degrees. Please send the diagnostic file if you try it. Protocol notes in [PROTOCOL.md](PROTOCOL.md) |
