@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v5.0.0 (2026-11-15)
 
 ### New
 - ESP32-S3 Pocket Dongle (ESP32-S3 with 8 MB of PSRAM and a 0.96" colour screen): its screen can be switched on in the Bridge tab, Screen, by choosing "ESP32-S3 Pocket Dongle" as the board with a screen. It shows the same screens as on the LilyGO T-Dongle-S3. By @openfirenet.
