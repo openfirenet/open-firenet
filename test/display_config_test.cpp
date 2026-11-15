@@ -15,7 +15,7 @@ int main() {
     DisplayConfig old; old.fromPrefs("state:1,room:1,flame:1,power:1,ip:1,pellets:1,hours:0,wifi:1,mqtt:1,version:1,logo:1;4;50");
     CH("a text saved before the split log screen still loads, with that screen last and on", old.order[DisplayConfig::COUNT - 1] == DisplayConfig::LOG_HOURS && old.on[DisplayConfig::LOG_HOURS] && !old.on[DisplayConfig::HOURS]);
   }
-  CH("only known boards are valid", DisplayConfig::validBoard("none") && DisplayConfig::validBoard("tdongle") && DisplayConfig::validBoard("tdongle_off") && !DisplayConfig::validBoard("") && !DisplayConfig::validBoard("TDONGLE") && !DisplayConfig::validBoard("lilygo"));
+  CH("only known boards are valid", DisplayConfig::validBoard("none") && DisplayConfig::validBoard("tdongle") && DisplayConfig::validBoard("tdongle_off") && DisplayConfig::validBoard("pocket_dongle") && DisplayConfig::validBoard("pocket_dongle_off") && !DisplayConfig::validBoard("") && !DisplayConfig::validBoard("TDONGLE") && !DisplayConfig::validBoard("lilygo"));
   CH("json carries the board and whether a restart is needed",
      c.json(false, "tdongle", true).find("\"board\":\"tdongle\"") != std::string::npos && c.json(false, "tdongle", true).find("\"restart_needed\":true") != std::string::npos &&
      c.json(true).find("\"board\":\"none\"") != std::string::npos && c.json(true).find("\"restart_needed\":false") != std::string::npos);

@@ -1341,6 +1341,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <select class="lang-select" id="screenBoard" style="padding:4px 24px 4px 8px;font-size:0.8rem" onchange="onScreenBoard(this.value)">
           <option value="none" id="optScreenBoardNone">Aucun</option>
           <option value="tdongle" id="optScreenBoardTdongle">LilyGO T-Dongle-S3</option>
+          <option value="pocket_dongle" id="optScreenBoardPocketDongle">ESP32-S3 Pocket Dongle</option>
         </select>
         <span id="screenBoardNote" style="font-size:0.8rem"></span>
       </div>
@@ -1877,6 +1878,7 @@ const I18N = {
     healthRestart: "Cause du dernier redémarrage",
     healthMemory: "Mémoire libre",
     healthMemoryMin: "minimum {v}",
+    healthPsramInactive: "détectée, inactive",
     healthTemp: "Température de la puce",
     healthWifiDrops: "Déconnexions Wi-Fi",
     healthLastFrame: "Dernière trame du poêle",
@@ -2231,6 +2233,7 @@ const I18N = {
     healthRestart: "Last restart reason",
     healthMemory: "Free memory",
     healthMemoryMin: "lowest {v}",
+    healthPsramInactive: "detected, inactive",
     healthTemp: "Chip temperature",
     healthWifiDrops: "Wi-Fi disconnections",
     healthLastFrame: "Last frame from the stove",
@@ -2605,6 +2608,7 @@ const I18N = {
     "healthRestart": "Motivo dell'ultimo riavvio",
     "healthMemory": "Memoria libera",
     "healthMemoryMin": "minimo {v}",
+    "healthPsramInactive": "rilevata, inattiva",
     "healthTemp": "Temperatura del chip",
     "healthWifiDrops": "Disconnessioni Wi-Fi",
     "healthLastFrame": "Ultimo messaggio dalla stufa",
@@ -2999,6 +3003,7 @@ const I18N = {
     healthRestart: "Grund des letzten Neustarts",
     healthMemory: "Freier Speicher",
     healthMemoryMin: "Minimum {v}",
+    healthPsramInactive: "erkannt, inaktiv",
     healthTemp: "Chip-Temperatur",
     healthWifiDrops: "WLAN-Verbindungsabbrüche",
     healthLastFrame: "Letzte Nachricht vom Ofen",
@@ -3353,6 +3358,7 @@ const I18N = {
     healthRestart: "Última razón de reinicio",
     healthMemory: "Memoria libre",
     healthMemoryMin: "mínimo {v}",
+    healthPsramInactive: "detectada, inactiva",
     healthTemp: "Temperatura del chip",
     healthWifiDrops: "Desconexiones de Wi-Fi",
     healthLastFrame: "Última trama de la estufa",
@@ -3926,7 +3932,18 @@ async function loadLogSize() {
   try {
     const r = await fetch('/api/log_size');
     if (!r.ok) return;
-    document.getElementById('logSizeSelect').value = String((await r.json()).kb);
+    const d = await r.json();
+    const sel = document.getElementById('logSizeSelect');
+    if (d.options && Array.isArray(d.options) && sel) {
+      sel.innerHTML = '';
+      d.options.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = String(opt);
+        o.textContent = opt + ' kB';
+        sel.appendChild(o);
+      });
+    }
+    sel.value = String(d.kb);
   } catch (e) { /* the page keeps working without it */ }
 }
 let _logSizeTimer = null;
@@ -4181,16 +4198,19 @@ let _screenAsking = false;
 function renderScreenBoard() {
   const c = _screenCfg, board = c.board || 'none';
   const sel = document.getElementById('screenBoard');
-  if (sel && document.activeElement !== sel) sel.value = board === 'none' ? 'none' : 'tdongle';
-  document.getElementById('screenOnRow').style.display = board === 'none' ? 'none' : 'flex';
-  document.getElementById('screenOnToggle').checked = board === 'tdongle';
+  const baseBoard = board === 'pocket_dongle' || board === 'pocket_dongle_off' ? 'pocket_dongle' : (board === 'none' ? 'none' : 'tdongle');
+  if (sel && document.activeElement !== sel) sel.value = baseBoard;
+  const hasBoard = board !== 'none';
+  const isRunning = board === 'tdongle' || board === 'pocket_dongle';
+  document.getElementById('screenOnRow').style.display = hasBoard ? 'flex' : 'none';
+  document.getElementById('screenOnToggle').checked = isRunning;
   const card = document.getElementById('screenConfigCard');
-  card.style.display = board === 'none' ? 'none' : 'flex';
-  card.classList.toggle('scr-disabled', board !== 'tdongle');
+  card.style.display = hasBoard ? 'flex' : 'none';
+  card.classList.toggle('scr-disabled', !isRunning);
   document.getElementById('screenRestartRow').style.display = c.restart_needed && !_screenAsking ? 'flex' : 'none';
-  if (board !== 'none') renderScreenCards();
+  if (hasBoard) renderScreenCards();
   // First time with a screen: it speaks the language of the page, until the owner chooses another.
-  if (board === 'tdongle' && !c.language && !_screenLangSeeded) {
+  if (isRunning && !c.language && !_screenLangSeeded) {
     _screenLangSeeded = true;
     fetch('/api/display', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: curLang }) })
       .then(r => r.ok ? r.json() : null).then(j => { if (j && !_screenDraft) { _screenCfg = j; syncScreenBacklight(); } }).catch(() => {});
@@ -4221,13 +4241,17 @@ async function applyScreenBoard(board) {
 // Choosing the board is asked twice: on a board that has no screen, those pins may be wired to something else.
 async function onScreenBoard(board) {
   const t = I18N[curLang] || I18N.en;
-  const now = _screenCfg.board === 'none' ? 'none' : 'tdongle';
+  const now = _screenCfg.board === 'none' ? 'none' : (_screenCfg.board.startsWith('pocket_dongle') ? 'pocket_dongle' : 'tdongle');
   if (board === now) return;
   if (board !== 'none' && !(await askConfirm(t.screenBoardConfirm1, { wide: true, danger: true }) && await askConfirm(t.screenBoardConfirm2, { wide: true, danger: true }))) { renderScreenBoard(); return; }
   applyScreenBoard(board);
 }
 // The switch: on = the screen runs, off = the board's screen and backlight are switched off and the settings below are locked.
-function onScreenOn(on) { applyScreenBoard(on ? 'tdongle' : 'tdongle_off'); }
+function onScreenOn(on) {
+  const current = _screenCfg.board || 'none';
+  const isPocket = current.startsWith('pocket_dongle');
+  applyScreenBoard(on ? (isPocket ? 'pocket_dongle' : 'tdongle') : (isPocket ? 'pocket_dongle_off' : 'tdongle_off'));
+}
 async function loadScreens() {
   try {
     _screenCfg = await (await fetch('/api/display')).json();
@@ -5083,16 +5107,32 @@ async function scanWifi() {
 
 // Bridge health card of the Diagnostics tab: one row per value of the "health" object of /api/state.
 let lastHealthState = null;
+function formatMemory(dev, h, t) {
+  const kb = (v) => t.healthKb.replace('{v}', Math.round(v / 1024));
+  let res = kb(dev.free_heap);
+  if (h && h.min_free_heap !== undefined) {
+    res += ' (' + t.healthMemoryMin.replace('{v}', kb(h.min_free_heap)) + ')';
+  }
+  if (dev.psram_size && dev.psram_size > 0) {
+    const freeMb = dev.free_psram !== undefined ? (dev.free_psram / (1024 * 1024)).toFixed(1) : '?';
+    const totalMb = Math.round(dev.psram_size / (1024 * 1024));
+    res += ' · PSRAM ' + freeMb + ' / ' + totalMb + ' MB';
+  } else if (dev.hardware_psram && dev.hardware_psram_size) {
+    const totalMb = Math.round(dev.hardware_psram_size / (1024 * 1024));
+    res += ' · PSRAM ' + totalMb + ' MB (' + (t.healthPsramInactive || 'inactive') + ')';
+  }
+  return res;
+}
+
 function renderBridgeInfo(s) {
   const body = document.getElementById('bridgeInfoRows');
   if (!body || !s) return;
   const t = I18N[curLang] || I18N.en, h = s.health || {}, dev = s.device || {};
-  const kb = (v) => t.healthKb.replace('{v}', Math.round(v / 1024));
   const rows = [];
   if (dev.version) rows.push([t.bridgeInfoVersion, dev.version]);
   rows.push([t.lblUptime, formatUptime((s.uptime_seconds !== undefined) ? s.uptime_seconds : dev.uptime_seconds)]);
   if (h.restart_reason) rows.push([t.healthRestart, t.restartReasons[h.restart_reason] || h.restart_reason]);
-  if (dev.free_heap !== undefined) rows.push([t.healthMemory, kb(dev.free_heap)]);
+  if (dev.free_heap !== undefined) rows.push([t.healthMemory, formatMemory(dev, null, t)]);
   if (h.chip_temperature !== undefined && h.chip_temperature !== null) rows.push([t.healthTemp, Number(h.chip_temperature).toFixed(1) + ' °C']);
   body.textContent = '';
   rows.forEach(([name, value]) => {
@@ -5109,13 +5149,12 @@ function renderHealth(s) {
   const t = I18N[curLang] || I18N.en;
   const h = s.health || {};
   const dev = s.device || {};
-  const kb = (v) => t.healthKb.replace('{v}', Math.round(v / 1024));
   const rows = [];
   const upSec = (s.uptime_seconds !== undefined) ? s.uptime_seconds : dev.uptime_seconds;
   rows.push([t.lblUptime, formatUptime(upSec)]);
   if (h.restart_reason) rows.push([t.healthRestart, t.restartReasons[h.restart_reason] || h.restart_reason]);
   if (dev.free_heap !== undefined) {
-    rows.push([t.healthMemory, kb(dev.free_heap) + (h.min_free_heap !== undefined ? ' (' + t.healthMemoryMin.replace('{v}', kb(h.min_free_heap)) + ')' : '')]);
+    rows.push([t.healthMemory, formatMemory(dev, h, t)]);
   }
   if (h.chip_temperature !== undefined && h.chip_temperature !== null) rows.push([t.healthTemp, Number(h.chip_temperature).toFixed(1) + ' °C']);
   if (dev.wifi_rssi !== undefined) rows.push(['Wi-Fi', dev.wifi_rssi + ' dBm']);

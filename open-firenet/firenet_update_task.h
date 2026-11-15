@@ -21,6 +21,27 @@ extern const uint8_t firenet_crt_bundle_end[] asm("_binary_x509_crt_bundle_end")
 
 namespace firenet {
 
+inline uint32_t hardwarePsramBytes() {
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_ESP32S3_DEV)
+  uint32_t word4 = *((volatile uint32_t*)0x60007054);
+  uint32_t word5 = *((volatile uint32_t*)0x60007058);
+  uint32_t cap = (((word5 >> 19) & 0x01) << 2) | ((word4 >> 3) & 0x03);
+  switch (cap) {
+    case 1: return 8UL * 1024UL * 1024UL;
+    case 2: return 2UL * 1024UL * 1024UL;
+    case 3: return 16UL * 1024UL * 1024UL;
+    case 4: return 4UL * 1024UL * 1024UL;
+    default: break;
+  }
+#endif
+  if (psramFound()) return (uint32_t)ESP.getPsramSize();
+  return 0;
+}
+
+inline bool hasHardwarePsram() {
+  return psramFound() || (hardwarePsramBytes() > 0);
+}
+
 class Updater {
 public:
   enum class State : uint8_t { Idle, Checking, Available, Downloading, Verifying, Installing, Error, Restarting };
@@ -98,7 +119,9 @@ private:
   static constexpr uint32_t FIRST_AUTO_DELAY_MS = 10UL * 60UL * 1000UL;
   static constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
   static constexpr const char* BASE = "https://github.com/openfirenet/open-firenet/releases/latest/download/";
-  static constexpr const char* IMAGE_NAME = "open-firenet-ota.bin";
+  static const char* imageName() {
+    return hasHardwarePsram() ? "open-firenet-ota-psram.bin" : "open-firenet-ota.bin";
+  }
   // Public key of the release signature (same as the installer's OFFICIAL_PUBLIC_KEY and minisign.pub).
   static constexpr const char* PUBKEY = "RWQhzS5dR0kodMCMiFMESBDRDhxMyRaA4yNbIcAMD2B9kQS21I+FABT4";
 
@@ -168,7 +191,7 @@ private:
     if (!upd::verifyRelease(sums, sig, PUBKEY, hashFn(), edFn(), comment)) { set(State::Error, "signature"); return; }
     upd::Version v = upd::versionFromComment(comment);
     if (!v.ok) { set(State::Error, "version"); return; }
-    std::string h = upd::hashFor(sums, IMAGE_NAME);
+    std::string h = upd::hashFor(sums, imageName());
     if (h.empty()) { set(State::Error, "no image in release"); return; }
     std::string vs = std::to_string(v.major) + "." + std::to_string(v.minor) + "." + std::to_string(v.patch);
     lock(); latest_ = vs; unlock();
@@ -192,7 +215,7 @@ private:
     HTTPClient h;
     h.setConnectTimeout(HTTP_TIMEOUT_MS); h.setTimeout(HTTP_TIMEOUT_MS);
     h.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-    std::string url = std::string(BASE) + IMAGE_NAME;
+    std::string url = std::string(BASE) + imageName();
     if (!h.begin(c, url.c_str())) { set(State::Error, "begin"); return; }
     int code = h.GET();
     if (code != HTTP_CODE_OK) { h.end(); set(State::Error, "http " + std::to_string(code)); return; }
