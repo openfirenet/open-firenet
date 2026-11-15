@@ -7,6 +7,7 @@
 
 ### Fixes
 - MultiAir on ANIMO stoves: the settings show by themselves on the ANIMO AVITO, PURE and ADUO, which ANIMO sells with MultiAir as an option, and no longer on the other ANIMO models whose number matched a RIKA MultiAir model (the ADEVO showed them as a ROCO MULTIAIR). On any other stove with MultiAir, the link "My stove has MultiAir: show its settings" stays. By @openfirenet.
+- Bridge > Screen: choosing the ESP32-S3 Pocket Dongle asked to confirm the LilyGO T-Dongle-S3; both questions now name the board you chose, and the warning above the choice names both boards. The Spanish texts no longer call the bridge "tecla". By @openfirenet.
 
 ## v5.0.0 (2026-11-15)
 
