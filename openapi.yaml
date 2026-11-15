@@ -311,7 +311,7 @@ paths:
             schema:
               type: object
               properties:
-                board: { type: string, enum: [none, tdongle, tdongle_off] }
+                board: { type: string, enum: [none, tdongle, tdongle_off, pocket_dongle, pocket_dongle_off] }
                 seconds: { type: integer, minimum: 2, maximum: 30, description: Seconds each screen stays }
                 brightness: { type: integer, minimum: 5, maximum: 100 }
                 dim: { type: boolean }
@@ -508,7 +508,7 @@ components:
       type: object
       properties:
         available: { type: boolean, description: "True while the display is running (decided at boot by `board`); the screens below can then be set" }
-        board: { type: string, enum: [none, tdongle, tdongle_off], description: "The board the owner says has a screen: `none` (default), `tdongle` (LilyGO T-Dongle-S3, screen running) or `tdongle_off` (the same board, screen and backlight switched off). Stored; applies at the next restart" }
+        board: { type: string, enum: [none, tdongle, tdongle_off, pocket_dongle, pocket_dongle_off], description: "The board the owner says has a screen: `none` (default), `tdongle` (LilyGO T-Dongle-S3, screen running), `pocket_dongle` (ESP32-S3 Pocket Dongle, screen running), or their `_off` variant (screen switched off). Stored; applies at the next restart" }
         boards: { type: array, items: { type: string }, description: Boards this firmware can drive }
         restart_needed: { type: boolean, description: "True when `board` differs from what is running now" }
         seconds: { type: integer, minimum: 2, maximum: 30 }

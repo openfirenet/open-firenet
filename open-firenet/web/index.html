@@ -1341,6 +1341,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         <select class="lang-select" id="screenBoard" style="padding:4px 24px 4px 8px;font-size:0.8rem" onchange="onScreenBoard(this.value)">
           <option value="none" id="optScreenBoardNone">Aucun</option>
           <option value="tdongle" id="optScreenBoardTdongle">LilyGO T-Dongle-S3</option>
+          <option value="pocket_dongle" id="optScreenBoardPocketDongle">ESP32-S3 Pocket Dongle</option>
         </select>
         <span id="screenBoardNote" style="font-size:0.8rem"></span>
       </div>
@@ -4197,16 +4198,19 @@ let _screenAsking = false;
 function renderScreenBoard() {
   const c = _screenCfg, board = c.board || 'none';
   const sel = document.getElementById('screenBoard');
-  if (sel && document.activeElement !== sel) sel.value = board === 'none' ? 'none' : 'tdongle';
-  document.getElementById('screenOnRow').style.display = board === 'none' ? 'none' : 'flex';
-  document.getElementById('screenOnToggle').checked = board === 'tdongle';
+  const baseBoard = board === 'pocket_dongle' || board === 'pocket_dongle_off' ? 'pocket_dongle' : (board === 'none' ? 'none' : 'tdongle');
+  if (sel && document.activeElement !== sel) sel.value = baseBoard;
+  const hasBoard = board !== 'none';
+  const isRunning = board === 'tdongle' || board === 'pocket_dongle';
+  document.getElementById('screenOnRow').style.display = hasBoard ? 'flex' : 'none';
+  document.getElementById('screenOnToggle').checked = isRunning;
   const card = document.getElementById('screenConfigCard');
-  card.style.display = board === 'none' ? 'none' : 'flex';
-  card.classList.toggle('scr-disabled', board !== 'tdongle');
+  card.style.display = hasBoard ? 'flex' : 'none';
+  card.classList.toggle('scr-disabled', !isRunning);
   document.getElementById('screenRestartRow').style.display = c.restart_needed && !_screenAsking ? 'flex' : 'none';
-  if (board !== 'none') renderScreenCards();
+  if (hasBoard) renderScreenCards();
   // First time with a screen: it speaks the language of the page, until the owner chooses another.
-  if (board === 'tdongle' && !c.language && !_screenLangSeeded) {
+  if (isRunning && !c.language && !_screenLangSeeded) {
     _screenLangSeeded = true;
     fetch('/api/display', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: curLang }) })
       .then(r => r.ok ? r.json() : null).then(j => { if (j && !_screenDraft) { _screenCfg = j; syncScreenBacklight(); } }).catch(() => {});
@@ -4237,13 +4241,17 @@ async function applyScreenBoard(board) {
 // Choosing the board is asked twice: on a board that has no screen, those pins may be wired to something else.
 async function onScreenBoard(board) {
   const t = I18N[curLang] || I18N.en;
-  const now = _screenCfg.board === 'none' ? 'none' : 'tdongle';
+  const now = _screenCfg.board === 'none' ? 'none' : (_screenCfg.board.startsWith('pocket_dongle') ? 'pocket_dongle' : 'tdongle');
   if (board === now) return;
   if (board !== 'none' && !(await askConfirm(t.screenBoardConfirm1, { wide: true, danger: true }) && await askConfirm(t.screenBoardConfirm2, { wide: true, danger: true }))) { renderScreenBoard(); return; }
   applyScreenBoard(board);
 }
 // The switch: on = the screen runs, off = the board's screen and backlight are switched off and the settings below are locked.
-function onScreenOn(on) { applyScreenBoard(on ? 'tdongle' : 'tdongle_off'); }
+function onScreenOn(on) {
+  const current = _screenCfg.board || 'none';
+  const isPocket = current.startsWith('pocket_dongle');
+  applyScreenBoard(on ? (isPocket ? 'pocket_dongle' : 'tdongle') : (isPocket ? 'pocket_dongle_off' : 'tdongle_off'));
+}
 async function loadScreens() {
   try {
     _screenCfg = await (await fetch('/api/display')).json();

@@ -39,9 +39,11 @@
 static firenet::DisplayConfig g_dispCfg;   // which screens the small display shows, and in which order
 #include "firenet_display.h"
 static firenet::Display g_display;
-// The screen is driven only on the board the owner chose ("tdongle"), never by guesswork: other boards may have something
-// else on those pins. Stored in flash, applied at the next restart. A build with -DFIRENET_DISPLAY_TDONGLE=1 starts with it on.
-#if defined(FIRENET_DISPLAY_TDONGLE)
+// The screen is driven only on the board the owner chose ("tdongle" or "pocket_dongle"), never by guesswork: other boards may have something
+// else on those pins. Stored in flash, applied at the next restart.
+#if defined(FIRENET_DISPLAY_POCKET_DONGLE)
+static const char* const kDefaultBoard = "pocket_dongle";
+#elif defined(FIRENET_DISPLAY_TDONGLE)
 static const char* const kDefaultBoard = "tdongle";
 #else
 static const char* const kDefaultBoard = "none";
@@ -884,16 +886,31 @@ static bool applySetOtaPass(const String& line, Print& out) {
   return true;
 }
 
-// SETDISPLAY:none | SETDISPLAY:tdongle   chooses the board whose screen is driven; applied at the next restart. The way back
-// when a screen was switched on by mistake on a board that has none.
+// SETDISPLAY:none | SETDISPLAY:tdongle | SETDISPLAY:pocket_dongle   chooses the board whose screen is driven; applied at the next restart.
+// The way back when a screen was switched on by mistake on a board that has none.
 static bool applySetDisplay(const String& line, Print& out) {
   if (!line.startsWith("SETDISPLAY:")) return false;
   String b = line.substring(11); b.trim();
   bool ok = firenet::DisplayConfig::validBoard(b.c_str());
   if (ok) { g_dispBoard = b; prefs.begin("firenet", false); prefs.putString("disp_board", g_dispBoard); prefs.end(); }
-  const char* msg = ok ? "[display] SETDISPLAY OK, effective after restart" : "[display] SETDISPLAY: none or tdongle";
+  const char* msg = ok ? "[display] SETDISPLAY OK, effective after restart" : "[display] SETDISPLAY: none, tdongle or pocket_dongle";
   DBG.println(msg);
   if ((Print*)&out != (Print*)&DBG) { out.print(msg); out.print("\r\n"); out.flush(); }
+  return true;
+}
+
+// GETINFO  returns the dongle's MAC, local IP and firmware version over the serial port.
+static bool applyGetInfo(const String& line, Print& out) {
+  if (line != "GETINFO" && line != "GETINFO:") return false;
+  String mac = WiFi.macAddress();
+  String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
+  String msg = String("[info] MAC=") + mac + " IP=" + ip + " VER=" + OPENFIRENET_VERSION;
+  DBG.println(msg);
+  if ((Print*)&out != (Print*)&DBG) {
+    out.print(msg);
+    out.print("\r\n");
+    out.flush();
+  }
   return true;
 }
 
@@ -931,7 +948,7 @@ static void handleSerialProvisioning() {
     char c = (char)DBG.read();
     if (c == '\n' || c == '\r') {
       if (dbgLine.length() > 0) {
-        if (!applySetOtaPass(dbgLine, DBG) && !applySetDisplay(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
+        if (!applyGetInfo(dbgLine, DBG) && !applySetOtaPass(dbgLine, DBG) && !applySetDisplay(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
         dbgLine = "";
       }
     } else if (dbgLine.length() < 160) {
@@ -947,15 +964,17 @@ static void handleSerialProvisioning() {
     char c = (char)b;
     if (c == '\n' || c == '\r') {
       if (stoveLine.length() > 0) {
-        if (!applySetOtaPass(stoveLine, STOVE) && !applySetDisplay(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
+        if (!applyGetInfo(stoveLine, STOVE) && !applySetOtaPass(stoveLine, STOVE) && !applySetDisplay(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
         stoveLine = "";
       }
     } else {
       if (stoveLine.length() == 0) {
-        if (c == 'S') stoveLine += c;
+        if (c == 'S' || c == 'G') stoveLine += c;
       } else if (stoveLine.length() < 160) {
         stoveLine += c;
-        if (stoveLine.length() == 8 && stoveLine != "SETWIFI:" && stoveLine != "SETOTAPA") {
+        if (stoveLine.length() == 7 && stoveLine.startsWith("GETINFO")) {
+          // command matches
+        } else if (stoveLine.length() == 8 && stoveLine != "SETWIFI:" && stoveLine != "SETOTAPA" && !stoveLine.startsWith("GETINFO")) {
           stoveLine = "";
         }
       }
@@ -1910,8 +1929,13 @@ void setup() {
     g_dispBoard = p.getString("disp_board", kDefaultBoard);
     p.end();
     g_dispBootBoard = g_dispBoard;
-    if (g_dispBoard == "tdongle") { g_dispActive = true; g_display.start(); }   // first, so that the logo shows while the rest starts
-    else if (g_dispBoard == "tdongle_off") g_display.blank();
+    g_display.setBoard(g_dispBoard.c_str());
+    if (g_dispBoard == "tdongle" || g_dispBoard == "pocket_dongle") {
+      g_dispActive = true;
+      g_display.start();   // first, so that the logo shows while the rest starts
+    } else if (g_dispBoard == "tdongle_off" || g_dispBoard == "pocket_dongle_off") {
+      g_display.blank();
+    }
   }
   readRestartReason();
   loadCrashInfo();

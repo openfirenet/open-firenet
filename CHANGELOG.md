@@ -3,6 +3,7 @@
 ## Non publié
 
 ### New
+- Support for the ESP32-S3 Pocket Dongle screen: the small color display (ST7735 0.96" LCD) can be chosen in the Bridge tab of the page (under "Dongle screen") and via /api/display or SETDISPLAY:pocket_dongle over serial.
 - Boards with octal PSRAM (ESP32-S3 with 8 MB embedded PSRAM): the firmware can now be built with PSRAM support enabled (`open-firenet-ota-psram.bin` and `open-firenet-factory-psram.bin`). When detected, the exchange log buffer is automatically placed in PSRAM (256 kB default) instead of internal SRAM, leaving internal memory completely free for Wi-Fi and system operations.
 - The bridge reports its firmware variant (`device.firmware_variant`), total and free PSRAM (`device.psram_size`, `device.free_psram`) in `/api/state`, and the diagnostic tab of the page displays both internal memory and PSRAM status. Physical PSRAM is also detected via silicon eFuses (`device.hardware_psram`, `device.hardware_psram_size`) even when running a standard build, and the self-update task automatically migrates boards with PSRAM to the matching PSRAM OTA build.
 

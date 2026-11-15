@@ -72,14 +72,23 @@ public:
     for (int i = 0; i < 200 && task_; i++) delay(10);
   }
 
+  // Configures the pins according to the selected board ("tdongle" or "pocket_dongle").
+  void setBoard(const std::string& b) {
+    if (b == "pocket_dongle" || b == "pocket_dongle_off") pins_ = PINS_POCKET_DONGLE;
+    else pins_ = PINS_TDONGLE;
+  }
+
   // For a board with a screen the owner does not want lit: the backlight off and the panel asleep, nothing else. Without this the
   // panel stays lit and grey, since nothing tells it otherwise.
   void blank() {
-    pinMode(CS, OUTPUT); pinMode(DC, OUTPUT); pinMode(RST, OUTPUT); pinMode(BL, OUTPUT);
-    digitalWrite(BL, HIGH);                                   // backlight off (active low)
-    digitalWrite(CS, HIGH);
-    spi_.begin(SCK, -1, MOSI, -1);
-    digitalWrite(RST, LOW); delay(20); digitalWrite(RST, HIGH); delay(120);
+    pinMode(pins_.cs, OUTPUT); pinMode(pins_.dc, OUTPUT); pinMode(pins_.rst, OUTPUT);
+    if (pins_.bl >= 0) {
+      pinMode(pins_.bl, OUTPUT);
+      digitalWrite(pins_.bl, pins_.blActiveLow ? HIGH : LOW); // backlight off
+    }
+    digitalWrite(pins_.cs, HIGH);
+    spi_.begin(pins_.sck, -1, pins_.mosi, -1);
+    digitalWrite(pins_.rst, LOW); delay(20); digitalWrite(pins_.rst, HIGH); delay(120);
     spi_.beginTransaction(SPISettings(27000000, MSBFIRST, SPI_MODE0));
     cmd(0x28);                                                // display off
     cmd(0x10);                                                // sleep in
@@ -99,7 +108,14 @@ private:
   static_assert((int)S_COUNT == (int)DisplayConfig::COUNT, "screens and their setting must list the same screens");
   enum Alert { A_NONE, A_ERROR, A_HOPPER, A_SILENT, A_NOWIFI };
 
-  static constexpr int SCK = 5, MOSI = 3, CS = 4, DC = 2, RST = 1, BL = 38, BUTTON = 0;
+  struct DisplayPins {
+    int sck, mosi, cs, dc, rst, bl, button;
+    bool blActiveLow;
+  };
+  static constexpr DisplayPins PINS_TDONGLE{5, 3, 4, 2, 1, 38, 0, true};
+  static constexpr DisplayPins PINS_POCKET_DONGLE{10, 11, 12, 13, 14, -1, 0, false};
+
+  DisplayPins pins_ = PINS_TDONGLE;
   static constexpr int X_OFF = 1, Y_OFF = 26;               // glass offsets in landscape
   static constexpr uint8_t MADCTL = 0x08 | 0x20 | 0x80;     // BGR, swap x/y, mirror y
   static constexpr uint8_t MADCTL_TURNED = 0x08 | 0x20 | 0x40;   // the same turned by 180 degrees: mirror x instead of y (the glass offsets are the same both ways)
@@ -114,8 +130,8 @@ private:
   void fill(Rgb c) { uint16_t v = rgb565(c); for (int i = 0; i < W * H; i++) fb_[i] = v; }
 
   // ---- panel -------------------------------------------------------------------------------------------------------
-  void cmd(uint8_t c) { digitalWrite(DC, LOW); digitalWrite(CS, LOW); spi_.transfer(c); digitalWrite(CS, HIGH); }
-  void data(const uint8_t* d, size_t n) { digitalWrite(DC, HIGH); digitalWrite(CS, LOW); spi_.writeBytes(d, n); digitalWrite(CS, HIGH); }
+  void cmd(uint8_t c) { digitalWrite(pins_.dc, LOW); digitalWrite(pins_.cs, LOW); spi_.transfer(c); digitalWrite(pins_.cs, HIGH); }
+  void data(const uint8_t* d, size_t n) { digitalWrite(pins_.dc, HIGH); digitalWrite(pins_.cs, LOW); spi_.writeBytes(d, n); digitalWrite(pins_.cs, HIGH); }
   void cmdData(uint8_t c, std::initializer_list<uint8_t> d) { cmd(c); std::vector<uint8_t> v(d); if (!v.empty()) data(v.data(), v.size()); }
 
   void initPanel() {
@@ -158,30 +174,39 @@ private:
     cmdData(0x2A, {0, (uint8_t)X_OFF, 0, (uint8_t)(X_OFF + W - 1)});
     cmdData(0x2B, {0, (uint8_t)Y_OFF, 0, (uint8_t)(Y_OFF + H - 1)});
     cmd(0x2C);
-    digitalWrite(DC, HIGH); digitalWrite(CS, LOW);
+    digitalWrite(pins_.dc, HIGH); digitalWrite(pins_.cs, LOW);
     spi_.writePixels(fb_, W * H * sizeof(uint16_t));        // swaps each pixel to high byte first
-    digitalWrite(CS, HIGH);
+    digitalWrite(pins_.cs, HIGH);
     spi_.endTransaction();
   }
 
   void begin() {
-    pinMode(CS, OUTPUT); pinMode(DC, OUTPUT); pinMode(RST, OUTPUT);
-    digitalWrite(CS, HIGH);
-    pinMode(BL, OUTPUT); digitalWrite(BL, HIGH);            // backlight off until the first image is in place
-    pinMode(BUTTON, INPUT_PULLUP);
-    spi_.begin(SCK, -1, MOSI, -1);
-    digitalWrite(RST, LOW); delay(20); digitalWrite(RST, HIGH); delay(120);
+    pinMode(pins_.cs, OUTPUT); pinMode(pins_.dc, OUTPUT); pinMode(pins_.rst, OUTPUT);
+    digitalWrite(pins_.cs, HIGH);
+    if (pins_.bl >= 0) {
+      pinMode(pins_.bl, OUTPUT);
+      digitalWrite(pins_.bl, pins_.blActiveLow ? HIGH : LOW); // backlight off until the first image is in place
+    }
+    if (pins_.button >= 0) {
+      pinMode(pins_.button, INPUT_PULLUP);
+    }
+    spi_.begin(pins_.sck, -1, pins_.mosi, -1);
+    digitalWrite(pins_.rst, LOW); delay(20); digitalWrite(pins_.rst, HIGH); delay(120);
     initPanel();
     fill(C_BG); push();
-    ledcAttach(BL, 5000, 8);
-    setBacklight(DisplayConfig::BRIGHT_DEFAULT);
+    if (pins_.bl >= 0) {
+      ledcAttach(pins_.bl, 5000, 8);
+      setBacklight(DisplayConfig::BRIGHT_DEFAULT);
+    }
   }
 
   // Backlight in percent. Active low: a higher duty is a dimmer screen. It is most of the screen's current, hence the setting.
   void setBacklight(uint8_t pct) {
+    if (pins_.bl < 0) return;
     if (pct == pct_) return;
     pct_ = pct;
-    ledcWrite(BL, 255 - (uint32_t)pct * 255 / 100);
+    uint32_t duty = pins_.blActiveLow ? (255 - (uint32_t)pct * 255 / 100) : ((uint32_t)pct * 255 / 100);
+    ledcWrite(pins_.bl, duty);
   }
 
   // ---- drawing -----------------------------------------------------------------------------------------------------
@@ -444,7 +469,7 @@ private:
       DisplaySnapshot s;
       portENTER_CRITICAL(&mux_); s = snap_; portEXIT_CRITICAL(&mux_);
       const uint32_t screenMs = s.config.seconds * 1000UL;
-      bool down = digitalRead(BUTTON) == LOW;
+      bool down = pins_.button >= 0 && digitalRead(pins_.button) == LOW;
       bool pressed = down && !wasDown; wasDown = down;
       const bool pressedRaw = pressed;
 
