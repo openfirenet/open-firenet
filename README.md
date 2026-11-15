@@ -277,7 +277,7 @@ What matters is the **mainboard firmware version** of the stove (menu Info on th
 | **2.28** (e.g. LIVO, INDUO II, SONO) | ✅ Supported | All values and settings, MultiAir included (no baking oven on these stoves) |
 | **2.26 / 2.27** (e.g. INDUO) | ✅ Supported | All values and settings (no MultiAir / baking oven on these stoves) |
 | **2.25** (e.g. SUMO) | ⚠️ Partial | Early support (bridge firmware 4.9 or later): the bridge reads the state, temperatures and inputs, and sets the mode, the manual power, the room set point, the reduced set point, the frost protection, the comfort power level and the weekly schedule (one time range a day, no per-day switch), and starts and stops the stove. Tried on one stove: the mode, the manual power, the room set point, the stop and the weekly schedule. **Not tried on a stove:** the start and the other settings. Room temperature in whole degrees. Please send the diagnostic file if you try it. Protocol notes in [PROTOCOL.md](PROTOCOL.md) |
-| **Older than 2.25** | ❓ Untested | Feedback welcome |
+| **Older than 2.25** | ❌ Not supported | No support is planned: have the stove's mainboard updated to 2.25 or later |
 
 ### ANIMO stoves
 
