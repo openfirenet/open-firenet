@@ -1,6 +1,6 @@
 # Changelog
 
-## Non publié
+## v5.1.0 (2026-11-15)
 
 ### New
 - ANIMO stoves are shown under their own model name on the page, in the API and over MQTT: AVITO, AVITO SLIM, AVITO RAO, ADEVO, PURE, ADUO, AMITO, ARONDO and ADUO 2. Until now only the PURE was; the others showed the name of the RIKA model with the same number. By @openfirenet, with the help of @RemixQ, whose ANIMO PURE showed how the stove tells its make (#112).
