@@ -1,5 +1,10 @@
 # Changelog
 
+## Non publié
+
+### Fixes
+- Bridge > Screen: choosing the ESP32-S3 Pocket Dongle asked to confirm the LilyGO T-Dongle-S3; both questions now name the board you chose, and the warning above the choice names both boards. The Spanish texts no longer call the bridge "tecla". By @openfirenet.
+
 ## v5.0.0 (2026-11-15)
 
 ### New
