@@ -1879,6 +1879,7 @@ const I18N = {
     healthMemory: "Mémoire libre",
     healthMemoryMin: "minimum {v}",
     healthPsramInactive: "détectée, inactive",
+    healthPsramQuad: "quad, non prise en charge",
     healthTemp: "Température de la puce",
     healthWifiDrops: "Déconnexions Wi-Fi",
     healthLastFrame: "Dernière trame du poêle",
@@ -2234,6 +2235,7 @@ const I18N = {
     healthMemory: "Free memory",
     healthMemoryMin: "lowest {v}",
     healthPsramInactive: "detected, inactive",
+    healthPsramQuad: "quad, not supported",
     healthTemp: "Chip temperature",
     healthWifiDrops: "Wi-Fi disconnections",
     healthLastFrame: "Last frame from the stove",
@@ -2609,6 +2611,7 @@ const I18N = {
     "healthMemory": "Memoria libera",
     "healthMemoryMin": "minimo {v}",
     "healthPsramInactive": "rilevata, inattiva",
+    "healthPsramQuad": "quad, non supportata",
     "healthTemp": "Temperatura del chip",
     "healthWifiDrops": "Disconnessioni Wi-Fi",
     "healthLastFrame": "Ultimo messaggio dalla stufa",
@@ -3004,6 +3007,7 @@ const I18N = {
     healthMemory: "Freier Speicher",
     healthMemoryMin: "Minimum {v}",
     healthPsramInactive: "erkannt, inaktiv",
+    healthPsramQuad: "Quad, nicht unterstützt",
     healthTemp: "Chip-Temperatur",
     healthWifiDrops: "WLAN-Verbindungsabbrüche",
     healthLastFrame: "Letzte Nachricht vom Ofen",
@@ -3359,6 +3363,7 @@ const I18N = {
     healthMemory: "Memoria libre",
     healthMemoryMin: "mínimo {v}",
     healthPsramInactive: "detectada, inactiva",
+    healthPsramQuad: "quad, no compatible",
     healthTemp: "Temperatura del chip",
     healthWifiDrops: "Desconexiones de Wi-Fi",
     healthLastFrame: "Última trama de la estufa",
@@ -5119,7 +5124,10 @@ function formatMemory(dev, h, t) {
     res += ' · PSRAM ' + freeMb + ' / ' + totalMb + ' MB';
   } else if (dev.hardware_psram && dev.hardware_psram_size) {
     const totalMb = Math.round(dev.hardware_psram_size / (1024 * 1024));
-    res += ' · PSRAM ' + totalMb + ' MB (' + (t.healthPsramInactive || 'inactive') + ')';
+    // Quad PSRAM (2 MB chips) cannot be used by the PSRAM build: the board keeps the standard one.
+    const note = dev.psram_build_supported === false ? (t.healthPsramQuad || 'quad, not supported')
+                                                     : (t.healthPsramInactive || 'inactive');
+    res += ' · PSRAM ' + totalMb + ' MB (' + note + ')';
   }
   return res;
 }

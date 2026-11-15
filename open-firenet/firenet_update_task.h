@@ -42,6 +42,13 @@ inline bool hasHardwarePsram() {
   return psramFound() || (hardwarePsramBytes() > 0);
 }
 
+// The PSRAM build drives the PSRAM in octal mode, which only the 8 MB and 16 MB chips have (ESP32-S3 R8, R16V). The
+// 2 MB chips (R2) have quad PSRAM, which that build cannot use: those boards keep the standard build.
+inline bool hasOctalPsram() {
+  if (psramFound()) return true;   // this is the PSRAM build and it found its PSRAM
+  return hardwarePsramBytes() >= 8UL * 1024UL * 1024UL;
+}
+
 class Updater {
 public:
   enum class State : uint8_t { Idle, Checking, Available, Downloading, Verifying, Installing, Error, Restarting };
@@ -120,7 +127,7 @@ private:
   static constexpr uint32_t HTTP_TIMEOUT_MS = 8000;
   static constexpr const char* BASE = "https://github.com/openfirenet/open-firenet/releases/latest/download/";
   static const char* imageName() {
-    return hasHardwarePsram() ? "open-firenet-ota-psram.bin" : "open-firenet-ota.bin";
+    return hasOctalPsram() ? "open-firenet-ota-psram.bin" : "open-firenet-ota.bin";
   }
   // Public key of the release signature (same as the installer's OFFICIAL_PUBLIC_KEY and minisign.pub).
   static constexpr const char* PUBKEY = "RWQhzS5dR0kodMCMiFMESBDRDhxMyRaA4yNbIcAMD2B9kQS21I+FABT4";
