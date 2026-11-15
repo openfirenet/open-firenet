@@ -32,6 +32,7 @@
 #include "firenet_crash.h"
 #include "esp_core_dump.h"   // summary of the last crash, left in flash by the chip
 #include "esp_app_desc.h"
+#include "firenet_mac.h"
 #include "mbedtls/sha256.h"
 #include "firenet_mqtt.h"
 #include <deque>
@@ -54,6 +55,7 @@ static String g_dispBootBoard = kDefaultBoard; // the choice the running firmwar
 #include "mqtt_client.h"   // esp-mqtt, Espressif's MQTT client shipped with the ESP32 core
 #include "esp_crt_bundle.h" // public certificate authorities, to verify a broker reached over TLS
 #include "web_ui.h"
+
 
 // Types used in function signatures are declared here, ahead of every function: the Arduino builder inserts its
 // generated prototypes before the first function of the sketch.
@@ -502,7 +504,7 @@ static String jsonState() {
       psramFound() ? (unsigned)ESP.getPsramSize() : 0,
       psramFound() ? (unsigned)ESP.getFreePsram() : 0,
     (g_isApMode?WiFi.softAPIP():WiFi.localIP()).toString().c_str(),
-    WiFi.macAddress().c_str(),
+    stationMac().c_str(),
     jsonEscape(WiFi.SSID()).c_str(),   // a network name may contain quotes
     WiFi.RSSI(),
     millis() / 1000UL,
@@ -902,7 +904,7 @@ static bool applySetDisplay(const String& line, Print& out) {
 // GETINFO  returns the dongle's MAC, local IP and firmware version over the serial port.
 static bool applyGetInfo(const String& line, Print& out) {
   if (line != "GETINFO" && line != "GETINFO:") return false;
-  String mac = WiFi.macAddress();
+  String mac = stationMac();
   String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
   String msg = String("[info] MAC=") + mac + " IP=" + ip + " VER=" + OPENFIRENET_VERSION;
   DBG.println(msg);
@@ -2036,7 +2038,7 @@ void setup() {
         if (g_isApMode) g_leaveApMode = true;                // done in loop(), not in the Wi-Fi event task
         DBG.printf("[wifi] GOT_IP %s\n", WiFi.localIP().toString().c_str());
         g_link->setCredentials(wifiSsid.c_str(), wifiPass.c_str(),
-                               WiFi.localIP().toString().c_str(), WiFi.macAddress().c_str());
+                               WiFi.localIP().toString().c_str(), stationMac().c_str());
         if (g_link->model().version_ack) {
           g_link->pushStatus();
         }
