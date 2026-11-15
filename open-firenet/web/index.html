@@ -1242,6 +1242,14 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="bridge-panel" id="bridge-net">
     <div class="card" style="gap:16px">
       <h3 id="lblNetTitle">Configuration Réseau</h3>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label for="ethernetBoard">Ethernet</label>
+        <select class="input-text" id="ethernetBoard">
+          <option value="none">Wi-Fi</option>
+          <option value="waveshare_s3_eth">Waveshare ESP32-S3-ETH (W5500)</option>
+        </select>
+        <button type="button" class="btn-lang" id="btnEthernetApply" onclick="saveEthernet()"><span class="lbl">OK</span></button>
+      </div>
       <div style="display:flex;justify-content:space-between;color:var(--text-dim);font-size:0.9rem;flex-wrap:wrap;gap:8px">
         <span><span id="lblNetModePrefix">Mode : </span><b id="netMode">--</b></span>
         <span>IP : <b id="netIp">--</b></span>
@@ -1842,7 +1850,7 @@ const I18N = {
     accessSaved: "Enregistré ✓",
     accessError: "Échec de l'enregistrement",
     mqttSaveFailed: "Non enregistré",
-    mqttStatus: { "disabled": "Désactivé", "connected": "Connecté", "connecting": "Connexion…", "waiting for Wi-Fi": "En attente du Wi-Fi", "broker unreachable": "Broker injoignable", "refused: wrong user or password": "Refusé : utilisateur ou mot de passe incorrect", "refused by the broker": "Refusé par le broker", "no answer from the broker": "Le broker ne répond pas", "connection lost": "Connexion perdue", "certificate not trusted": "Certificat non reconnu", "secure connection failed": "Échec de la connexion chiffrée" },
+    mqttStatus: { "disabled": "Désactivé", "connected": "Connecté", "connecting": "Connexion…", "waiting for network": "En attente du réseau", "broker unreachable": "Broker injoignable", "refused: wrong user or password": "Refusé : utilisateur ou mot de passe incorrect", "refused by the broker": "Refusé par le broker", "no answer from the broker": "Le broker ne répond pas", "connection lost": "Connexion perdue", "certificate not trusted": "Certificat non reconnu", "secure connection failed": "Échec de la connexion chiffrée" },
     netModePrefix: "Mode : ",
     netRssiPrefix: "Signal RSSI : ",
     joinWifi: "Rejoindre un réseau WiFi (2.4 GHz) :",
@@ -2198,7 +2206,7 @@ const I18N = {
     accessSaved: "Saved ✓",
     accessError: "Could not save",
     mqttSaveFailed: "Not saved",
-    mqttStatus: { "disabled": "Disabled", "connected": "Connected", "connecting": "Connecting…", "waiting for Wi-Fi": "Waiting for Wi-Fi", "broker unreachable": "Broker unreachable", "refused: wrong user or password": "Refused: wrong user or password", "refused by the broker": "Refused by the broker", "no answer from the broker": "No answer from the broker", "connection lost": "Connection lost", "certificate not trusted": "Certificate not trusted", "secure connection failed": "Secure connection failed" },
+    mqttStatus: { "disabled": "Disabled", "connected": "Connected", "connecting": "Connecting…", "waiting for network": "Waiting for network", "broker unreachable": "Broker unreachable", "refused: wrong user or password": "Refused: wrong user or password", "refused by the broker": "Refused by the broker", "no answer from the broker": "No answer from the broker", "connection lost": "Connection lost", "certificate not trusted": "Certificate not trusted", "secure connection failed": "Secure connection failed" },
     netModePrefix: "Mode: ",
     netRssiPrefix: "RSSI Signal: ",
     joinWifi: "Join a WiFi network (2.4 GHz):",
@@ -2566,7 +2574,7 @@ const I18N = {
       "disabled": "Disabilitato",
       "connected": "Connesso",
       "connecting": "Connessione…",
-      "waiting for Wi-Fi": "In attesa del Wi-Fi",
+      "waiting for network": "In attesa della rete",
       "broker unreachable": "Broker non raggiungibile",
       "refused: wrong user or password": "Rifiutata: utente o password errati",
       "refused by the broker": "Rifiutata dal broker",
@@ -2970,7 +2978,7 @@ const I18N = {
     accessSaved: "Gespeichert ✓",
     accessError: "Speichern fehlgeschlagen",
     mqttSaveFailed: "Nicht gespeichert",
-    mqttStatus: { "disabled": "Deaktiviert", "connected": "Verbunden", "connecting": "Verbinde…", "waiting for Wi-Fi": "Warte auf WLAN", "broker unreachable": "Broker nicht erreichbar", "refused: wrong user or password": "Abgelehnt: Benutzer oder Passwort falsch", "refused by the broker": "Vom Broker abgelehnt", "no answer from the broker": "Keine Antwort vom Broker", "connection lost": "Verbindung verloren", "certificate not trusted": "Zertifikat nicht vertrauenswürdig", "secure connection failed": "Verschlüsselte Verbindung fehlgeschlagen" },
+    mqttStatus: { "disabled": "Deaktiviert", "connected": "Verbunden", "connecting": "Verbinde…", "waiting for network": "Warte auf Netzwerk", "broker unreachable": "Broker nicht erreichbar", "refused: wrong user or password": "Abgelehnt: Benutzer oder Passwort falsch", "refused by the broker": "Vom Broker abgelehnt", "no answer from the broker": "Keine Antwort vom Broker", "connection lost": "Verbindung verloren", "certificate not trusted": "Zertifikat nicht vertrauenswürdig", "secure connection failed": "Verschlüsselte Verbindung fehlgeschlagen" },
     netModePrefix: "Modus: ",
     netRssiPrefix: "RSSI Signal: ",
     joinWifi: "WLAN-Netzwerk beitreten (2,4 GHz):",
@@ -3326,7 +3334,7 @@ const I18N = {
     accessSaved: "Guardado ✓",
     accessError: "No se pudo guardar",
     mqttSaveFailed: "No guardado",
-    mqttStatus: { "disabled": "Desactivado", "connected": "Conectado", "connecting": "Conectando…", "waiting for Wi-Fi": "Esperando Wi-Fi", "broker unreachable": "Broker inalcanzable", "refused: wrong user or password": "Rechazado: usuario o contraseña incorrectos", "refused by the broker": "Rechazado por el broker", "no answer from the broker": "Sin respuesta del broker", "connection lost": "Conexión perdida", "certificate not trusted": "Certificado no confiable", "secure connection failed": "Fallo en la conexión segura" },
+    mqttStatus: { "disabled": "Desactivado", "connected": "Conectado", "connecting": "Conectando…", "waiting for network": "Esperando la red", "broker unreachable": "Broker inalcanzable", "refused: wrong user or password": "Rechazado: usuario o contraseña incorrectos", "refused by the broker": "Rechazado por el broker", "no answer from the broker": "Sin respuesta del broker", "connection lost": "Conexión perdida", "certificate not trusted": "Certificado no confiable", "secure connection failed": "Fallo en la conexión segura" },
     netModePrefix: "Mode: ",
     netRssiPrefix: "Señal RSSI: ",
     joinWifi: "Conéctese a una red WiFi (2.4 GHz):",
@@ -3640,6 +3648,7 @@ function applyLang() {
   setLbl('btnLogDownload', t.logDownload);
   document.getElementById('btnLogClear').textContent = t.logClear;
   setLbl('btnRestart', t.btnRestart);
+  setLbl('btnEthernetApply', t.btnRestart);
   setSensorPlaceholder();
   document.getElementById('thSensorName').textContent = t.thSensorName;
   document.getElementById('thSensorId').textContent = t.thSensorId;
@@ -3833,6 +3842,31 @@ async function fetchLogs() {
   } catch (e) { /* silencieux */ }
 }
 function clearLog() { document.getElementById('logConsole').innerHTML = '(effacé, en attente…)'; }
+// --- Ethernet settings (begin)
+let ethernetLoaded = false;
+async function loadEthernet() {
+  if (ethernetLoaded) return;
+  try {
+    const r = await fetch('/api/ethernet');
+    if (!r.ok) return;
+    const setting = await r.json();
+    document.getElementById('ethernetBoard').value = setting.board;
+    ethernetLoaded = true;
+  } catch (e) { /* retry on the next state poll */ }
+}
+async function saveEthernet() {
+  const t = I18N[curLang] || I18N.en;
+  if (!(await askConfirm(t.confirmRestart))) return;
+  try {
+    const r = await fetch('/api/ethernet', {
+      method: 'POST',
+      body: new URLSearchParams({ board: document.getElementById('ethernetBoard').value })
+    });
+    if (!r.ok) { toast(t.btnApplyError); return; }
+    await restartDongle(true);
+  } catch (e) { toast(t.btnApplyError); }
+}
+// --- Ethernet settings (end)
 async function restartDongle(confirmed) {
   if (!confirmed && !(await askConfirm(I18N[curLang].confirmRestart))) return;
   try { await fetch('/api/restart', {method: 'POST'}); } catch (e) { /* la carte redémarre */ }
@@ -5555,6 +5589,7 @@ async function tick() {
     if (res.status === 403) { showRefused(await res.json()); return; }
     const s = await res.json();
     lastState = s;
+    loadEthernet();
 
     if (s.wifi_mode === 'AP' && !window.apHandled) {
       window.apHandled = true;
@@ -5868,13 +5903,13 @@ async function tick() {
 
     syncApplyButtons(!userInteracting);
 
-    document.getElementById('netMode').textContent = s.wifi_mode;
+    document.getElementById('netMode').textContent = s.network_mode || s.wifi_mode;
     // The hint about the captive portal only makes sense while the bridge runs its own setup network. It is shown
     // until the bridge says it is on the home network: in a captive portal the page may get no state at all.
-    document.getElementById('captiveHint').style.display = (s.wifi_mode === 'STA') ? 'none' : '';
+    document.getElementById('captiveHint').style.display = (s.wifi_mode !== 'AP') ? 'none' : '';
     document.getElementById('netIp').textContent = s.ip;
     const rssiVal = (s.device && s.device.wifi_rssi !== undefined) ? s.device.wifi_rssi : (rawS.rssi || '--');
-    document.getElementById('netRssi').textContent = rssiVal;
+    document.getElementById('netRssi').textContent = s.network_mode === 'ETH' ? '--' : rssiVal;
 
     // CDC Link
     document.getElementById('cdcRev').textContent = s.revision;

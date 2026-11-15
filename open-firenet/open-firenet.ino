@@ -14,6 +14,7 @@
 #include <mutex>
 #include <Arduino.h>
 #include <WiFi.h>
+#include "firenet_network.h"
 #include <WebServer.h>
 #include <ArduinoOTA.h>
 #include "firenet_update_task.h"
@@ -112,6 +113,7 @@ static volatile uint32_t g_wifiConnectAt = 0;   // connect STA différé (métho
 // ever giving up. The delay goes back to 1 s once an address is obtained.
 static volatile uint32_t g_wifiRetryMs = 1000;
 static volatile bool     g_leaveApMode = false;   // the Wi-Fi came back while the setup access point was up
+static String g_ethBoard = "none";
 static bool     g_isApMode = false;
 static bool     g_staConnected = false;
 static uint32_t g_staStart = 0;
@@ -525,7 +527,7 @@ static String jsonState() {
       firenet::hasOctalPsram() ? "true" : "false",
       psramFound() ? (unsigned)ESP.getPsramSize() : 0,
       psramFound() ? (unsigned)ESP.getFreePsram() : 0,
-    (g_isApMode?WiFi.softAPIP():WiFi.localIP()).toString().c_str(),
+    firenet::networkIP().toString().c_str(),
     stationMac().c_str(),
     jsonEscape(WiFi.SSID()).c_str(),   // a network name may contain quotes
     WiFi.RSSI(),
@@ -539,8 +541,10 @@ static String jsonState() {
   );
 
   String j = String(buf) + jsonStoveSections() + ",";
-  j += "\"wifi_mode\":\"" + String(g_isApMode?"AP":"STA") + "\",";
-  j += "\"ip\":\"" + (g_isApMode?WiFi.softAPIP():WiFi.localIP()).toString() + "\",";
+  j += "\"wifi_mode\":\"" + String(g_isApMode ? "AP" : (firenet::ethernetEnabled ? "OFF" : "STA")) + "\",";
+  j += "\"ip\":\"" + firenet::networkIP().toString() + "\",";
+  j += "\"network_mode\":\"" + String(firenet::networkMode()) + "\",";
+  j += "\"ethernet_connected\":" + String(firenet::ethernetEnabled && ETH.hasIP() ? "true" : "false") + ",";
   j += "\"wifi_connected\":" + String(WiFi.status()==WL_CONNECTED?"true":"false") + ",";
   j += "\"wifi_power_saving\":" + String(g_wifiPowerSaving?"true":"false") + ",";
   j += "\"uptime_seconds\":" + String(millis() / 1000UL) + ",";
@@ -775,7 +779,7 @@ static void updateDisplay() {
     d.errCode = sensorValue(m, "errMask32", 0);
     d.hopperOpen = m.sensors.count("hopperLidClosed") && sensorValue(m, "hopperLidClosed", 1) == 0;
   }
-  snprintf(d.ip, sizeof d.ip, "%s", (g_isApMode ? WiFi.softAPIP() : WiFi.localIP()).toString().c_str());
+  snprintf(d.ip, sizeof d.ip, "%s", firenet::networkIP().toString().c_str());
   d.wifi = g_isApMode || WiFi.status() == WL_CONNECTED;
   d.rssi = WiFi.RSSI();
   d.mqttOn = g_mqttCfg.enabled; d.mqttUp = g_mqttConnected;
@@ -910,6 +914,36 @@ static bool applySetOtaPass(const String& line, Print& out) {
   return true;
 }
 
+// SETETH:none | SETETH:waveshare_s3_eth; restart after changing the board.
+static bool applySetEthernet(const String& line, Print& out) {
+  if (!line.startsWith("SETETH:")) return false;
+  String board = line.substring(7); board.trim();
+  bool ok = firenet::validEthernetBoard(board);
+  if (ok && board != g_ethBoard) {
+    g_ethBoard = board;
+    prefs.begin("firenet", false); prefs.putString("eth_board", board); prefs.end();
+  }
+  out.println(ok ? "[eth] SETETH OK, effective after restart" : "[eth] SETETH: none or waveshare_s3_eth");
+  out.flush();
+  return true;
+}
+
+// Same setting over the LAN; changes apply at the next restart.
+static void handleEthernet() {
+  if (web.method() == HTTP_POST) {
+    String board = web.arg("board");
+    if (!firenet::validEthernetBoard(board)) {
+      web.send(400, "application/json", "{\"error\":\"unknown board\"}"); return;
+    }
+    if (board != g_ethBoard) {
+      g_ethBoard = board;
+      prefs.begin("firenet", false); prefs.putString("eth_board", board); prefs.end();
+    }
+  }
+  web.send(200, "application/json", String("{\"board\":\"") + g_ethBoard +
+           "\",\"restart_needed\":" + ((g_ethBoard != "none") != firenet::ethernetEnabled ? "true" : "false") + "}");
+}
+
 // SETDISPLAY:none | SETDISPLAY:tdongle | SETDISPLAY:pocket_dongle   chooses the board whose screen is driven; applied at the next restart.
 // The way back when a screen was switched on by mistake on a board that has none.
 static bool applySetDisplay(const String& line, Print& out) {
@@ -927,7 +961,7 @@ static bool applySetDisplay(const String& line, Print& out) {
 static bool applyGetInfo(const String& line, Print& out) {
   if (line != "GETINFO" && line != "GETINFO:") return false;
   String mac = stationMac();
-  String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
+  String ip = firenet::networkConnected() ? firenet::networkIP().toString() : "";
   String msg = String("[info] MAC=") + mac + " IP=" + ip + " VER=" + OPENFIRENET_VERSION;
   DBG.println(msg);
   if ((Print*)&out != (Print*)&DBG) {
@@ -972,7 +1006,7 @@ static void handleSerialProvisioning() {
     char c = (char)DBG.read();
     if (c == '\n' || c == '\r') {
       if (dbgLine.length() > 0) {
-        if (!applyGetInfo(dbgLine, DBG) && !applySetOtaPass(dbgLine, DBG) && !applySetDisplay(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
+        if (!applyGetInfo(dbgLine, DBG) && !applySetOtaPass(dbgLine, DBG) && !applySetDisplay(dbgLine, DBG) && !applySetEthernet(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
         dbgLine = "";
       }
     } else if (dbgLine.length() < 160) {
@@ -988,7 +1022,7 @@ static void handleSerialProvisioning() {
     char c = (char)b;
     if (c == '\n' || c == '\r') {
       if (stoveLine.length() > 0) {
-        if (!applyGetInfo(stoveLine, STOVE) && !applySetOtaPass(stoveLine, STOVE) && !applySetDisplay(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
+        if (!applyGetInfo(stoveLine, STOVE) && !applySetOtaPass(stoveLine, STOVE) && !applySetDisplay(stoveLine, STOVE) && !applySetEthernet(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
         stoveLine = "";
       }
     } else {
@@ -998,7 +1032,7 @@ static void handleSerialProvisioning() {
         stoveLine += c;
         if (stoveLine.length() == 7 && stoveLine.startsWith("GETINFO")) {
           // command matches
-        } else if (stoveLine.length() == 8 && stoveLine != "SETWIFI:" && stoveLine != "SETOTAPA" && !stoveLine.startsWith("GETINFO")) {
+        } else if (stoveLine.length() == 8 && stoveLine != "SETWIFI:" && stoveLine != "SETOTAPA" && !stoveLine.startsWith("SETETH:") && !stoveLine.startsWith("GETINFO")) {
           stoveLine = "";
         }
       }
@@ -1011,7 +1045,7 @@ static void startApMode() {
   // With a saved network the bridge keeps trying to join it while the setup access point is up: after a power
   // cut the home router takes minutes to come back, long after the bridge has started (issue #82). Without one
   // (first setup), only the access point.
-  WiFi.mode(wifiSsid.length() ? WIFI_AP_STA : WIFI_AP);
+  WiFi.mode(!firenet::ethernetEnabled && wifiSsid.length() ? WIFI_AP_STA : WIFI_AP);
   WiFi.softAP("Open-Firenet-Setup");   // réseau ouvert (sans mot de passe)
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.start(53, "*", WiFi.softAPIP());
@@ -1024,7 +1058,7 @@ static void handleCaptiveRedirect() {
     web.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + "/", true);
     web.send(302, "text/plain", "");
   } else {
-    web.sendHeader("Location", String("http://") + WiFi.localIP().toString() + "/", true);
+    web.sendHeader("Location", String("http://") + firenet::networkIP().toString() + "/", true);
     web.send(302, "text/plain", "");
   }
 }
@@ -1176,7 +1210,7 @@ static bool webGuard(WebServer& server, Middleware::Callback next) {
   std::string origin = server.header("Origin").c_str();
   if (firenet::webguard::requestAllowed(path, host, origin, g_extraHosts)) return next();
   DBG.printf("[web] refused %s (Host \"%s\", Origin \"%s\")\n", path.c_str(), host.c_str(), origin.c_str());
-  std::string ip = (g_isApMode ? WiFi.softAPIP() : WiFi.localIP()).toString().c_str();
+  std::string ip = firenet::networkIP().toString().c_str();
   server.send(403, "application/json", firenet::webguard::refusalJson(host, origin, ip, g_extraHosts).c_str());
   return true;
 }
@@ -1580,7 +1614,7 @@ static void mqttLoadSettings() {
 }
 
 static void mqttStart() {
-  uint8_t mac[6]; WiFi.macAddress(mac);
+  uint8_t mac[6] = {}; esp_read_mac(mac, ESP_MAC_WIFI_STA);
   char id[32]; snprintf(id, sizeof id, "open-firenet-%02x%02x%02x", mac[3], mac[4], mac[5]);
   g_mqttBase = g_mqttCfg.base.c_str();
   const std::string will = g_mqttBase + "/availability";
@@ -1663,7 +1697,7 @@ static void mqttStop() {
 static const char* mqttStatus() {
   if (!g_mqttCfg.enabled || g_mqttCfg.host.isEmpty()) return "disabled";
   if (g_mqttConnected) return "connected";
-  if (WiFi.status() != WL_CONNECTED) return "waiting for Wi-Fi";
+  if (!firenet::networkConnected()) return "waiting for network";
   switch (g_mqttError) {
     case 0: return "connecting";
     case -1: return "broker unreachable";
@@ -1683,7 +1717,7 @@ static bool mqttQueue(const std::string& leaf, const char* data, size_t len) {
 // Queues up to four discovery messages per call (see g_mqttDiscNext).
 static void mqttDiscoveryStep() {
   if (g_mqttDiscNext == SIZE_MAX) return;
-  uint8_t mac[6]; WiFi.macAddress(mac);
+  uint8_t mac[6] = {}; esp_read_mac(mac, ESP_MAC_WIFI_STA);
   char id[32]; snprintf(id, sizeof id, "openfirenet_%02x%02x%02x", mac[3], mac[4], mac[5]);
   firenet::mqtt::DiscoveryDevice dev;
   dev.id = id;
@@ -1691,7 +1725,7 @@ static void mqttDiscoveryStep() {
   dev.model = g_mqttDiscModel.c_str();
   dev.make = g_mqttDiscMake.c_str();
   dev.version = OPENFIRENET_VERSION;
-  dev.url = std::string("http://") + WiFi.localIP().toString().c_str();
+  dev.url = std::string("http://") + firenet::networkIP().toString().c_str();
   std::string topic, payload;
   for (int n = 0; n < 4; n++) {
     if (!firenet::mqtt::discoveryEntity(g_mqttDiscNext, dev, g_mqttDiscRemove, topic, payload)) {
@@ -1719,7 +1753,7 @@ static void mqttPublish() {
   mqttDiscoveryStep();
   char dev[160];
   snprintf(dev, sizeof dev, "{\"device\":{\"version\":\"" OPENFIRENET_VERSION "\",\"connected\":%s,\"ip\":\"%s\"}",
-           linked ? "true" : "false", WiFi.localIP().toString().c_str());
+           linked ? "true" : "false", firenet::networkIP().toString().c_str());
   // Before the stove is linked its values are not known: only the "device" object is published.
   // Built in place in a reserved buffer: concatenating the parts would copy the whole state several times.
   String state;
@@ -1764,8 +1798,8 @@ static void mqttLoop() {
   }
   if (!g_mqttClient) {
     if (g_mqttStopping) return;                              // the previous client is still being freed
-    // Started once Wi-Fi is up; from then on the client reconnects by itself.
-    if (g_mqttCfg.enabled && !g_mqttCfg.host.isEmpty() && !g_isApMode && WiFi.status() == WL_CONNECTED) mqttStart();
+    // Started once the LAN is up; from then on the client reconnects by itself.
+    if (g_mqttCfg.enabled && !g_mqttCfg.host.isEmpty() && firenet::networkConnected()) mqttStart();
     return;
   }
   for (;;) {
@@ -1950,14 +1984,17 @@ void setup() {
   logRingBegin();   // first: the largest block of memory is still whole
   {
     Preferences p; p.begin("firenet", true);
+    g_ethBoard = p.getString("eth_board", "none");
+    firenet::ethernetEnabled = g_ethBoard == "waveshare_s3_eth";
     g_dispBoard = p.getString("disp_board", kDefaultBoard);
     p.end();
     g_dispBootBoard = g_dispBoard;
-    g_display.setBoard(g_dispBoard.c_str());
-    if (g_dispBoard == "tdongle" || g_dispBoard == "pocket_dongle") {
+    // Ethernet owns the SPI pins on this board, including pins used by display profiles.
+    g_display.setBoard(firenet::ethernetEnabled ? "none" : g_dispBoard.c_str());
+    if (!firenet::ethernetEnabled && (g_dispBoard == "tdongle" || g_dispBoard == "pocket_dongle")) {
       g_dispActive = true;
       g_display.start();   // first, so that the logo shows while the rest starts
-    } else if (g_dispBoard == "tdongle_off" || g_dispBoard == "pocket_dongle_off") {
+    } else if (!firenet::ethernetEnabled && (g_dispBoard == "tdongle_off" || g_dispBoard == "pocket_dongle_off")) {
       g_display.blank();
     }
   }
@@ -2036,7 +2073,12 @@ void setup() {
   g_dispCfg.fromPrefs(prefs.getString("disp_cfg", "").c_str());   // screens of the small display
   prefs.end();
 
-  if (wifiSsid.length()) {
+  if (firenet::ethernetEnabled) {
+    WiFi.mode(WIFI_OFF);
+    g_staStart = millis() | 1;
+    g_link->setCredentials("Ethernet", "", "", stationMac().c_str());
+    if (!firenet::beginEthernet()) DBG.println("[eth] W5500 initialization failed; setup hotspot will open after 20 s");
+  } else if (wifiSsid.length()) {
     g_link->setCredentials(wifiSsid.c_str(), wifiPass.c_str());
     g_isApMode = false;
     g_staStart = millis();
@@ -2116,6 +2158,7 @@ void setup() {
   web.on("/api/wifi_power_saving", handleWifiPowerSaving);
   web.on("/api/log_size", handleLogSize);
   web.on("/api/display", handleDisplay);
+  web.on("/api/ethernet", handleEthernet);
   web.on("/api/wifi", HTTP_POST, handleWifi);
   web.on("/api/forget", HTTP_POST, handleForget);
   web.on("/api/scan", handleScan);
@@ -2151,6 +2194,20 @@ void setup() {
 
 // ---------------------------------------------------------------------- loop
 void loop() {
+  if (firenet::ethernetEnabled) {
+    static IPAddress previousIP;
+    IPAddress ip = ETH.hasIP() ? ETH.localIP() : IPAddress();
+    if (ip != previousIP) {
+      previousIP = ip;
+      bool connected = ETH.hasIP();
+      DBG.printf("[eth] %s %s\n", connected ? "GOT_IP" : "disconnected", ip.toString().c_str());
+      g_staStart = connected ? 0 : (millis() | 1);
+      if (connected && g_isApMode) g_leaveApMode = true;
+      g_link->setCredentials("Ethernet", "", connected ? ip.toString().c_str() : "", stationMac().c_str());
+      g_link->setRssi(0);
+      if (g_link->model().version_ack) g_link->pushStatus();
+    }
+  }
   if (g_dispActive) { static uint32_t lastDisp = 0; if (millis() - lastDisp >= 1000) { lastDisp = millis(); updateDisplay(); } }
   // 0) connect WiFi différé (laisse le driver se poser après config bas niveau)
   if (g_wifiConnectAt && (int32_t)(millis() - g_wifiConnectAt) >= 0) {
@@ -2168,12 +2225,12 @@ void loop() {
     dnsServer.stop();
     WiFi.softAPdisconnect(true);
     g_isApMode = false;
-    DBG.printf("[wifi] back on the home network (%s): setup access point closed\n", WiFi.localIP().toString().c_str());
+    DBG.printf("[net] back on the home network (%s): setup access point closed\n", firenet::networkIP().toString().c_str());
   }
 
   // Secours : si échec de connexion STA après 20s, basculer en AP pour permettre la configuration
-  if (!g_isApMode && !g_staConnected && g_staStart && (millis() - g_staStart > 20000)) {
-    DBG.println("[wifi] no connection after 20 s: setup access point started, still trying the saved network");
+  if (!g_isApMode && !firenet::networkConnected() && (firenet::ethernetEnabled || !g_staConnected) && g_staStart && (millis() - g_staStart > 20000)) {
+    DBG.println("[net] no connection after 20 s: setup access point started, still trying the LAN");
     g_staStart = 0;
     startApMode();
   }
