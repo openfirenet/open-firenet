@@ -4,7 +4,7 @@
   <img src="assets/brand-logo.png" alt="Open Firenet Logo" width="420">
 </p>
 
-Local WiFi bridge for RIKA pellet stoves — replaces the proprietary Firenet 2.0 cloud dongle with an ESP32-S3 that exposes a local REST API and web interface.
+Local WiFi bridge for RIKA and ANIMO pellet stoves — replaces the proprietary Firenet 2.0 cloud dongle (sold as "Wi-Fire" by ANIMO) with an ESP32-S3 that exposes a local REST API and web interface.
 
 No cloud account. No internet dependency. Works on your LAN.
 
@@ -279,6 +279,22 @@ What matters is the **mainboard firmware version** of the stove (menu Info on th
 | **2.25** (e.g. SUMO) | ⚠️ Partial | Early support (bridge firmware 4.9 or later): the bridge reads the state, temperatures and inputs, and sets the mode, the manual power, the room set point, the reduced set point, the frost protection, the comfort power level and the weekly schedule (one time range a day, no per-day switch), and starts and stops the stove. Tried on one stove: the mode, the manual power, the room set point, the stop and the weekly schedule. **Not tried on a stove:** the start and the other settings. Room temperature in whole degrees. Please send the diagnostic file if you try it. Protocol notes in [PROTOCOL.md](PROTOCOL.md) |
 | **Older than 2.25** | ❓ Untested | Feedback welcome |
 
+### ANIMO stoves
+
+ANIMO is RIKA's second make: same mainboards and same firmware, so the table above applies to them too, and the bridge works in the same way. The stove tells which make it is set to, and the bridge shows ANIMO and the ANIMO model name on its page, in the API (`stove.brand`, `stove.model_name`) and over MQTT. ANIMO numbers its models on its own:
+
+| Model ID | Model Name | MultiAir |
+|:---:|:---|:---|
+| **`1`** | **ANIMO AVITO** | MultiAir 1 & 2 (option) |
+| **`2`** | **ANIMO AVITO SLIM** |  |
+| **`3`** | **ANIMO AVITO RAO** |  |
+| **`4`** | **ANIMO ADEVO** |  |
+| **`5`** | **ANIMO PURE** ([#112](https://github.com/openfirenet/open-firenet/issues/112), firmware 2.29) | MultiAir 1 & 2 (option) |
+| **`6`** | **ANIMO ADUO** | MultiAir 1 & 2 (option) |
+| **`7`** | **ANIMO AMITO** |  |
+| **`8`** | **ANIMO ARONDO** |  |
+| **`9`** | **ANIMO ADUO 2** |  |
+
 ---
 
 ## MultiAir Compatibility
@@ -296,7 +312,7 @@ The MultiAir settings are displayed in the Web UI when the stove reports one of 
 | **`26`** | **RIKA CONNECT** | MultiAir 1 & 2 |
 | **`29`** | **RIKA PRIMO MULTIAIR** | MultiAir 1 & 2 |
 
-On any other model the card is hidden, and a link "My stove has MultiAir: show its settings" brings it up: use it if your stove is equipped and not in this list, and tell us so that we add it.
+ANIMO numbers its models on its own: on an ANIMO stove the card shows for the AVITO (1), PURE (5) and ADUO (6), which ANIMO sells with MultiAir as an option. On any other model the card is hidden, and a link "My stove has MultiAir: show its settings" brings it up: use it if your stove is equipped and not in this list, and tell us so that we add it.
 
 ---
 
