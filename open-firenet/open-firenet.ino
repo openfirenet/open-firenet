@@ -226,10 +226,30 @@ static const char* rikaModelName(long modelId) {
     default: return "RIKA";
   }
 }
-// fabNumber is the make the stove is set to ("Fabrikat": 1 = RIKA, 2 = ANIMO). Model 5 sold by ANIMO is the PURE (seen on a
-// 2.29 stove, issue #112); the other ANIMO models are not known by name yet, so they keep the RIKA name of their number.
+// ANIMO, RIKA's second make, numbers its models on its own, from 1: the ANIMO part of the model table of RIKA's
+// ComponentTest firmware 2.29 (AVITO, AVSLM, AVRAO, ADEVO, PURE, ADUO, AMITO, ARND, ADUO_2). Model 5 is the PURE of
+// issue #112.
+static const char* animoModelName(long modelId) {
+  switch (modelId) {
+    case 1: return "AVITO";
+    case 2: return "AVITO SLIM";
+    case 3: return "AVITO RAO";
+    case 4: return "ADEVO";
+    case 5: return "PURE";
+    case 6: return "ADUO";
+    case 7: return "AMITO";
+    case 8: return "ARONDO";
+    case 9: return "ADUO 2";
+    default: return nullptr;
+  }
+}
+// fabNumber is the make the stove is set to ("Fabrikat": 1 = RIKA, 2 = ANIMO). An ANIMO model missing from the table keeps
+// the RIKA name of its number.
 static const char* getStoveModelName(long modelId, long make = 1) {
-  if (make == 2 && modelId == 5) return "PURE";
+  if (make == 2) {
+    const char* animo = animoModelName(modelId);
+    if (animo) return animo;
+  }
   return rikaModelName(modelId);
 }
 static const char* getStoveBrand(long make) { return make == 2 ? "ANIMO" : "RIKA"; }

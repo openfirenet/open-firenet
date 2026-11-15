@@ -5703,7 +5703,10 @@ async function tick() {
     // MultiAir (RIKA models sold with it: 4=ROCO MA, 13=DOMO, 17=PARO, 22=SONO, 23=DOMO BACK, 25=SUMO MA, 26=CONNECT, 29=PRIMO MA)
     const deck = document.getElementById('multiairDeck');
     const MULTIAIR_MODELS = [4, 13, 17, 22, 23, 25, 26, 29];
-    const knownMultiAir = MULTIAIR_MODELS.includes(mId);
+    // ANIMO numbers its models on its own (4 is the ADEVO, not the ROCO MULTIAIR), and sells MultiAir as an option of the
+    // AVITO (1), PURE (5) and ADUO (6). Other ANIMO owners use the link below.
+    const ANIMO_MULTIAIR_MODELS = [1, 5, 6];
+    const knownMultiAir = (stObj.brand === 'ANIMO' ? ANIMO_MULTIAIR_MODELS : MULTIAIR_MODELS).includes(mId);
     const hasMultiAir = knownMultiAir || multiAirShown();
     // On a model that is not in the list, a link lets the owner show (or hide again) the MultiAir settings.
     const reveal = document.getElementById('multiairReveal');
