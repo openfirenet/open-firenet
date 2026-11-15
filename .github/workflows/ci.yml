@@ -98,11 +98,17 @@ jobs:
           arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core update-index
 
-      - name: Compile ESP32-S3 Sketch
+      - name: Compile ESP32-S3 Sketch (Standard & PSRAM)
         run: |
-          mkdir -p .build ~/.arduino15/build-cache
+          mkdir -p .build .build-psram ~/.arduino15/build-cache
           arduino-cli compile \
             --fqbn esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=default,FlashSize=4M,PartitionScheme=min_spiffs \
             --build-cache-path ~/.arduino15/build-cache \
             --output-dir .build \
+            open-firenet/open-firenet.ino
+
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=default,FlashSize=4M,PartitionScheme=min_spiffs,PSRAM=opi \
+            --build-cache-path ~/.arduino15/build-cache \
+            --output-dir .build-psram \
             open-firenet/open-firenet.ino

@@ -311,7 +311,7 @@ paths:
             schema:
               type: object
               properties:
-                board: { type: string, enum: [none, tdongle, tdongle_off] }
+                board: { type: string, enum: [none, tdongle, tdongle_off, pocket_dongle, pocket_dongle_off] }
                 seconds: { type: integer, minimum: 2, maximum: 30, description: Seconds each screen stays }
                 brightness: { type: integer, minimum: 5, maximum: 100 }
                 dim: { type: boolean }
@@ -508,7 +508,7 @@ components:
       type: object
       properties:
         available: { type: boolean, description: "True while the display is running (decided at boot by `board`); the screens below can then be set" }
-        board: { type: string, enum: [none, tdongle, tdongle_off], description: "The board the owner says has a screen: `none` (default), `tdongle` (LilyGO T-Dongle-S3, screen running) or `tdongle_off` (the same board, screen and backlight switched off). Stored; applies at the next restart" }
+        board: { type: string, enum: [none, tdongle, tdongle_off, pocket_dongle, pocket_dongle_off], description: "The board the owner says has a screen: `none` (default), `tdongle` (LilyGO T-Dongle-S3, screen running), `pocket_dongle` (ESP32-S3 Pocket Dongle, screen running), or their `_off` variant (screen switched off). Stored; applies at the next restart" }
         boards: { type: array, items: { type: string }, description: Boards this firmware can drive }
         restart_needed: { type: boolean, description: "True when `board` differs from what is running now" }
         seconds: { type: integer, minimum: 2, maximum: 30 }
@@ -644,6 +644,11 @@ components:
         wifi_rssi: { type: integer, description: Wi-Fi signal in dBm }
         uptime_seconds: { type: integer }
         free_heap: { type: integer, description: Free memory in bytes }
+        firmware_variant: { type: string, description: "Firmware variant: standard or psram" }
+        hardware_psram: { type: boolean, description: "True when the board has physical PSRAM detected via silicon eFuses" }
+        hardware_psram_size: { type: integer, description: "Physical PSRAM size in bytes detected via silicon eFuses (0 when none)" }
+        psram_size: { type: integer, description: "Total PSRAM size in bytes (0 when absent or disabled)" }
+        free_psram: { type: integer, description: "Free PSRAM memory in bytes (0 when absent or disabled)" }
         ota_slot_bytes: { type: integer, description: Size in bytes of the slot a wireless update is written to. A firmware larger than this must be installed over USB }
         ota_password_set: { type: boolean, description: "A password is asked for wireless updates. It is set or removed over USB with the installer, never over the network" }
         connected: { type: boolean, description: Same as `version_ack` }

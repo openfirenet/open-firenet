@@ -88,13 +88,19 @@ jobs:
           arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core update-index
 
-      - name: Compile ESP32-S3 Firmware
+      - name: Compile ESP32-S3 Firmware (Standard & PSRAM)
         run: |
-          mkdir -p .build ~/.arduino15/build-cache
+          mkdir -p .build .build-psram ~/.arduino15/build-cache
           arduino-cli compile \
             --fqbn esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=default,FlashSize=4M,PartitionScheme=min_spiffs \
             --build-cache-path ~/.arduino15/build-cache \
             --output-dir .build \
+            open-firenet/open-firenet.ino
+
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32s3:USBMode=default,CDCOnBoot=default,FlashSize=4M,PartitionScheme=min_spiffs,PSRAM=opi \
+            --build-cache-path ~/.arduino15/build-cache \
+            --output-dir .build-psram \
             open-firenet/open-firenet.ino
 
       - name: Package Release Assets
@@ -105,8 +111,13 @@ jobs:
           cp .build/open-firenet.ino.bootloader.bin dist/open-firenet-bootloader.bin
           cp .build/open-firenet.ino.partitions.bin dist/open-firenet-partitions.bin
 
+          cp .build-psram/open-firenet.ino.merged.bin dist/open-firenet-factory-psram.bin
+          cp .build-psram/open-firenet.ino.bin dist/open-firenet-ota-psram.bin
+          cp .build-psram/open-firenet.ino.bootloader.bin dist/open-firenet-bootloader-psram.bin
+
           cd dist
-          sha256sum open-firenet-factory.bin open-firenet-ota.bin open-firenet-bootloader.bin open-firenet-partitions.bin > SHA256SUMS
+          sha256sum open-firenet-factory.bin open-firenet-ota.bin open-firenet-bootloader.bin open-firenet-partitions.bin \
+                    open-firenet-factory-psram.bin open-firenet-ota-psram.bin open-firenet-bootloader-psram.bin > SHA256SUMS
           cat SHA256SUMS
 
       - name: Install Minisign
@@ -134,6 +145,8 @@ jobs:
           subject-path: |
             dist/open-firenet-factory.bin
             dist/open-firenet-ota.bin
+            dist/open-firenet-factory-psram.bin
+            dist/open-firenet-ota-psram.bin
             dist/SHA256SUMS
 
       - name: Create GitHub Release
@@ -150,5 +163,8 @@ jobs:
             dist/open-firenet-ota.bin
             dist/open-firenet-bootloader.bin
             dist/open-firenet-partitions.bin
+            dist/open-firenet-factory-psram.bin
+            dist/open-firenet-ota-psram.bin
+            dist/open-firenet-bootloader-psram.bin
             dist/SHA256SUMS
             dist/SHA256SUMS.minisig

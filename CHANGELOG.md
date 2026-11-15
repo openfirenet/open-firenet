@@ -2,6 +2,12 @@
 
 ## Non publié
 
+### New
+- ESP32-S3 Pocket Dongle (ESP32-S3 with 8 MB of PSRAM and a 0.96" colour screen): its screen can be switched on in the Bridge tab, Screen, by choosing "ESP32-S3 Pocket Dongle" as the board with a screen. It shows the same screens as on the LilyGO T-Dongle-S3.
+- Boards with octal PSRAM, such as the Pocket Dongle: a PSRAM version of the firmware is published next to the standard one (`open-firenet-factory-psram.bin`, `open-firenet-ota-psram.bin`). On such a board it keeps the exchange log in PSRAM (256 kB by default) instead of the internal memory, which leaves more of it free. Why: on boards without PSRAM, the screen, MQTT and the secure connections used for updates all share the small internal memory. On a LilyGO T-Dongle-S3 it ran out (#121, #125), and the screen now has to be paused or switched off while the bridge checks for or downloads an update. The PSRAM gives them room. The standard version still runs on these boards, without their PSRAM or their screen.
+- On a board with PSRAM, the firmware update of the page installs the PSRAM version, also when the board runs the standard one.
+- `/api/state` tells which version runs (`device.firmware_variant`: `standard` or `psram`), whether the chip has PSRAM and how much (`device.hardware_psram`, `device.hardware_psram_size`), and the PSRAM the firmware uses (`device.psram_size`, `device.free_psram`). The Diagnostics tab shows the memory and the PSRAM.
+
 ### Changes
 - Stoves on firmware 2.25: the bridge now sends a start even when the stove is still hot after a stop. The stove waits by itself until it has cooled down enough (139 °C at the flame sensor) before it ignites. Before, the bridge refused the start with "not accepted" until the flame sensor was under 100 °C. (#143)
 

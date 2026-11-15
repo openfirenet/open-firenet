@@ -21,9 +21,12 @@ public:
   }
   static int idOf(const std::string& n) { for (int i = 0; i < COUNT; i++) if (n == idName(i)) return i; return -1; }
 
-  // Boards with a screen the firmware knows how to drive: "tdongle" runs it, "tdongle_off" only blanks it (backlight off). "none" is the default: the pins of another board may be wired to
-  // something else, so a screen is only driven when the owner says there is one.
-  static bool validBoard(const std::string& b) { return b == "none" || b == "tdongle" || b == "tdongle_off"; }
+  // Boards with a screen the firmware knows how to drive: "tdongle" runs it, "tdongle_off" only blanks it (backlight off).
+  // "pocket_dongle" runs the ESP32-S3 Pocket Dongle, "pocket_dongle_off" blanks it.
+  // "none" is the default: the pins of another board may be wired to something else, so a screen is only driven when the owner says there is one.
+  static bool validBoard(const std::string& b) {
+    return b == "none" || b == "tdongle" || b == "tdongle_off" || b == "pocket_dongle" || b == "pocket_dongle_off";
+  }
 
   DisplayConfig() { reset(); }
   void reset() {
@@ -127,7 +130,7 @@ public:
 
   // `active`: the display is running now; `board`: the choice stored (it applies at the next restart); `restartNeeded`: they differ.
   std::string json(bool active, const std::string& board = "none", bool restartNeeded = false) const {
-    std::string j = std::string("{\"available\":") + (active ? "true" : "false") + ",\"board\":\"" + board + "\",\"boards\":[\"none\",\"tdongle\",\"tdongle_off\"],\"restart_needed\":" +
+    std::string j = std::string("{\"available\":") + (active ? "true" : "false") + ",\"board\":\"" + board + "\",\"boards\":[\"none\",\"tdongle\",\"pocket_dongle\",\"tdongle_off\",\"pocket_dongle_off\"],\"restart_needed\":" +
                     (restartNeeded ? "true" : "false") + ",\"seconds\":" + std::to_string(seconds) + ",\"brightness\":" + std::to_string(brightness) +
                     ",\"dim\":" + (dim ? "true" : "false") + ",\"dim_after\":" + std::to_string(dimAfter) + ",\"dim_level\":" + std::to_string(dimLevel) + ",\"rotate\":" + (rotate ? "true" : "false") + ",\"language\":\"" + languageName(language) + "\"" + ",\"screens\":[";
     for (int i = 0; i < COUNT; i++) {

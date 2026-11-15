@@ -32,6 +32,7 @@
 #include "firenet_crash.h"
 #include "esp_core_dump.h"   // summary of the last crash, left in flash by the chip
 #include "esp_app_desc.h"
+#include "firenet_mac.h"
 #include "mbedtls/sha256.h"
 #include "firenet_mqtt.h"
 #include <deque>
@@ -39,9 +40,11 @@
 static firenet::DisplayConfig g_dispCfg;   // which screens the small display shows, and in which order
 #include "firenet_display.h"
 static firenet::Display g_display;
-// The screen is driven only on the board the owner chose ("tdongle"), never by guesswork: other boards may have something
-// else on those pins. Stored in flash, applied at the next restart. A build with -DFIRENET_DISPLAY_TDONGLE=1 starts with it on.
-#if defined(FIRENET_DISPLAY_TDONGLE)
+// The screen is driven only on the board the owner chose ("tdongle" or "pocket_dongle"), never by guesswork: other boards may have something
+// else on those pins. Stored in flash, applied at the next restart.
+#if defined(FIRENET_DISPLAY_POCKET_DONGLE)
+static const char* const kDefaultBoard = "pocket_dongle";
+#elif defined(FIRENET_DISPLAY_TDONGLE)
 static const char* const kDefaultBoard = "tdongle";
 #else
 static const char* const kDefaultBoard = "none";
@@ -52,6 +55,7 @@ static String g_dispBootBoard = kDefaultBoard; // the choice the running firmwar
 #include "mqtt_client.h"   // esp-mqtt, Espressif's MQTT client shipped with the ESP32 core
 #include "esp_crt_bundle.h" // public certificate authorities, to verify a broker reached over TLS
 #include "web_ui.h"
+
 
 // Types used in function signatures are declared here, ahead of every function: the Arduino builder inserts its
 // generated prototypes before the first function of the sketch.
@@ -471,7 +475,7 @@ static String jsonState() {
   const char* stName; const char* stLabel; bool isBurning;
   mainStateNames(sensorValue(m, "mainState", 1), sensorValue(m, "subState", 0), sensorValue(m, "flame", 0), stName, stLabel, isBurning);
 
-  char buf[600];
+  char buf[700];
   snprintf(buf, sizeof(buf),
     "{"
     "\"device\":{"
@@ -479,6 +483,11 @@ static String jsonState() {
       "\"version\":\"" OPENFIRENET_VERSION "\","
       "\"app_version\":\"" OPENFIRENET_VERSION "\","
       "\"firmware_version\":\"" OPENFIRENET_VERSION "\","
+      "\"firmware_variant\":\"%s\","
+      "\"hardware_psram\":%s,"
+      "\"hardware_psram_size\":%u,"
+      "\"psram_size\":%u,"
+      "\"free_psram\":%u,"
       "\"ip\":\"%s\","
       "\"mac\":\"%s\","
       "\"wifi_ssid\":\"%s\","
@@ -489,8 +498,13 @@ static String jsonState() {
       "\"ota_password_set\":%s,"
       "\"connected\":%s"
     "},",
+      psramFound() ? "psram" : "standard",
+      firenet::hasHardwarePsram() ? "true" : "false",
+      (unsigned)firenet::hardwarePsramBytes(),
+      psramFound() ? (unsigned)ESP.getPsramSize() : 0,
+      psramFound() ? (unsigned)ESP.getFreePsram() : 0,
     (g_isApMode?WiFi.softAPIP():WiFi.localIP()).toString().c_str(),
-    WiFi.macAddress().c_str(),
+    stationMac().c_str(),
     jsonEscape(WiFi.SSID()).c_str(),   // a network name may contain quotes
     WiFi.RSSI(),
     millis() / 1000UL,
@@ -874,16 +888,31 @@ static bool applySetOtaPass(const String& line, Print& out) {
   return true;
 }
 
-// SETDISPLAY:none | SETDISPLAY:tdongle   chooses the board whose screen is driven; applied at the next restart. The way back
-// when a screen was switched on by mistake on a board that has none.
+// SETDISPLAY:none | SETDISPLAY:tdongle | SETDISPLAY:pocket_dongle   chooses the board whose screen is driven; applied at the next restart.
+// The way back when a screen was switched on by mistake on a board that has none.
 static bool applySetDisplay(const String& line, Print& out) {
   if (!line.startsWith("SETDISPLAY:")) return false;
   String b = line.substring(11); b.trim();
   bool ok = firenet::DisplayConfig::validBoard(b.c_str());
   if (ok) { g_dispBoard = b; prefs.begin("firenet", false); prefs.putString("disp_board", g_dispBoard); prefs.end(); }
-  const char* msg = ok ? "[display] SETDISPLAY OK, effective after restart" : "[display] SETDISPLAY: none or tdongle";
+  const char* msg = ok ? "[display] SETDISPLAY OK, effective after restart" : "[display] SETDISPLAY: none, tdongle or pocket_dongle";
   DBG.println(msg);
   if ((Print*)&out != (Print*)&DBG) { out.print(msg); out.print("\r\n"); out.flush(); }
+  return true;
+}
+
+// GETINFO  returns the dongle's MAC, local IP and firmware version over the serial port.
+static bool applyGetInfo(const String& line, Print& out) {
+  if (line != "GETINFO" && line != "GETINFO:") return false;
+  String mac = stationMac();
+  String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
+  String msg = String("[info] MAC=") + mac + " IP=" + ip + " VER=" + OPENFIRENET_VERSION;
+  DBG.println(msg);
+  if ((Print*)&out != (Print*)&DBG) {
+    out.print(msg);
+    out.print("\r\n");
+    out.flush();
+  }
   return true;
 }
 
@@ -921,7 +950,7 @@ static void handleSerialProvisioning() {
     char c = (char)DBG.read();
     if (c == '\n' || c == '\r') {
       if (dbgLine.length() > 0) {
-        if (!applySetOtaPass(dbgLine, DBG) && !applySetDisplay(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
+        if (!applyGetInfo(dbgLine, DBG) && !applySetOtaPass(dbgLine, DBG) && !applySetDisplay(dbgLine, DBG)) applySetWifi(dbgLine, DBG);
         dbgLine = "";
       }
     } else if (dbgLine.length() < 160) {
@@ -937,15 +966,17 @@ static void handleSerialProvisioning() {
     char c = (char)b;
     if (c == '\n' || c == '\r') {
       if (stoveLine.length() > 0) {
-        if (!applySetOtaPass(stoveLine, STOVE) && !applySetDisplay(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
+        if (!applyGetInfo(stoveLine, STOVE) && !applySetOtaPass(stoveLine, STOVE) && !applySetDisplay(stoveLine, STOVE)) applySetWifi(stoveLine, STOVE);
         stoveLine = "";
       }
     } else {
       if (stoveLine.length() == 0) {
-        if (c == 'S') stoveLine += c;
+        if (c == 'S' || c == 'G') stoveLine += c;
       } else if (stoveLine.length() < 160) {
         stoveLine += c;
-        if (stoveLine.length() == 8 && stoveLine != "SETWIFI:" && stoveLine != "SETOTAPA") {
+        if (stoveLine.length() == 7 && stoveLine.startsWith("GETINFO")) {
+          // command matches
+        } else if (stoveLine.length() == 8 && stoveLine != "SETWIFI:" && stoveLine != "SETOTAPA" && !stoveLine.startsWith("GETINFO")) {
           stoveLine = "";
         }
       }
@@ -1016,9 +1047,9 @@ static void handleScan() {
 // 32 KB: the ring is reserved in RAM at boot, so it is taken from the free memory at all times. 96 KB left a DOMO
 // 2.29 with only ~25 KB of free heap at its lowest; 48 KB left 14 KB during a TLS connection to an MQTT broker.
 // Repeated lines are merged, so 32 KB still holds a few minutes of normal traffic.
-// The history of the exchanges with the stove: 16 kB by default, 32 kB when the owner asks for it (Bridge > System). It is allocated
+// The history of the exchanges with the stove: 16 kB by default (256 kB when PSRAM is present), 32 kB when the owner asks for it (Bridge > System). It is allocated
 // at start, so a change applies at the next restart; when the memory is not there, the smaller size is used.
-static const size_t LOG_RING_SMALL = 16 * 1024, LOG_RING_LARGE = 32 * 1024;
+static const size_t LOG_RING_SMALL = 16 * 1024, LOG_RING_LARGE = 32 * 1024, LOG_RING_PSRAM = 256 * 1024;
 static char*    g_logRing = nullptr;
 static size_t   g_logSize = 0;               // bytes of g_logRing, 0 until allocated
 static size_t   g_logWantedKb = 16;          // the stored choice
@@ -1030,8 +1061,15 @@ static uint32_t g_pendCount = 0, g_pendLastMs = 0;
 
 static void logRingBegin() {
   Preferences lp; lp.begin("firenet", true);
-  g_logWantedKb = lp.getUChar("log_kb", 16) == 32 ? 32 : 16;
+  uint16_t stored = lp.getUShort("log_kb", lp.getUChar("log_kb", 0));
   lp.end();
+  if (psramFound()) {
+    g_logWantedKb = (stored == 16 || stored == 32 || stored == 256) ? stored : 256;
+    size_t want = g_logWantedKb * 1024;
+    g_logRing = (char*)ps_malloc(want);
+    if (g_logRing) { g_logSize = want; return; }
+  }
+  g_logWantedKb = (stored == 32) ? 32 : 16;
   size_t want = g_logWantedKb == 32 ? LOG_RING_LARGE : LOG_RING_SMALL;
   g_logRing = (char*)malloc(want);
   g_logSize = g_logRing ? want : 0;
@@ -1865,7 +1903,7 @@ static void handleLog() {
   web.sendContent("");
 }
 
-// GET/POST /api/log_size {"kb":16|32} -> the size of the history of the exchanges with the stove. Stored; applied at the next restart.
+// GET/POST /api/log_size {"kb":16|32|256} -> the size of the history of the exchanges with the stove. Stored; applied at the next restart.
 static void handleLogSize() {
   if (web.method() == HTTP_POST) {
     std::vector<std::pair<std::string, std::string>> kv;
@@ -1873,14 +1911,16 @@ static void handleLogSize() {
     for (int i = 0; i < web.args(); i++) if (web.argName(i) != "plain") kv.push_back({web.argName(i).c_str(), web.arg(i).c_str()});
     for (const auto& p : kv) if (p.first == "kb") {
       int kb = atoi(p.second.c_str());
-      if (kb != 16 && kb != 32) { web.send(400, "application/json", "{\"ok\":false,\"error\":\"kb must be 16 or 32\"}"); return; }
+      bool ok = (kb == 16 || kb == 32 || (psramFound() && kb == 256));
+      if (!ok) { web.send(400, "application/json", "{\"ok\":false,\"error\":\"invalid kb\"}"); return; }
       g_logWantedKb = (size_t)kb;
-      Preferences lp; lp.begin("firenet", false); lp.putUChar("log_kb", (uint8_t)kb); lp.end();
+      Preferences lp; lp.begin("firenet", false); lp.putUShort("log_kb", (uint16_t)kb); lp.end();
     }
   }
   size_t running = g_logSize / 1024;
+  String opts = psramFound() ? "[16,32,256]" : "[16,32]";
   web.send(200, "application/json", String("{\"ok\":true,\"kb\":") + (unsigned)g_logWantedKb + ",\"running_kb\":" + (unsigned)running +
-           ",\"options\":[16,32],\"restart_needed\":" + (running != g_logWantedKb ? "true" : "false") + "}");
+           ",\"options\":" + opts + ",\"restart_needed\":" + (running != g_logWantedKb ? "true" : "false") + "}");
 }
 
 // --------------------------------------------------------------------- setup
@@ -1891,13 +1931,32 @@ void setup() {
     g_dispBoard = p.getString("disp_board", kDefaultBoard);
     p.end();
     g_dispBootBoard = g_dispBoard;
-    if (g_dispBoard == "tdongle") { g_dispActive = true; g_display.start(); }   // first, so that the logo shows while the rest starts
-    else if (g_dispBoard == "tdongle_off") g_display.blank();
+    g_display.setBoard(g_dispBoard.c_str());
+    if (g_dispBoard == "tdongle" || g_dispBoard == "pocket_dongle") {
+      g_dispActive = true;
+      g_display.start();   // first, so that the logo shows while the rest starts
+    } else if (g_dispBoard == "tdongle_off" || g_dispBoard == "pocket_dongle_off") {
+      g_display.blank();
+    }
   }
   readRestartReason();
   loadCrashInfo();
   DBG.begin(115200);
   DBG.println("\n[Open Firenet] boot");
+  if (psramFound()) {
+    char b[64];
+    snprintf(b, sizeof(b), "PSRAM: %u KB total, %u KB free", (unsigned)(ESP.getPsramSize() / 1024), (unsigned)(ESP.getFreePsram() / 1024));
+    logEntry("sys", b);
+    DBG.println(b);
+  } else if (firenet::hasHardwarePsram()) {
+    char b[80];
+    snprintf(b, sizeof(b), "PSRAM: %u KB detected via eFuse (standard build)", (unsigned)(firenet::hardwarePsramBytes() / 1024));
+    logEntry("sys", b);
+    DBG.println(b);
+  } else {
+    logEntry("sys", "PSRAM: not detected");
+    DBG.println("PSRAM: not detected");
+  }
   buildNames();
 
   // USB CDC avec les identifiants fixés AVANT begin
@@ -1979,7 +2038,7 @@ void setup() {
         if (g_isApMode) g_leaveApMode = true;                // done in loop(), not in the Wi-Fi event task
         DBG.printf("[wifi] GOT_IP %s\n", WiFi.localIP().toString().c_str());
         g_link->setCredentials(wifiSsid.c_str(), wifiPass.c_str(),
-                               WiFi.localIP().toString().c_str(), WiFi.macAddress().c_str());
+                               WiFi.localIP().toString().c_str(), stationMac().c_str());
         if (g_link->model().version_ack) {
           g_link->pushStatus();
         }
