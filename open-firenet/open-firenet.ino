@@ -486,6 +486,7 @@ static String jsonState() {
       "\"firmware_variant\":\"%s\","
       "\"hardware_psram\":%s,"
       "\"hardware_psram_size\":%u,"
+      "\"psram_build_supported\":%s,"
       "\"psram_size\":%u,"
       "\"free_psram\":%u,"
       "\"ip\":\"%s\","
@@ -501,6 +502,7 @@ static String jsonState() {
       psramFound() ? "psram" : "standard",
       firenet::hasHardwarePsram() ? "true" : "false",
       (unsigned)firenet::hardwarePsramBytes(),
+      firenet::hasOctalPsram() ? "true" : "false",
       psramFound() ? (unsigned)ESP.getPsramSize() : 0,
       psramFound() ? (unsigned)ESP.getFreePsram() : 0,
     (g_isApMode?WiFi.softAPIP():WiFi.localIP()).toString().c_str(),
@@ -1950,7 +1952,9 @@ void setup() {
     DBG.println(b);
   } else if (firenet::hasHardwarePsram()) {
     char b[80];
-    snprintf(b, sizeof(b), "PSRAM: %u KB detected via eFuse (standard build)", (unsigned)(firenet::hardwarePsramBytes() / 1024));
+    snprintf(b, sizeof(b), firenet::hasOctalPsram() ? "PSRAM: %u KB detected via eFuse (standard build)"
+                                                    : "PSRAM: %u KB quad, not supported (standard build)",
+             (unsigned)(firenet::hardwarePsramBytes() / 1024));
     logEntry("sys", b);
     DBG.println(b);
   } else {
