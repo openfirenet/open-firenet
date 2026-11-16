@@ -254,7 +254,7 @@ paths:
     post:
       tags: [Bridge]
       summary: Set the Wi-Fi network, then restart
-      description: Sent by the setup form. Answers an HTML confirmation page (it has to work in captive portal browsers), then the bridge restarts on that network.
+      description: Sent by the setup form. Answers an HTML confirmation page (it has to work in captive portal browsers), then the bridge restarts on that network. Saving credentials also selects Wi-Fi instead of Ethernet.
       requestBody:
         required: true
         content:
@@ -623,6 +623,7 @@ components:
         controls: { $ref: "#/components/schemas/ControlsState" }
         wifi_mode: { type: string, enum: [STA, AP, "OFF"], description: "Wi-Fi mode: AP during setup, STA on the home Wi-Fi, OFF in Ethernet mode without the recovery hotspot" }
         network_mode: { type: string, enum: [STA, AP, ETH, "OFF"], description: "Active network interface; Ethernet takes priority over the recovery hotspot" }
+        ethernet_enabled: { type: boolean, description: "Running in Ethernet mode, including while the recovery hotspot is open" }
         ethernet_connected: { type: boolean, description: "W5500 has an IP address" }
         wifi_power_saving: { type: boolean, description: "Whether Wi-Fi power saving is on, see `/api/wifi_power_saving`" }
         ip: { type: string }

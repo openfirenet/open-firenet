@@ -544,6 +544,7 @@ static String jsonState() {
   j += "\"wifi_mode\":\"" + String(g_isApMode ? "AP" : (firenet::ethernetEnabled ? "OFF" : "STA")) + "\",";
   j += "\"ip\":\"" + firenet::networkIP().toString() + "\",";
   j += "\"network_mode\":\"" + String(firenet::networkMode()) + "\",";
+  j += "\"ethernet_enabled\":" + String(firenet::ethernetEnabled ? "true" : "false") + ",";
   j += "\"ethernet_connected\":" + String(firenet::ethernetEnabled && ETH.hasIP() ? "true" : "false") + ",";
   j += "\"wifi_connected\":" + String(WiFi.status()==WL_CONNECTED?"true":"false") + ",";
   j += "\"wifi_power_saving\":" + String(g_wifiPowerSaving?"true":"false") + ",";
@@ -842,6 +843,8 @@ static void handleWifi() {
     return;
   }
   prefs.begin("firenet", false);
+  prefs.putString("eth_board", "none");
+  g_ethBoard = "none";
   prefs.putString("ssid", web.arg("ssid"));
   prefs.putString("pass", web.hasArg("pass") ? web.arg("pass") : "");
   prefs.end();
@@ -980,6 +983,8 @@ static bool applySetWifi(const String& line, Print& out) {
       String ssid = rest.substring(0, sep);
       String pass = rest.substring(sep + 1);
       prefs.begin("firenet", false);
+      prefs.putString("eth_board", "none");
+      g_ethBoard = "none";
       prefs.putString("ssid", ssid);
       prefs.putString("pass", pass);
       prefs.end();

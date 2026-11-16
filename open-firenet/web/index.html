@@ -726,6 +726,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 #screenBright::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #f97316; border: 3px solid #f1f5f9; box-shadow: 0 0 8px rgba(249,115,22,0.6); }
 #screenBright:focus-visible { box-shadow: 0 0 0 3px rgba(249,115,22,0.35); }
 /* Screen off: the whole configuration stays visible but cannot be changed */
+.scr-savebar button:disabled { opacity: 0.4; filter: grayscale(1); cursor: default; }
 .scr-disabled { opacity: 0.45; pointer-events: none; }
 .scr-savebar { display: none; position: sticky; bottom: 8px; z-index: 5; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; padding: 10px 14px; border: 1px solid var(--amber); border-radius: 12px; background: #11151f; box-shadow: 0 4px 16px rgba(0,0,0,0.45); }
 /* Screen tab: one card per screen of the key's display, drawn as the key draws it */
@@ -1243,18 +1244,23 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="card" style="gap:16px">
       <h3 id="lblNetTitle">Configuration Réseau</h3>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <label for="ethernetBoard">Ethernet</label>
-        <select class="input-text" id="ethernetBoard">
-          <option value="none">Wi-Fi</option>
-          <option value="waveshare_s3_eth">Waveshare ESP32-S3-ETH (W5500)</option>
+        <label for="ethernetBoard" id="lblConnection">Connexion</label>
+        <select class="input-text" id="ethernetBoard" onchange="updateEthernetDirty()" disabled>
+          <option value="none" id="optConnectionWifi">Wi-Fi</option>
+          <option value="waveshare_s3_eth" id="optConnectionEthernet">Ethernet (Waveshare ESP32-S3-ETH)</option>
         </select>
-        <button type="button" class="btn-lang" id="btnEthernetApply" onclick="saveEthernet()"><span class="lbl">OK</span></button>
+      </div>
+      <div class="scr-savebar" id="connectionSaveRow" style="display:flex;justify-content:flex-end">
+        <span id="lblConnectionUnsaved" style="color:var(--amber);margin-right:auto" hidden></span>
+        <button type="button" class="btn-lang" id="btnConnectionCancel" style="padding:6px 12px;font-size:0.85rem" onclick="cancelEthernet()" disabled></button>
+        <button type="button" class="power-btn" id="btnConnectionSave" style="padding:6px 16px;font-size:0.85rem" onclick="saveEthernet()" disabled></button>
       </div>
       <div style="display:flex;justify-content:space-between;color:var(--text-dim);font-size:0.9rem;flex-wrap:wrap;gap:8px">
         <span><span id="lblNetModePrefix">Mode : </span><b id="netMode">--</b></span>
         <span>IP : <b id="netIp">--</b></span>
-        <span><span id="lblNetRssiPrefix">Signal RSSI : </span><b id="netRssi">--</b> dBm</span>
+        <span id="wifiSignal"><span id="lblNetRssiPrefix">Signal RSSI : </span><b id="netRssi">--</b> dBm</span>
       </div>
+      <div id="wifiSettings">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <label id="lblJoinWifi" style="font-size:0.9rem;font-weight:600">Rejoindre un réseau WiFi (2.4 GHz) :</label>
         <button class="btn-lang" id="btnScan" style="padding:4px 10px;font-size:0.8rem" onclick="scanWifi()"><span class="ic-slot" data-ic="refresh-cw"></span> <span class="lbl">Scanner</span></button>
@@ -1278,6 +1284,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         </div>
         <p id="captiveHint" style="font-size:0.8rem;color:var(--text-dim);margin:2px 0 0 0;text-align:center"></p>
       </form>
+      </div>
     </div>
     <div class="card" style="gap:12px" id="wifiPsCard">
       <h3 id="lblWifiPsTitle"></h3>
@@ -1748,6 +1755,12 @@ const I18N = {
     screenApply: "Valider",
     screenCancel: "Annuler",
     screenUnsaved: "Modifications non enregistrées",
+    connectionLabel: "Connexion",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Enregistrer et redémarrer",
+    connectionConfirm1: "Uniquement pour une Waveshare ESP32-S3-ETH. Le Wi-Fi sera désactivé et les GPIO 9 à 14 seront utilisés ; sur une autre carte, ils peuvent servir à autre chose. Si la connexion filaire ne reçoit pas d’adresse sous 20 secondes, le point d’accès Open-Firenet-Setup s’ouvre pour vous permettre de revenir au Wi-Fi.",
+    connectionConfirm2: "Dernière confirmation : êtes-vous certain que cette clé est une Waveshare ESP32-S3-ETH ?",
     screenBoardTitle: "Matériel",
     screenBoardLabel: "Carte avec écran :",
     screenBoardNone: "Aucun",
@@ -2104,6 +2117,12 @@ const I18N = {
     screenApply: "Apply",
     screenCancel: "Cancel",
     screenUnsaved: "Unsaved changes",
+    connectionLabel: "Connection",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Save and restart",
+    connectionConfirm1: "Only for a Waveshare ESP32-S3-ETH. Wi-Fi will be turned off and GPIO 9–14 will be driven; on another board these pins may be used for something else. If the cable gets no address within 20 seconds, the Open-Firenet-Setup hotspot opens so you can switch back.",
+    connectionConfirm2: "Last confirmation: are you sure this bridge is a Waveshare ESP32-S3-ETH?",
     screenBoardTitle: "Hardware",
     screenBoardLabel: "Board with a screen:",
     screenBoardNone: "None",
@@ -2460,6 +2479,12 @@ const I18N = {
     "screenApply": "Applica",
     "screenCancel": "Annulla",
     "screenUnsaved": "Modifiche non salvate",
+    connectionLabel: "Connessione",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Salva e riavvia",
+    connectionConfirm1: "Solo per una Waveshare ESP32-S3-ETH. Il Wi-Fi verrà disattivato e verranno utilizzati i GPIO 9–14; su un’altra scheda questi pin potrebbero servire ad altro. Se la connessione via cavo non riceve un indirizzo entro 20 secondi, si apre l’hotspot Open-Firenet-Setup per consentire di tornare al Wi-Fi.",
+    connectionConfirm2: "Ultima conferma: sei sicuro che questo bridge sia una Waveshare ESP32-S3-ETH?",
     "screenBoardTitle": "Hardware",
     "screenBoardLabel": "Scheda con schermo:",
     "screenBoardNone": "Nessuna",
@@ -2876,6 +2901,12 @@ const I18N = {
     screenApply: "Übernehmen",
     screenCancel: "Abbrechen",
     screenUnsaved: "Nicht gespeicherte Änderungen",
+    connectionLabel: "Verbindung",
+    connectionWifi: "WLAN",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Speichern und neu starten",
+    connectionConfirm1: "Nur für eine Waveshare ESP32-S3-ETH. WLAN wird ausgeschaltet und GPIO 9–14 werden angesteuert; auf einer anderen Platine können diese Pins anderweitig belegt sein. Wenn die Kabelverbindung innerhalb von 20 Sekunden keine IP-Adresse erhält, öffnet sich der Hotspot Open-Firenet-Setup, damit Sie wieder auf WLAN umstellen können.",
+    connectionConfirm2: "Letzte Bestätigung: Sind Sie sicher, dass diese Bridge eine Waveshare ESP32-S3-ETH ist?",
     screenBoardTitle: "Hardware",
     screenBoardLabel: "Platine mit Display:",
     screenBoardNone: "Keine",
@@ -3232,6 +3263,12 @@ const I18N = {
     screenApply: "Aplicar",
     screenCancel: "Cancelar",
     screenUnsaved: "Cambios no guardados",
+    connectionLabel: "Conexión",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Guardar y reiniciar",
+    connectionConfirm1: "Solo para una Waveshare ESP32-S3-ETH. Se desactivará el Wi-Fi y se utilizarán los GPIO 9–14; en otra placa, estos pines podrían servir para otra cosa. Si la conexión por cable no recibe una dirección en 20 segundos, se abrirá el punto de acceso Open-Firenet-Setup para que pueda volver al Wi-Fi.",
+    connectionConfirm2: "Última confirmación: ¿está seguro de que este puente es una Waveshare ESP32-S3-ETH?",
     screenBoardTitle: "Material",
     screenBoardLabel: "Placa con pantalla:",
     screenBoardNone: "Ninguna",
@@ -3648,7 +3685,12 @@ function applyLang() {
   setLbl('btnLogDownload', t.logDownload);
   document.getElementById('btnLogClear').textContent = t.logClear;
   setLbl('btnRestart', t.btnRestart);
-  setLbl('btnEthernetApply', t.btnRestart);
+  document.getElementById('lblConnection').textContent = t.connectionLabel;
+  document.getElementById('optConnectionWifi').textContent = t.connectionWifi;
+  document.getElementById('optConnectionEthernet').textContent = t.connectionEthernet;
+  document.getElementById('lblConnectionUnsaved').textContent = t.screenUnsaved;
+  document.getElementById('btnConnectionCancel').textContent = t.screenCancel;
+  document.getElementById('btnConnectionSave').textContent = t.connectionSaveRestart;
   setSensorPlaceholder();
   document.getElementById('thSensorName').textContent = t.thSensorName;
   document.getElementById('thSensorId').textContent = t.thSensorId;
@@ -3843,28 +3885,56 @@ async function fetchLogs() {
 }
 function clearLog() { document.getElementById('logConsole').innerHTML = '(effacé, en attente…)'; }
 // --- Ethernet settings (begin)
-let ethernetLoaded = false;
+let ethernetBoard = null, ethernetSaving = false;
+function updateEthernetDirty() {
+  const dirty = ethernetBoard !== null && document.getElementById('ethernetBoard').value !== ethernetBoard;
+  document.getElementById('lblConnectionUnsaved').hidden = !dirty;
+  document.getElementById('btnConnectionCancel').disabled = !dirty || ethernetSaving;
+  document.getElementById('btnConnectionSave').disabled = !dirty || ethernetSaving;
+  document.getElementById('ethernetBoard').disabled = ethernetBoard === null || ethernetSaving;
+}
+function cancelEthernet() {
+  document.getElementById('ethernetBoard').value = ethernetBoard;
+  updateEthernetDirty();
+}
+function renderConnection(ethernet) {
+  for (const id of ['wifiSettings', 'wifiPsCard', 'wifiSignal']) {
+    document.getElementById(id).hidden = ethernet;
+    // These elements use inline flex layouts, which otherwise override the hidden attribute.
+    document.getElementById(id).style.display = ethernet ? 'none' : '';
+  }
+}
 async function loadEthernet() {
-  if (ethernetLoaded) return;
+  if (ethernetBoard !== null) return;
   try {
     const r = await fetch('/api/ethernet');
     if (!r.ok) return;
     const setting = await r.json();
-    document.getElementById('ethernetBoard').value = setting.board;
-    ethernetLoaded = true;
+    ethernetBoard = setting.board;
+    document.getElementById('ethernetBoard').value = ethernetBoard;
+    updateEthernetDirty();
   } catch (e) { /* retry on the next state poll */ }
 }
 async function saveEthernet() {
+  const board = document.getElementById('ethernetBoard').value;
+  if (ethernetBoard === null || board === ethernetBoard || ethernetSaving) return;
   const t = I18N[curLang] || I18N.en;
-  if (!(await askConfirm(t.confirmRestart))) return;
+  ethernetSaving = true;
+  updateEthernetDirty();
   try {
+    if (board !== 'none' && !(await askConfirm(t.connectionConfirm1, { wide: true, danger: true })
+        && await askConfirm(t.connectionConfirm2, { wide: true, danger: true }))) return;
     const r = await fetch('/api/ethernet', {
       method: 'POST',
-      body: new URLSearchParams({ board: document.getElementById('ethernetBoard').value })
+      body: new URLSearchParams({ board })
     });
     if (!r.ok) { toast(t.btnApplyError); return; }
+    const setting = await r.json();
+    if (setting.board !== board) { toast(t.btnApplyError); return; }
+    ethernetBoard = board;
     await restartDongle(true);
   } catch (e) { toast(t.btnApplyError); }
+  finally { ethernetSaving = false; updateEthernetDirty(); }
 }
 // --- Ethernet settings (end)
 async function restartDongle(confirmed) {
@@ -5590,6 +5660,7 @@ async function tick() {
     const s = await res.json();
     lastState = s;
     loadEthernet();
+    renderConnection(s.ethernet_enabled === true);
 
     if (s.wifi_mode === 'AP' && !window.apHandled) {
       window.apHandled = true;

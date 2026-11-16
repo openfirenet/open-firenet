@@ -195,8 +195,8 @@ The firmware can drive the 160x80 screen of the LilyGO T-Dongle-S3 (animated log
 The onboard W5500 is supported through the ESP32 core's Ethernet/lwIP driver. Enable it explicitly;
 other ESP32-S3 boards may use its pins for different peripherals. No additional library is needed.
 
-After flashing this firmware, open Bridge > Network, select **Waveshare ESP32-S3-ETH (W5500)**
-in the Ethernet selector and press the restart button beside it. Or use the current Wi-Fi address:
+After flashing this firmware, open Bridge > Network, select **Ethernet (Waveshare ESP32-S3-ETH)**
+in the Connection selector and press **Save and restart**. Confirm the board type twice. Or use the current Wi-Fi address:
 
 ```sh
 curl -X POST http://open-firenet.local/api/ethernet -d board=waveshare_s3_eth
@@ -216,6 +216,8 @@ reconnected cable can recover without a restart. The board selection persists ac
 that include Ethernet support. Older official firmware does not support this setting.
 
 To return to Wi-Fi, POST `board=none` to `/api/ethernet`, or send `SETETH:none`, then restart.
+Saving Wi-Fi credentials through `/api/wifi` or `SETWIFI` also selects Wi-Fi for the next restart,
+including when provisioning through the installer.
 The existing “forget Wi-Fi” action resets all preferences, including the Ethernet board selection.
 
 Pin mapping: W5500 SCLK=GPIO13, MISO=GPIO12, MOSI=GPIO11, CS=GPIO14, INT=GPIO10, RST=GPIO9.
