@@ -73,7 +73,7 @@ Pour créer et publier une release, lancez simplement le script depuis votre ter
    - Détecte les **Nouvelles fonctionnalités** (`feat:`, branches/PR `feat/*`) $\rightarrow$ incrément **MINOR**
    - Sinon (correctifs `fix:`, `refactor:`, `docs:`, etc.) $\rightarrow$ incrément **PATCH**
 6. Propose le tag calculé avec confirmation interactive (ou saisie d'un tag/type alternatif directement au prompt).
-7. Met à jour `OPENFIRENET_VERSION` dans le firmware et renomme la section `## Non publié` de `CHANGELOG.md` en `## vX.Y.Z (date)`, crée le commit (les deux fichiers) et le tag annoté, puis pousse vers GitHub.
+7. Met à jour `OPENFIRENET_VERSION` dans le firmware et renomme la section `## Unreleased` de `CHANGELOG.md` en `## vX.Y.Z (date)`, crée le commit (les deux fichiers) et le tag annoté, puis pousse vers GitHub.
 8. Le tag déclenche le workflow `release.yml`, qui compile, signe et crée la release GitHub **en brouillon**. Une fois le workflow terminé, ouvrez le brouillon sur GitHub, remplacez le titre et les notes générées automatiquement, puis cliquez sur « Publish release ». Tant qu'elle est en brouillon, la release n'est visible ni par l'installeur ni par l'API « latest release ».
 
 ---

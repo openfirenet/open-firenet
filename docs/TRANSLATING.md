@@ -65,7 +65,7 @@ What to leave as it is:
 
 Keep the texts about as long as the English ones where you can: buttons and tabs have little room, above all on a phone.
 
-Add a line to `CHANGELOG.md` under `## Non publié`, in English, for example
+Add a line to `CHANGELOG.md` under `## Unreleased`, in English, for example
 `- Web page: Italian translation.`
 
 ## The Home Assistant integration

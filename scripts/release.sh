@@ -8,7 +8,7 @@
 # 3. Exécution obligatoire des tests unitaires
 # 4. Calcul automatique SemVer (patch / minor / major)
 # 5. Mise à jour et commit de OPENFIRENET_VERSION dans le firmware, et de la section
-#    "## Non publié" de CHANGELOG.md renommée en "## vX.Y.Z (date)"
+#    "## Unreleased" de CHANGELOG.md renommée en "## vX.Y.Z (date)"
 # 6. Création et push du tag annoté pour déclencher la CI Release
 # ==============================================================================
 
@@ -231,13 +231,13 @@ if [ -f openapi.yaml ]; then
   ok "openapi.yaml synchronisé (${CLEAN_VER})."
 fi
 
-# 10b. Notes de version : la section "## Non publié" de CHANGELOG.md devient celle de la release.
+# 10b. Notes de version : la section "## Unreleased" de CHANGELOG.md devient celle de la release.
 # La section suivante est recréée par le premier feat/fix qui y ajoute une entrée.
-if [ -f CHANGELOG.md ] && grep -q "^## Non publié$" CHANGELOG.md; then
-  sed -i "s/^## Non publié$/## ${NEW_TAG} ($(date +%F))/" CHANGELOG.md
-  ok "CHANGELOG.md : section \"Non publié\" renommée en ${NEW_TAG}."
+if [ -f CHANGELOG.md ] && grep -q "^## Unreleased$" CHANGELOG.md; then
+  sed -i "s/^## Unreleased$/## ${NEW_TAG} ($(date +%F))/" CHANGELOG.md
+  ok "CHANGELOG.md : section \"Unreleased\" renommée en ${NEW_TAG}."
 else
-  warn "CHANGELOG.md sans section \"## Non publié\" : aucune note de version pour ${NEW_TAG}."
+  warn "CHANGELOG.md sans section \"## Unreleased\" : aucune note de version pour ${NEW_TAG}."
 fi
 
 # 11. Commit automatique de la version
