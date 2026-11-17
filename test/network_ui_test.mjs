@@ -12,7 +12,7 @@ let restarts = 0, errors = 0, fail = true, throws = false, mismatched = false;
 let answers = [], questions = [];
 const calls = [];
 const nodes = Object.fromEntries(['ethernetBoard', 'lblConnectionUnsaved', 'btnConnectionSave',
-  'btnConnectionCancel', 'wifiSettings', 'wifiPsCard', 'wifiSignal'].map(id => [id, { value: 'none', style: {} }]));
+  'btnConnectionCancel', 'connectionSaveRow', 'wifiSettings', 'wifiPsCard', 'wifiSignal'].map(id => [id, { value: 'none', style: {} }]));
 const select = nodes.ethernetBoard;
 let stored = 'none';
 const ui = new Function(
@@ -39,12 +39,14 @@ fail = false;
 await ui.loadEthernet();
 assert(!select.disabled);
 assert(nodes.btnConnectionSave.disabled && nodes.lblConnectionUnsaved.hidden);
+assert.equal(nodes.connectionSaveRow.style.display, 'none'); // The save bar only shows after a change.
 await ui.saveEthernet(); // No changes: no request or restart.
 assert.equal(calls.length, 2);
 select.value = 'waveshare_s3_eth';
 ui.updateEthernetDirty();
 assert(!nodes.btnConnectionSave.disabled && !nodes.btnConnectionCancel.disabled);
 assert(!nodes.lblConnectionUnsaved.hidden);
+assert.equal(nodes.connectionSaveRow.style.display, 'flex');
 await ui.loadEthernet(); // Polls preserve unsaved choices.
 assert.equal(calls.length, 2);
 ui.cancelEthernet();
@@ -99,7 +101,7 @@ for (const ethernet of [true, false]) {
 }
 assert(html.includes('renderConnection(s.ethernet_enabled === true)'));
 for (const lang of Object.values(I18N)) {
-  for (const key of ['connectionLabel', 'connectionWifi', 'connectionEthernet', 'connectionSaveRestart',
+  for (const key of ['connectionLabel', 'connectionWifi', 'connectionEthernet', 'btnSaveWifi',
     'connectionConfirm1', 'connectionConfirm2']) assert(lang[key]);
 }
 console.log('Ethernet UI tests passed');

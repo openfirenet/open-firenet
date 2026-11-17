@@ -1,9 +1,12 @@
 # Changelog
 
-## Non publié
+## Unreleased
 
 ### New
-- Wired Ethernet support for the Waveshare ESP32-S3-ETH (W5500), with a translated Connection selector, save/cancel controls and hardware confirmations. Ethernet mode hides Wi-Fi settings and opens a recovery hotspot after 20 seconds without an address. Saving Wi-Fi credentials through the API or installer switches back to Wi-Fi. The MQTT status "waiting for Wi-Fi" is now "waiting for network".
+- Wired Ethernet on the Waveshare ESP32-S3-ETH board. In Bridge > Network, the Connection setting chooses between Wi-Fi and Ethernet, with "Save & Reboot" and a double confirmation, as it is only meant for that board. In Ethernet mode the Wi-Fi settings are hidden; if the cable gets no address within 20 seconds, the Open-Firenet-Setup hotspot opens so you can switch back. Saving a Wi-Fi network from the page or the installer switches back to Wi-Fi. By @blegat. (#154)
+
+### Changes
+- MQTT: the status "waiting for Wi-Fi" is now "waiting for network". By @blegat. (#154)
 
 ## v5.1.0 (2026-11-15)
 
