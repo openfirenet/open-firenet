@@ -12,7 +12,10 @@ g++ -std=c++17 -Wall -I"$ROOT/open-firenet" -I"$ROOT" "$HERE/web_guard_test.cpp"
 g++ -std=c++17 -Wall -I"$ROOT/open-firenet" -I"$ROOT" "$HERE/update_verify_test.cpp"    -o /tmp/firenet_update_verify_test && /tmp/firenet_update_verify_test
 g++ -std=c++17 -Wall -I"$ROOT/open-firenet" -I"$ROOT" "$HERE/display_config_test.cpp"    -o /tmp/firenet_display_config_test && /tmp/firenet_display_config_test
 g++ -std=c++17 -Wall -I"$ROOT/open-firenet" -I"$ROOT" "$HERE/crash_test.cpp"          -o /tmp/firenet_crash_test && /tmp/firenet_crash_test
+g++ -std=c++17 -Wall -Wextra -I"$HERE/network_stubs" -I"$ROOT/open-firenet" "$HERE/network_test.cpp" -o /tmp/firenet_network_test && /tmp/firenet_network_test
 python3 "$HERE/test_stove_sim.py"
 python3 "$HERE/openapi_test.py"
 node "$HERE/i18n_test.mjs"
 node "$HERE/diag_file_test.mjs"
+node "$HERE/network_ui_test.mjs"
+python3 "$HERE/wifi_provisioning_test.py"

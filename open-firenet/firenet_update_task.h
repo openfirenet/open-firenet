@@ -5,6 +5,7 @@
 // is installed unless the stove is switched off. Everything runs in its own task; the public methods return at once.
 #pragma once
 #include <Arduino.h>
+#include "firenet_network.h"
 #include <HTTPClient.h>
 #include <NetworkClientSecure.h>
 #include <Preferences.h>
@@ -116,7 +117,7 @@ public:
     lock(); bool due = autoCheck_ && state_ != State::Checking && state_ != State::Downloading && state_ != State::Verifying
                        && state_ != State::Installing && state_ != State::Restarting;
     uint8_t hours = checkHours_; unlock();
-    if (!due || WiFi.status() != WL_CONNECTED || (int32_t)(millis() - nextAutoMs_) < 0) return;
+    if (!due || !networkConnected() || (int32_t)(millis() - nextAutoMs_) < 0) return;
     nextAutoMs_ = millis() + (uint32_t)hours * 3600000UL;   // one attempt per interval, success or not
     start(Job::Check);
   }

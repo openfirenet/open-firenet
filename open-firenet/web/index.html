@@ -726,6 +726,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
 #screenBright::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #f97316; border: 3px solid #f1f5f9; box-shadow: 0 0 8px rgba(249,115,22,0.6); }
 #screenBright:focus-visible { box-shadow: 0 0 0 3px rgba(249,115,22,0.35); }
 /* Screen off: the whole configuration stays visible but cannot be changed */
+.scr-savebar button:disabled { opacity: 0.4; filter: grayscale(1); cursor: default; }
 .scr-disabled { opacity: 0.45; pointer-events: none; }
 .scr-savebar { display: none; position: sticky; bottom: 8px; z-index: 5; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; padding: 10px 14px; border: 1px solid var(--amber); border-radius: 12px; background: #11151f; box-shadow: 0 4px 16px rgba(0,0,0,0.45); }
 /* Screen tab: one card per screen of the key's display, drawn as the key draws it */
@@ -1242,11 +1243,24 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
     <div class="bridge-panel" id="bridge-net">
     <div class="card" style="gap:16px">
       <h3 id="lblNetTitle">Configuration Réseau</h3>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label for="ethernetBoard" id="lblConnection">Connexion</label>
+        <select class="input-text" id="ethernetBoard" onchange="updateEthernetDirty()" disabled>
+          <option value="none" id="optConnectionWifi">Wi-Fi</option>
+          <option value="waveshare_s3_eth" id="optConnectionEthernet">Ethernet (Waveshare ESP32-S3-ETH)</option>
+        </select>
+      </div>
+      <div class="scr-savebar" id="connectionSaveRow" style="display:flex;justify-content:flex-end">
+        <span id="lblConnectionUnsaved" style="color:var(--amber);margin-right:auto" hidden></span>
+        <button type="button" class="btn-lang" id="btnConnectionCancel" style="padding:6px 12px;font-size:0.85rem" onclick="cancelEthernet()" disabled></button>
+        <button type="button" class="power-btn" id="btnConnectionSave" style="padding:6px 16px;font-size:0.85rem" onclick="saveEthernet()" disabled></button>
+      </div>
       <div style="display:flex;justify-content:space-between;color:var(--text-dim);font-size:0.9rem;flex-wrap:wrap;gap:8px">
         <span><span id="lblNetModePrefix">Mode : </span><b id="netMode">--</b></span>
         <span>IP : <b id="netIp">--</b></span>
-        <span><span id="lblNetRssiPrefix">Signal RSSI : </span><b id="netRssi">--</b> dBm</span>
+        <span id="wifiSignal"><span id="lblNetRssiPrefix">Signal RSSI : </span><b id="netRssi">--</b> dBm</span>
       </div>
+      <div id="wifiSettings">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <label id="lblJoinWifi" style="font-size:0.9rem;font-weight:600">Rejoindre un réseau WiFi (2.4 GHz) :</label>
         <button class="btn-lang" id="btnScan" style="padding:4px 10px;font-size:0.8rem" onclick="scanWifi()"><span class="ic-slot" data-ic="refresh-cw"></span> <span class="lbl">Scanner</span></button>
@@ -1270,6 +1284,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
         </div>
         <p id="captiveHint" style="font-size:0.8rem;color:var(--text-dim);margin:2px 0 0 0;text-align:center"></p>
       </form>
+      </div>
     </div>
     <div class="card" style="gap:12px" id="wifiPsCard">
       <h3 id="lblWifiPsTitle"></h3>
@@ -1740,6 +1755,12 @@ const I18N = {
     screenApply: "Valider",
     screenCancel: "Annuler",
     screenUnsaved: "Modifications non enregistrées",
+    connectionLabel: "Connexion",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Enregistrer et redémarrer",
+    connectionConfirm1: "Uniquement pour une Waveshare ESP32-S3-ETH. Le Wi-Fi sera désactivé et les GPIO 9 à 14 seront utilisés ; sur une autre carte, ils peuvent servir à autre chose. Si la connexion filaire ne reçoit pas d’adresse sous 20 secondes, le point d’accès Open-Firenet-Setup s’ouvre pour vous permettre de revenir au Wi-Fi.",
+    connectionConfirm2: "Dernière confirmation : êtes-vous certain que cette clé est une Waveshare ESP32-S3-ETH ?",
     screenBoardTitle: "Matériel",
     screenBoardLabel: "Carte avec écran :",
     screenBoardNone: "Aucun",
@@ -1842,7 +1863,7 @@ const I18N = {
     accessSaved: "Enregistré ✓",
     accessError: "Échec de l'enregistrement",
     mqttSaveFailed: "Non enregistré",
-    mqttStatus: { "disabled": "Désactivé", "connected": "Connecté", "connecting": "Connexion…", "waiting for Wi-Fi": "En attente du Wi-Fi", "broker unreachable": "Broker injoignable", "refused: wrong user or password": "Refusé : utilisateur ou mot de passe incorrect", "refused by the broker": "Refusé par le broker", "no answer from the broker": "Le broker ne répond pas", "connection lost": "Connexion perdue", "certificate not trusted": "Certificat non reconnu", "secure connection failed": "Échec de la connexion chiffrée" },
+    mqttStatus: { "disabled": "Désactivé", "connected": "Connecté", "connecting": "Connexion…", "waiting for network": "En attente du réseau", "broker unreachable": "Broker injoignable", "refused: wrong user or password": "Refusé : utilisateur ou mot de passe incorrect", "refused by the broker": "Refusé par le broker", "no answer from the broker": "Le broker ne répond pas", "connection lost": "Connexion perdue", "certificate not trusted": "Certificat non reconnu", "secure connection failed": "Échec de la connexion chiffrée" },
     netModePrefix: "Mode : ",
     netRssiPrefix: "Signal RSSI : ",
     joinWifi: "Rejoindre un réseau WiFi (2.4 GHz) :",
@@ -2096,6 +2117,12 @@ const I18N = {
     screenApply: "Apply",
     screenCancel: "Cancel",
     screenUnsaved: "Unsaved changes",
+    connectionLabel: "Connection",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Save and restart",
+    connectionConfirm1: "Only for a Waveshare ESP32-S3-ETH. Wi-Fi will be turned off and GPIO 9–14 will be driven; on another board these pins may be used for something else. If the cable gets no address within 20 seconds, the Open-Firenet-Setup hotspot opens so you can switch back.",
+    connectionConfirm2: "Last confirmation: are you sure this bridge is a Waveshare ESP32-S3-ETH?",
     screenBoardTitle: "Hardware",
     screenBoardLabel: "Board with a screen:",
     screenBoardNone: "None",
@@ -2198,7 +2225,7 @@ const I18N = {
     accessSaved: "Saved ✓",
     accessError: "Could not save",
     mqttSaveFailed: "Not saved",
-    mqttStatus: { "disabled": "Disabled", "connected": "Connected", "connecting": "Connecting…", "waiting for Wi-Fi": "Waiting for Wi-Fi", "broker unreachable": "Broker unreachable", "refused: wrong user or password": "Refused: wrong user or password", "refused by the broker": "Refused by the broker", "no answer from the broker": "No answer from the broker", "connection lost": "Connection lost", "certificate not trusted": "Certificate not trusted", "secure connection failed": "Secure connection failed" },
+    mqttStatus: { "disabled": "Disabled", "connected": "Connected", "connecting": "Connecting…", "waiting for network": "Waiting for network", "broker unreachable": "Broker unreachable", "refused: wrong user or password": "Refused: wrong user or password", "refused by the broker": "Refused by the broker", "no answer from the broker": "No answer from the broker", "connection lost": "Connection lost", "certificate not trusted": "Certificate not trusted", "secure connection failed": "Secure connection failed" },
     netModePrefix: "Mode: ",
     netRssiPrefix: "RSSI Signal: ",
     joinWifi: "Join a WiFi network (2.4 GHz):",
@@ -2452,6 +2479,12 @@ const I18N = {
     "screenApply": "Applica",
     "screenCancel": "Annulla",
     "screenUnsaved": "Modifiche non salvate",
+    connectionLabel: "Connessione",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Salva e riavvia",
+    connectionConfirm1: "Solo per una Waveshare ESP32-S3-ETH. Il Wi-Fi verrà disattivato e verranno utilizzati i GPIO 9–14; su un’altra scheda questi pin potrebbero servire ad altro. Se la connessione via cavo non riceve un indirizzo entro 20 secondi, si apre l’hotspot Open-Firenet-Setup per consentire di tornare al Wi-Fi.",
+    connectionConfirm2: "Ultima conferma: sei sicuro che questo bridge sia una Waveshare ESP32-S3-ETH?",
     "screenBoardTitle": "Hardware",
     "screenBoardLabel": "Scheda con schermo:",
     "screenBoardNone": "Nessuna",
@@ -2566,7 +2599,7 @@ const I18N = {
       "disabled": "Disabilitato",
       "connected": "Connesso",
       "connecting": "Connessione…",
-      "waiting for Wi-Fi": "In attesa del Wi-Fi",
+      "waiting for network": "In attesa della rete",
       "broker unreachable": "Broker non raggiungibile",
       "refused: wrong user or password": "Rifiutata: utente o password errati",
       "refused by the broker": "Rifiutata dal broker",
@@ -2868,6 +2901,12 @@ const I18N = {
     screenApply: "Übernehmen",
     screenCancel: "Abbrechen",
     screenUnsaved: "Nicht gespeicherte Änderungen",
+    connectionLabel: "Verbindung",
+    connectionWifi: "WLAN",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Speichern und neu starten",
+    connectionConfirm1: "Nur für eine Waveshare ESP32-S3-ETH. WLAN wird ausgeschaltet und GPIO 9–14 werden angesteuert; auf einer anderen Platine können diese Pins anderweitig belegt sein. Wenn die Kabelverbindung innerhalb von 20 Sekunden keine IP-Adresse erhält, öffnet sich der Hotspot Open-Firenet-Setup, damit Sie wieder auf WLAN umstellen können.",
+    connectionConfirm2: "Letzte Bestätigung: Sind Sie sicher, dass diese Bridge eine Waveshare ESP32-S3-ETH ist?",
     screenBoardTitle: "Hardware",
     screenBoardLabel: "Platine mit Display:",
     screenBoardNone: "Keine",
@@ -2970,7 +3009,7 @@ const I18N = {
     accessSaved: "Gespeichert ✓",
     accessError: "Speichern fehlgeschlagen",
     mqttSaveFailed: "Nicht gespeichert",
-    mqttStatus: { "disabled": "Deaktiviert", "connected": "Verbunden", "connecting": "Verbinde…", "waiting for Wi-Fi": "Warte auf WLAN", "broker unreachable": "Broker nicht erreichbar", "refused: wrong user or password": "Abgelehnt: Benutzer oder Passwort falsch", "refused by the broker": "Vom Broker abgelehnt", "no answer from the broker": "Keine Antwort vom Broker", "connection lost": "Verbindung verloren", "certificate not trusted": "Zertifikat nicht vertrauenswürdig", "secure connection failed": "Verschlüsselte Verbindung fehlgeschlagen" },
+    mqttStatus: { "disabled": "Deaktiviert", "connected": "Verbunden", "connecting": "Verbinde…", "waiting for network": "Warte auf Netzwerk", "broker unreachable": "Broker nicht erreichbar", "refused: wrong user or password": "Abgelehnt: Benutzer oder Passwort falsch", "refused by the broker": "Vom Broker abgelehnt", "no answer from the broker": "Keine Antwort vom Broker", "connection lost": "Verbindung verloren", "certificate not trusted": "Zertifikat nicht vertrauenswürdig", "secure connection failed": "Verschlüsselte Verbindung fehlgeschlagen" },
     netModePrefix: "Modus: ",
     netRssiPrefix: "RSSI Signal: ",
     joinWifi: "WLAN-Netzwerk beitreten (2,4 GHz):",
@@ -3224,6 +3263,12 @@ const I18N = {
     screenApply: "Aplicar",
     screenCancel: "Cancelar",
     screenUnsaved: "Cambios no guardados",
+    connectionLabel: "Conexión",
+    connectionWifi: "Wi-Fi",
+    connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
+    connectionSaveRestart: "Guardar y reiniciar",
+    connectionConfirm1: "Solo para una Waveshare ESP32-S3-ETH. Se desactivará el Wi-Fi y se utilizarán los GPIO 9–14; en otra placa, estos pines podrían servir para otra cosa. Si la conexión por cable no recibe una dirección en 20 segundos, se abrirá el punto de acceso Open-Firenet-Setup para que pueda volver al Wi-Fi.",
+    connectionConfirm2: "Última confirmación: ¿está seguro de que este puente es una Waveshare ESP32-S3-ETH?",
     screenBoardTitle: "Material",
     screenBoardLabel: "Placa con pantalla:",
     screenBoardNone: "Ninguna",
@@ -3326,7 +3371,7 @@ const I18N = {
     accessSaved: "Guardado ✓",
     accessError: "No se pudo guardar",
     mqttSaveFailed: "No guardado",
-    mqttStatus: { "disabled": "Desactivado", "connected": "Conectado", "connecting": "Conectando…", "waiting for Wi-Fi": "Esperando Wi-Fi", "broker unreachable": "Broker inalcanzable", "refused: wrong user or password": "Rechazado: usuario o contraseña incorrectos", "refused by the broker": "Rechazado por el broker", "no answer from the broker": "Sin respuesta del broker", "connection lost": "Conexión perdida", "certificate not trusted": "Certificado no confiable", "secure connection failed": "Fallo en la conexión segura" },
+    mqttStatus: { "disabled": "Desactivado", "connected": "Conectado", "connecting": "Conectando…", "waiting for network": "Esperando la red", "broker unreachable": "Broker inalcanzable", "refused: wrong user or password": "Rechazado: usuario o contraseña incorrectos", "refused by the broker": "Rechazado por el broker", "no answer from the broker": "Sin respuesta del broker", "connection lost": "Conexión perdida", "certificate not trusted": "Certificado no confiable", "secure connection failed": "Fallo en la conexión segura" },
     netModePrefix: "Mode: ",
     netRssiPrefix: "Señal RSSI: ",
     joinWifi: "Conéctese a una red WiFi (2.4 GHz):",
@@ -3640,6 +3685,12 @@ function applyLang() {
   setLbl('btnLogDownload', t.logDownload);
   document.getElementById('btnLogClear').textContent = t.logClear;
   setLbl('btnRestart', t.btnRestart);
+  document.getElementById('lblConnection').textContent = t.connectionLabel;
+  document.getElementById('optConnectionWifi').textContent = t.connectionWifi;
+  document.getElementById('optConnectionEthernet').textContent = t.connectionEthernet;
+  document.getElementById('lblConnectionUnsaved').textContent = t.screenUnsaved;
+  document.getElementById('btnConnectionCancel').textContent = t.screenCancel;
+  document.getElementById('btnConnectionSave').textContent = t.connectionSaveRestart;
   setSensorPlaceholder();
   document.getElementById('thSensorName').textContent = t.thSensorName;
   document.getElementById('thSensorId').textContent = t.thSensorId;
@@ -3833,6 +3884,59 @@ async function fetchLogs() {
   } catch (e) { /* silencieux */ }
 }
 function clearLog() { document.getElementById('logConsole').innerHTML = '(effacé, en attente…)'; }
+// --- Ethernet settings (begin)
+let ethernetBoard = null, ethernetSaving = false;
+function updateEthernetDirty() {
+  const dirty = ethernetBoard !== null && document.getElementById('ethernetBoard').value !== ethernetBoard;
+  document.getElementById('lblConnectionUnsaved').hidden = !dirty;
+  document.getElementById('btnConnectionCancel').disabled = !dirty || ethernetSaving;
+  document.getElementById('btnConnectionSave').disabled = !dirty || ethernetSaving;
+  document.getElementById('ethernetBoard').disabled = ethernetBoard === null || ethernetSaving;
+}
+function cancelEthernet() {
+  document.getElementById('ethernetBoard').value = ethernetBoard;
+  updateEthernetDirty();
+}
+function renderConnection(ethernet) {
+  for (const id of ['wifiSettings', 'wifiPsCard', 'wifiSignal']) {
+    document.getElementById(id).hidden = ethernet;
+    // These elements use inline flex layouts, which otherwise override the hidden attribute.
+    document.getElementById(id).style.display = ethernet ? 'none' : '';
+  }
+}
+async function loadEthernet() {
+  if (ethernetBoard !== null) return;
+  try {
+    const r = await fetch('/api/ethernet');
+    if (!r.ok) return;
+    const setting = await r.json();
+    ethernetBoard = setting.board;
+    document.getElementById('ethernetBoard').value = ethernetBoard;
+    updateEthernetDirty();
+  } catch (e) { /* retry on the next state poll */ }
+}
+async function saveEthernet() {
+  const board = document.getElementById('ethernetBoard').value;
+  if (ethernetBoard === null || board === ethernetBoard || ethernetSaving) return;
+  const t = I18N[curLang] || I18N.en;
+  ethernetSaving = true;
+  updateEthernetDirty();
+  try {
+    if (board !== 'none' && !(await askConfirm(t.connectionConfirm1, { wide: true, danger: true })
+        && await askConfirm(t.connectionConfirm2, { wide: true, danger: true }))) return;
+    const r = await fetch('/api/ethernet', {
+      method: 'POST',
+      body: new URLSearchParams({ board })
+    });
+    if (!r.ok) { toast(t.btnApplyError); return; }
+    const setting = await r.json();
+    if (setting.board !== board) { toast(t.btnApplyError); return; }
+    ethernetBoard = board;
+    await restartDongle(true);
+  } catch (e) { toast(t.btnApplyError); }
+  finally { ethernetSaving = false; updateEthernetDirty(); }
+}
+// --- Ethernet settings (end)
 async function restartDongle(confirmed) {
   if (!confirmed && !(await askConfirm(I18N[curLang].confirmRestart))) return;
   try { await fetch('/api/restart', {method: 'POST'}); } catch (e) { /* la carte redémarre */ }
@@ -5555,6 +5659,8 @@ async function tick() {
     if (res.status === 403) { showRefused(await res.json()); return; }
     const s = await res.json();
     lastState = s;
+    loadEthernet();
+    renderConnection(s.ethernet_enabled === true);
 
     if (s.wifi_mode === 'AP' && !window.apHandled) {
       window.apHandled = true;
@@ -5868,13 +5974,13 @@ async function tick() {
 
     syncApplyButtons(!userInteracting);
 
-    document.getElementById('netMode').textContent = s.wifi_mode;
+    document.getElementById('netMode').textContent = s.network_mode || s.wifi_mode;
     // The hint about the captive portal only makes sense while the bridge runs its own setup network. It is shown
     // until the bridge says it is on the home network: in a captive portal the page may get no state at all.
-    document.getElementById('captiveHint').style.display = (s.wifi_mode === 'STA') ? 'none' : '';
+    document.getElementById('captiveHint').style.display = (s.wifi_mode !== 'AP') ? 'none' : '';
     document.getElementById('netIp').textContent = s.ip;
     const rssiVal = (s.device && s.device.wifi_rssi !== undefined) ? s.device.wifi_rssi : (rawS.rssi || '--');
-    document.getElementById('netRssi').textContent = rssiVal;
+    document.getElementById('netRssi').textContent = s.network_mode === 'ETH' ? '--' : rssiVal;
 
     // CDC Link
     document.getElementById('cdcRev').textContent = s.revision;

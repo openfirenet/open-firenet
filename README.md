@@ -190,6 +190,40 @@ The firmware can drive the 160x80 screen of the LilyGO T-Dongle-S3 (animated log
 
 ---
 
+## Wired Ethernet (Waveshare ESP32-S3-ETH)
+
+The onboard W5500 is supported through the ESP32 core's Ethernet/lwIP driver. Enable it explicitly;
+other ESP32-S3 boards may use its pins for different peripherals. No additional library is needed.
+
+After flashing this firmware, open Bridge > Network, select **Ethernet (Waveshare ESP32-S3-ETH)**
+in the Connection selector and press **Save and restart**. Confirm the board type twice. Or use the current Wi-Fi address:
+
+```sh
+curl -X POST http://open-firenet.local/api/ethernet -d board=waveshare_s3_eth
+curl -X POST http://open-firenet.local/api/restart
+```
+
+Alternatively, send `SETETH:waveshare_s3_eth` at 115200 baud over serial, then restart.
+Connect the RJ45 port to your LAN; the bridge obtains its address through DHCP. The web interface,
+REST API, MQTT, mDNS and OTA use the wired interface. Bridge > Network reports `ETH` when connected;
+`/api/state` exposes `network_mode` and `ethernet_connected`. The factory Wi-Fi MAC remains the stable
+bridge identifier used by the installer and MQTT; the Ethernet interface has its own MAC address.
+
+Ethernet mode disables the Wi-Fi station, retaining its saved credentials. After 20 seconds without a
+wired IP address (including after unplugging the cable), `Open-Firenet-Setup` opens for recovery.
+It closes automatically when Ethernet obtains an address. The Ethernet driver keeps running so a
+reconnected cable can recover without a restart. The board selection persists across firmware updates
+that include Ethernet support. Older official firmware does not support this setting.
+
+To return to Wi-Fi, POST `board=none` to `/api/ethernet`, or send `SETETH:none`, then restart.
+Saving Wi-Fi credentials through `/api/wifi` or `SETWIFI` also selects Wi-Fi for the next restart,
+including when provisioning through the installer.
+The existing “forget Wi-Fi” action resets all preferences, including the Ethernet board selection.
+
+Pin mapping: W5500 SCLK=GPIO13, MISO=GPIO12, MOSI=GPIO11, CS=GPIO14, INT=GPIO10, RST=GPIO9.
+See [Waveshare's board documentation](https://docs.waveshare.com/ESP32-S3-ETH/Development-Environment-Setup-Arduino#10_eth_dhcp).
+Display profiles are inactive in Ethernet mode because their pins can overlap the W5500's pins.
+
 ## Web interface
 
 Once connected, open **`http://open-firenet.local`** in any web browser (or use the device IP assigned by your router).

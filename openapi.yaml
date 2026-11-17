@@ -41,6 +41,37 @@ tags:
     description: Settings and maintenance of the bridge itself
   - name: Diagnostics
 paths:
+  /api/ethernet:
+    get:
+      tags: [Bridge]
+      summary: Ethernet board setting
+      responses:
+        "200":
+          description: Saved board and whether a restart is needed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ethernet" }
+    post:
+      tags: [Bridge]
+      summary: Choose the Ethernet board, applied after restart
+      description: Explicit opt-in before driving the W5500 pins. Wi-Fi station is disabled in Ethernet mode; the setup hotspot opens after 20 seconds without wired connectivity. Saved Wi-Fi credentials are retained.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [board]
+              properties:
+                board: { type: string, enum: [none, waveshare_s3_eth] }
+      responses:
+        "200":
+          description: Saved setting
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ethernet" }
+        "400":
+          description: Unknown or missing board
   /api/state:
     get:
       tags: [Stove]
@@ -223,7 +254,7 @@ paths:
     post:
       tags: [Bridge]
       summary: Set the Wi-Fi network, then restart
-      description: Sent by the setup form. Answers an HTML confirmation page (it has to work in captive portal browsers), then the bridge restarts on that network.
+      description: Sent by the setup form. Answers an HTML confirmation page (it has to work in captive portal browsers), then the bridge restarts on that network. Saving credentials also selects Wi-Fi instead of Ethernet.
       requestBody:
         required: true
         content:
@@ -577,6 +608,11 @@ components:
         stove_link_losses: { type: integer, description: Times the stove dropped an established link since boot }
         stove_rx_dropped_bytes: { type: integer, description: Bytes sent by the stove that the bridge had no room to receive since boot (0 on a healthy bridge) }
         mqtt_disconnects: { type: integer, description: Connections to the broker lost since boot }
+    Ethernet:
+      type: object
+      properties:
+        board: { type: string, enum: [none, waveshare_s3_eth] }
+        restart_needed: { type: boolean }
     State:
       type: object
       required: [device, stove, sensors, controls, version_ack, usb, raw_sensors]
@@ -585,7 +621,10 @@ components:
         stove: { $ref: "#/components/schemas/Stove" }
         sensors: { $ref: "#/components/schemas/Sensors" }
         controls: { $ref: "#/components/schemas/ControlsState" }
-        wifi_mode: { type: string, enum: [STA, AP], description: "`AP` while the bridge is in setup mode" }
+        wifi_mode: { type: string, enum: [STA, AP, "OFF"], description: "Wi-Fi mode: AP during setup, STA on the home Wi-Fi, OFF in Ethernet mode without the recovery hotspot" }
+        network_mode: { type: string, enum: [STA, AP, ETH, "OFF"], description: "Active network interface; Ethernet takes priority over the recovery hotspot" }
+        ethernet_enabled: { type: boolean, description: "Running in Ethernet mode, including while the recovery hotspot is open" }
+        ethernet_connected: { type: boolean, description: "W5500 has an IP address" }
         wifi_power_saving: { type: boolean, description: "Whether Wi-Fi power saving is on, see `/api/wifi_power_saving`" }
         ip: { type: string }
         wifi_connected: { type: boolean }
@@ -813,7 +852,7 @@ components:
             - disabled
             - connected
             - connecting
-            - waiting for Wi-Fi
+            - waiting for network
             - broker unreachable
             - connection lost
             - certificate not trusted
