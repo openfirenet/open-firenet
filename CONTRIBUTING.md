@@ -26,7 +26,7 @@ In short:
    - after editing `open-firenet/web/index.html`, run `python3 tools/gen_web_ui.py` and commit both files;
    - a change of the REST API goes with its description in `openapi.yaml`;
    - a new text of the web page is added to every language of its `I18N` object.
-5. **Add a line to `CHANGELOG.md`** under `## Non publié`, in English, written for users: what changes for them.
+5. **Add a line to `CHANGELOG.md`** under `## Unreleased`, in English, written for users: what changes for them.
 6. **Open a pull request** whose description starts with `Fixes #42` (or `Refs #42` for a partial change).
 
 Commit messages start with `feat:`, `fix:`, `docs:` or `chore:`, on one line: the release script reads them to choose
