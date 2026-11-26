@@ -9,6 +9,7 @@
 #pragma once
 #include <Arduino.h>
 #include <SPI.h>
+#include <esp_heap_caps.h>
 #include <math.h>
 #include <string.h>
 #include <vector>
@@ -57,8 +58,12 @@ public:
   // Starts the drawing task: it runs on its own at a steady 20 images a second, whatever loop() is busy with.
   void start() {
     if (task_) return;
-    fb_ = (uint16_t*)malloc(W * H * sizeof(uint16_t));
+    // The picture stays in the chip's own RAM: in PSRAM it was rewritten and read back 20 times a second, which kept the
+    // PSRAM bus busy and warmed the chip by about 15 degrees (T-Dongle-S3 Plus, measured on a stove).
+    fb_ = (uint16_t*)heap_caps_malloc(W * H * sizeof(uint16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (!fb_) fb_ = (uint16_t*)malloc(W * H * sizeof(uint16_t));
     if (!fb_) return;
+    pushedHash_ = 0; pushedAt_ = 0;
     // Core 0 (Wi-Fi) at the lowest priority above idle, never on the core of loop(): with a higher priority on loop()'s core the
     // stove link was starved (no consumption values after 6 minutes, seen on a stove), at the cost of a screen that may lag.
     xTaskCreatePinnedToCore(&Display::run, "fn_display", 6144, this, 1, &task_, 0);
@@ -178,6 +183,16 @@ private:
     spi_.writePixels(fb_, W * H * sizeof(uint16_t));        // swaps each pixel to high byte first
     digitalWrite(pins_.cs, HIGH);
     spi_.endTransaction();
+  }
+
+  // Sends the frame only when it differs from the last one sent, and at least every few seconds so that a panel that
+  // missed a frame catches up. A still screen then costs almost nothing.
+  void pushIfChanged(uint32_t now) {
+    uint32_t h = 2166136261u;                                // FNV-1a over the pixels
+    for (int i = 0; i < W * H; i++) { h ^= fb_[i]; h *= 16777619u; }
+    if (h == pushedHash_ && now - pushedAt_ < REPUSH_MS) return;
+    push();
+    pushedHash_ = h; pushedAt_ = now;
   }
 
   void begin() {
@@ -511,12 +526,14 @@ private:
           }
         }
       }
-      push();
+      pushIfChanged(now);
       vTaskDelayUntil(&wake, pdMS_TO_TICKS(FRAME_MS));
     }
   }
 
   SPIClass spi_{FSPI};
+  uint32_t pushedHash_ = 0, pushedAt_ = 0;                  // last frame sent to the panel, see pushIfChanged()
+  static constexpr uint32_t REPUSH_MS = 5000;
   uint16_t* fb_ = nullptr;                                  // allocated when the display starts: a board without one pays nothing
   TaskHandle_t task_ = nullptr;
   volatile bool stopReq_ = false;
