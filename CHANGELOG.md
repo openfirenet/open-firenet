@@ -8,6 +8,9 @@
 ### Changes
 - MQTT: the status "waiting for Wi-Fi" is now "waiting for network". By @blegat. (#154)
 
+### Fixes
+- Bridges with PSRAM and a screen (seen on the LilyGO T-Dongle-S3 Plus): with the screen on, the board ran about 15 °C hotter than with it off, and one watchdog restart was seen. The screen picture now stays in the chip's own memory and is sent to the screen only when it changes. By @openfirenet.
+
 ## v5.1.0 (2026-11-15)
 
 ### New
