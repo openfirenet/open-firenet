@@ -1250,7 +1250,7 @@ input:checked + .slider-switch:before { transform: translateX(20px); background-
           <option value="waveshare_s3_eth" id="optConnectionEthernet">Ethernet (Waveshare ESP32-S3-ETH)</option>
         </select>
       </div>
-      <div class="scr-savebar" id="connectionSaveRow" style="display:flex;justify-content:flex-end">
+      <div class="scr-savebar" id="connectionSaveRow" style="justify-content:flex-end">
         <span id="lblConnectionUnsaved" style="color:var(--amber);margin-right:auto" hidden></span>
         <button type="button" class="btn-lang" id="btnConnectionCancel" style="padding:6px 12px;font-size:0.85rem" onclick="cancelEthernet()" disabled></button>
         <button type="button" class="power-btn" id="btnConnectionSave" style="padding:6px 16px;font-size:0.85rem" onclick="saveEthernet()" disabled></button>
@@ -1758,7 +1758,6 @@ const I18N = {
     connectionLabel: "Connexion",
     connectionWifi: "Wi-Fi",
     connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
-    connectionSaveRestart: "Enregistrer et redémarrer",
     connectionConfirm1: "Uniquement pour une Waveshare ESP32-S3-ETH. Le Wi-Fi sera désactivé et les GPIO 9 à 14 seront utilisés ; sur une autre carte, ils peuvent servir à autre chose. Si la connexion filaire ne reçoit pas d’adresse sous 20 secondes, le point d’accès Open-Firenet-Setup s’ouvre pour vous permettre de revenir au Wi-Fi.",
     connectionConfirm2: "Dernière confirmation : êtes-vous certain que cette clé est une Waveshare ESP32-S3-ETH ?",
     screenBoardTitle: "Matériel",
@@ -2120,7 +2119,6 @@ const I18N = {
     connectionLabel: "Connection",
     connectionWifi: "Wi-Fi",
     connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
-    connectionSaveRestart: "Save and restart",
     connectionConfirm1: "Only for a Waveshare ESP32-S3-ETH. Wi-Fi will be turned off and GPIO 9–14 will be driven; on another board these pins may be used for something else. If the cable gets no address within 20 seconds, the Open-Firenet-Setup hotspot opens so you can switch back.",
     connectionConfirm2: "Last confirmation: are you sure this bridge is a Waveshare ESP32-S3-ETH?",
     screenBoardTitle: "Hardware",
@@ -2482,7 +2480,6 @@ const I18N = {
     connectionLabel: "Connessione",
     connectionWifi: "Wi-Fi",
     connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
-    connectionSaveRestart: "Salva e riavvia",
     connectionConfirm1: "Solo per una Waveshare ESP32-S3-ETH. Il Wi-Fi verrà disattivato e verranno utilizzati i GPIO 9–14; su un’altra scheda questi pin potrebbero servire ad altro. Se la connessione via cavo non riceve un indirizzo entro 20 secondi, si apre l’hotspot Open-Firenet-Setup per consentire di tornare al Wi-Fi.",
     connectionConfirm2: "Ultima conferma: sei sicuro che questo bridge sia una Waveshare ESP32-S3-ETH?",
     "screenBoardTitle": "Hardware",
@@ -2904,7 +2901,6 @@ const I18N = {
     connectionLabel: "Verbindung",
     connectionWifi: "WLAN",
     connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
-    connectionSaveRestart: "Speichern und neu starten",
     connectionConfirm1: "Nur für eine Waveshare ESP32-S3-ETH. WLAN wird ausgeschaltet und GPIO 9–14 werden angesteuert; auf einer anderen Platine können diese Pins anderweitig belegt sein. Wenn die Kabelverbindung innerhalb von 20 Sekunden keine IP-Adresse erhält, öffnet sich der Hotspot Open-Firenet-Setup, damit Sie wieder auf WLAN umstellen können.",
     connectionConfirm2: "Letzte Bestätigung: Sind Sie sicher, dass diese Bridge eine Waveshare ESP32-S3-ETH ist?",
     screenBoardTitle: "Hardware",
@@ -3266,9 +3262,8 @@ const I18N = {
     connectionLabel: "Conexión",
     connectionWifi: "Wi-Fi",
     connectionEthernet: "Ethernet (Waveshare ESP32-S3-ETH)",
-    connectionSaveRestart: "Guardar y reiniciar",
     connectionConfirm1: "Solo para una Waveshare ESP32-S3-ETH. Se desactivará el Wi-Fi y se utilizarán los GPIO 9–14; en otra placa, estos pines podrían servir para otra cosa. Si la conexión por cable no recibe una dirección en 20 segundos, se abrirá el punto de acceso Open-Firenet-Setup para que pueda volver al Wi-Fi.",
-    connectionConfirm2: "Última confirmación: ¿está seguro de que este puente es una Waveshare ESP32-S3-ETH?",
+    connectionConfirm2: "Última confirmación: ¿está seguro de que este dongle es una Waveshare ESP32-S3-ETH?",
     screenBoardTitle: "Material",
     screenBoardLabel: "Placa con pantalla:",
     screenBoardNone: "Ninguna",
@@ -3690,7 +3685,7 @@ function applyLang() {
   document.getElementById('optConnectionEthernet').textContent = t.connectionEthernet;
   document.getElementById('lblConnectionUnsaved').textContent = t.screenUnsaved;
   document.getElementById('btnConnectionCancel').textContent = t.screenCancel;
-  document.getElementById('btnConnectionSave').textContent = t.connectionSaveRestart;
+  document.getElementById('btnConnectionSave').textContent = t.btnSaveWifi;
   setSensorPlaceholder();
   document.getElementById('thSensorName').textContent = t.thSensorName;
   document.getElementById('thSensorId').textContent = t.thSensorId;
@@ -3889,6 +3884,8 @@ let ethernetBoard = null, ethernetSaving = false;
 function updateEthernetDirty() {
   const dirty = ethernetBoard !== null && document.getElementById('ethernetBoard').value !== ethernetBoard;
   document.getElementById('lblConnectionUnsaved').hidden = !dirty;
+  // Shown only when the choice changed, like the save bar of the Screen tab.
+  document.getElementById('connectionSaveRow').style.display = dirty || ethernetSaving ? 'flex' : 'none';
   document.getElementById('btnConnectionCancel').disabled = !dirty || ethernetSaving;
   document.getElementById('btnConnectionSave').disabled = !dirty || ethernetSaving;
   document.getElementById('ethernetBoard').disabled = ethernetBoard === null || ethernetSaving;
