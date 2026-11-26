@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v5.2.0 (2026-11-26)
 
 ### New
 - Wired Ethernet on the Waveshare ESP32-S3-ETH board. In Bridge > Network, the Connection setting chooses between Wi-Fi and Ethernet, with "Save & Reboot" and a double confirmation, as it is only meant for that board. In Ethernet mode the Wi-Fi settings are hidden; if the cable gets no address within 20 seconds, the Open-Firenet-Setup hotspot opens so you can switch back. Saving a Wi-Fi network from the page or the installer switches back to Wi-Fi. By @blegat. (#154)

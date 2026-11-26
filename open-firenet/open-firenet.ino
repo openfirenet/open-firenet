@@ -91,7 +91,7 @@ SET_LOOP_TASK_STACK_SIZE(12 * 1024);   // loop() was left with 1.3 kB of its 8 k
 
 // --------------------------------------------------------- version & config USB
 #ifndef OPENFIRENET_VERSION
-#define OPENFIRENET_VERSION "5.1.0"
+#define OPENFIRENET_VERSION "5.2.0"
 #endif
 
 // Identifiants USB Open Firenet
